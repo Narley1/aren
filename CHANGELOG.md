@@ -6,6 +6,86 @@
 - Confirmados: pesos novos das escolhas, nome "Fogo-fátuo" (haverá opção em inglês no futuro), menos corações e cristais depois dos 4:00, serpe-dragão mais rara ao aparecer.
 - Grimório Arcano mais fraco: +8% de dano e recarga 5% menor por nível (era +10% e 7%); no nível 5, +40% de dano e −25% de recarga. O Fogo-fátuo (híbrido) continua recebendo metade.
 
+## Etapa 5 — chefes: Paladino Possuído e Lich Ancião (novembro de 2026, branch `dev`, não publicado)
+
+Pedido do Narley: trocar os guardiões provisórios das 5:00 e 10:00 por chefes de verdade. Medido com `tests/balance/` (bot, Chromium headless, `dt` = 1/30 s), já com o limite de 5 armas e o Grimório reduzido. O bot não é um humano: os números comparam versões e estilos. Amostras de 24 sementes variam bastante (o mesmo código deu 33% e 58% de mortes do corpo a corpo em duas rodadas), por isso os números das lutas abaixo juntam 48 sementes.
+
+### Paladino Possuído (5:00)
+- Armadura vazia de prata manchada com detalhes dourados, capa e penacho carmesim rasgados, escudo em pipa, olhos verdes no visor e fiapos roxos saindo das juntas; ~2,5× a altura de Aren, desenhada em código (passo de 4 quadros, poses de investida, golpe, agachado e giro; espadão pré-rotacionado à parte).
+- Chega caindo do céu sobre um círculo de pouso; cartão "Chefe · 5:00".
+- **Investida com escudo:** faixa no chão (0,85 s, bordas que andam e setas que marcham) e corrida de 175 px; acerto = 1 coração + empurrão; depois fica atordoado 1,15 s (estrelas).
+- **Giro da espada:** anel no chão que se enche (0,65 s) e giro de 0,7 s (raio 44).
+- **Salto esmagador:** pula para onde Aren estava; círculo de pouso com anel que fecha e mira (0,95 s); 1½ coração no centro, onda de choque; fica 1,25 s com a espada no chão.
+- **Lâminas fantasmas:** 3 lâminas (5 na fase 2) aparecem sobre ele apontando para Aren e saem uma a uma a 95 px/s.
+- **Fase 2 (50%):** 1,8 s invulnerável, o espírito sai da armadura e fica pairando sobre ela, olhos violeta; ataques 15% mais rápidos de telegrafar e intervalos menores.
+- Depois de cada ataque ele não causa dano de contato: é a janela do corpo a corpo.
+- **Morte:** a armadura desaba em pedaços (elmo quica, ombreiras e escudo voam), o espírito sobe com um grito e some; a Espada Sagrada cai quando a animação termina.
+- Vida 2300 (o guardião tinha ~2570).
+
+### Lich Ancião (10:00)
+- Esqueleto de mago com capuz e coroa de osso e ouro, manto roxo com runas verde-água, cajado com cristal; flutua; sobe do chão numa névoa; cartão "Chefe · 10:00".
+- **Teleporte:** some numa nuvem e reaparece a 90–125 px de Aren (quando Aren fica a menos de 75 px por 0,6 s ou a cada 7 s); mantém ~130 px de distância.
+- **Orbes de gelo:** 3 (5) orbes em leque; acerto = ½ coração + Aren 40% mais lento por 1,6 s, azulado.
+- **Chuva de relâmpagos:** 5 (8) círculos, um sobre Aren, com símbolo de raio e anel que fecha (1,05 s).
+- **Relâmpago em cadeia:** feixe tracejado que segue Aren e trava (fica grosso e pisca) 0,3 s antes do raio; 3 feixes na fase 2.
+- **Invocar esqueletos:** túmulos no chão, 3 (5) esqueletos sobem (inimigo novo, fraco, solta joias normais; não entra na agenda).
+- **Fase 2 (50%):** feitiços 20% mais rápidos, e a chuva às vezes emenda nas orbes.
+- **Morte:** desfaz-se em pó de cima para baixo e o cristal estoura; solta o Cajado da Tempestade. Vida 7600 (o guardião tinha ~6200).
+
+### Regras comuns
+- Barra de chefe com a cor do chefe (dourado / verde-água; o dragão continua roxo), marca de 50% e "Fase 1 / Fase 2 / Invulnerável / Recuando"; o cartão de apresentação vai para a metade da tela onde o chefe não está.
+- Tremor e clarão das introduções e da troca de fase só sem `prefers-reduced-motion`.
+- Música: a de combate com os tambores de chefe (116 bpm; 128 na fase 2), sem o drone, que fica para o dragão; silêncio durante a entrada.
+- Sons novos (armadura, grito, gelo, trovão, zumbido do relâmpago, ossos); picos medidos no mixer entre −18 e −30 dBFS (explosão do fogo −19,4); os que passavam de −18 foram baixados.
+- Todos os textos visíveis dos chefes em `BOSS_TXT` (para a futura opção em inglês); números em `BAL.paladin`/`BAL.lich`.
+- **Fuga (decisão nossa, a confirmar):** chefe não derrotado em 240 s vai embora e a relíquia se perde. Antes o guardião ficava até as 15:00; com a fuga o Paladino nunca encontra o Lich.
+- **Spawn durante a luta (a confirmar):** `BAL.spawn.guardMul` 0,4 → 0,25 (nos primeiros 75 s de um chefe vivo, sem hordas, como antes).
+- **Mira automática que prefere o chefe (a confirmar):** com um chefe vivo no alcance, o Shuriken e o Arco miram nele (`BAL.aimBoss` = 0,6: ele conta como se estivesse a 60% da distância) e a primeira bola de fogo vai nele. Sem isso as armas a distância gastavam a luta nos inimigos pequenos e levavam ~75% mais tempo que o corpo a corpo para derrubar o Paladino.
+- Removidos: `spawnGuardian`, `guardType`, `BAL.guard` e o leque de flechas do elfo-guardião.
+
+### Lutas (bot chega ao chefe sem poder morrer antes, `run.py --god-until`, 48 sementes; mortes = morreu até 120 s depois de o chefe surgir)
+
+| política | Paladino: tempo p/ matar (mediana) | mortes na luta | guardião antigo (24 sementes) | Lich: tempo p/ matar | mortes na luta | guardião antigo (24 sementes) |
+|---|---|---|---|---|---|---|
+| prioridade (`prio`) | 44 s | 23% | 12,5% | 50 s | 65% | 75% |
+| a distância (`ranged`) | 33 s | 19% | 17% | 39 s | 62,5% | 62,5% |
+| híbrido (`hybrid`) | 31 s | 27% | 21% | 30 s | 62,5% | 75% |
+| corpo a corpo (`melee`, cauteloso) | 34 s | 46% | 17% (54% sem limite de tempo) | 31 s | 50% | 37,5% |
+| corpo a corpo de perto (`agg`) | 45 s | 62,5% | 25% (54% sem limite) | 27 s | 73% | 62,5% |
+| aleatório (`random`) | 64 s | 62,5% | 54% | 43 s | 75% | 79% |
+
+- Os ataques do próprio chefe tiram pouco: ~3 meios corações por luta do Paladino (investida 1,3, lâminas 0,4, contato 0,3) e ~1–1,5 do Lich. Quem mata é o enxame em volta (flechas dos elfos às 5:00, fogo das wyverns às 10:00). Às 10:00 o bot já morria muito com o guardião antigo, que quase não atacava.
+- O Lich só é derrubado ~26% mais rápido pelo corpo a corpo cauteloso que pelas armas a distância (31 s contra 39 s); o corpo a corpo de perto, 27 s.
+
+### Partidas inteiras (48 sementes por política, cauteloso + corpo a corpo de perto)
+
+| bot | Etapa 4 (limite 4): média · vitória | limite 5, Grimório antigo | limite 5 + Grimório reduzido, guardiões | **Etapa 5 (chefes novos)** |
+|---|---|---|---|---|
+| corpo a corpo (`melee`) | 601 s · 33% | 538 s · 23% | 565 s · 27% | **554 s · 27%** |
+| corpo a corpo de perto (`agg`) | 529 s · 21% | 555 s · 25% | 499 s · 15% | **488 s · 21%** |
+| a distância (`ranged`) | 595 s · 31% | 541 s · 21% | 509 s · 19% | **511 s · 17%** |
+| híbrido (`hybrid`) | 578 s · 29% | 471 s · 8% | 528 s · 15% | **483 s · 10%** |
+| prioridade (`prio`) | 714 s · 56% | 553 s · 21% | 522 s · 17% | **530 s · 15%** |
+| aleatório (`random`) | 468 s · 17% | 425 s · 6% | 482 s · 17% | **412 s · 8%** |
+
+- O limite de 5 armas explica a maior parte da queda em relação à Etapa 4 (o bot espalha níveis em mais armas); a redução do Grimório pesa menos (diferenças dentro do ruído de ±5 pontos de vitória).
+- **A distância fica atrás do corpo a corpo cauteloso:** 17% contra 27% de vitórias (média de sobrevivência −8%). Não foi compensado: são números de poderes, decisão do Narley.
+- Nas partidas inteiras, morrer até 120 s depois do Paladino surgir: prio 11% (3% com o guardião), a distância 13% (17%), híbrido 21% (22%), corpo a corpo 51% (32%), de perto 67% (30%). Poucos bots chegam vivos às 10:00 (8–31%); os que chegam quase sempre matam o Lich.
+
+### Desempenho (`tests/perf.py`, 390×844, CPU 4x)
+- Cenários novos: `paladin` (5:12) 59,7 fps, render 6,6 ms (p95 10,1); `lich` (10:15, build cheia) 59,4 fps, render 11,5 ms (p95 18,3). 1x: 60 fps.
+- `late` ficou em ~50 fps nesta máquina, igual ao `dev` sem chefes medido na mesma hora (49–51,5 fps; na Etapa 4 eram 56–57 numa medição mais folgada). Sem chefe vivo o código novo só percorre listas vazias.
+- A arte dos chefes é feita em tempo ocioso depois do título (e o bestiário só a desenha ao abrir "Como jogar"), não na inicialização.
+
+### Testes e ferramentas
+- `tests/smoke.py`: 36/36 (novas: os dois chefes no horário com barra e cartão, fase 2 com transição invulnerável, relíquia só depois da animação, esqueletos, círculos de relâmpago, fuga sem relíquia). Duas execuções seguidas: determinismo IDENTICAL entre elas (o `det` muda em relação à Etapa 4, como esperado).
+- `tests/balance/`: acompanha cada luta (início, fim, dano por causa), `--god-until`, bot que desvia das telegrafias e entra nas janelas do chefe.
+- `tests/perf.py`: cenários `paladin` e `lich`.
+
+### Não verificado
+- Ninguém jogou: só bot, capturas de tela (390×844 e 1366×768, telegrafias, fases, morte, esqueletos) e medição de volume. A sensação das lutas, o tempo de reação humano às telegrafias e o som num alto-falante real não foram avaliados.
+- Desempenho só em Chromium headless com CPU limitada; não num celular.
+
 ## Etapa 4 — novos poderes por estilo (novembro de 2026, branch `dev`, não publicado)
 
 Pedido do Narley: poderes para montar um arsenal corpo a corpo, a distância ou híbrido, à escolha do jogador. Medido com `tests/balance/` (bot, Chromium headless, `dt` = 1/30 s, **48 sementes** por política; movimento cauteloso `kite` para todos e, para corpo a corpo, também o de perto `agg`). O bot não é um humano: os números servem para comparar versões e estilos. Como a sobrevivência é bimodal (o bot morre perto das 7:00–9:00 ou vence), a média e as vitórias dizem mais que a mediana.
