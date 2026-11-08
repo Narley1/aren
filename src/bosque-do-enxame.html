@@ -77,6 +77,22 @@ body{background:var(--bg);color:var(--ink);font-family:var(--display);overflow:h
 .pips i.on{background:var(--gold);border-color:var(--gold-dk)}
 .pips i.add{background:var(--leaf);border-color:#3f8a32}
 @media (hover:none){.choice .key{display:none}}
+/* power style (Etapa 4): badge (shape) + colour + text */
+.meta{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.sty{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;letter-spacing:.03em;line-height:1.25;padding:1px 6px 1px 3px;border:1px solid var(--panel-hi);color:var(--mute);white-space:nowrap}
+.sty img,.choice .sty img{width:14px;height:14px;image-rendering:pixelated;filter:none;flex:none}
+.sty.melee{color:#ffb27a;border-color:#b0582a;background:rgba(120,44,12,.4)}
+.sty.ranged{color:#a6dcff;border-color:#3a7ab8;background:rgba(14,52,96,.45)}
+.sty.hybrid{color:#e2c6ff;border-color:#7e56b8;background:rgba(62,32,104,.45)}
+.chip.s-melee{border-color:#b0582a}.chip.s-ranged{border-color:#3a7ab8}.chip.s-hybrid{border-color:#7e56b8}
+.chip img.bd{width:14px;height:14px}
+@media (max-width:600px){#gear{gap:4px}.chip{padding:2px 5px 2px 3px}.chip span{display:none}}
+.powers{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.pw{background:#152f3e;border:2px solid var(--panel-hi);display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:7px;row-gap:3px;padding:5px 6px}
+.pw > img{width:24px;height:24px;image-rendering:pixelated;grid-row:span 2}
+.pw span{font-size:12px;line-height:1.15}
+.pw .sty{justify-self:start;font-size:10px}
+.pw.relic{border-color:var(--gold-dk)}
 
 #toast{position:absolute;left:50%;top:60%;transform:translateX(-50%);pointer-events:none;text-align:center;opacity:0;transition:opacity .25s, transform .25s;
   background:rgba(19,32,42,.88);border:2px solid var(--gold);padding:8px 14px;max-width:min(90vw,340px)}
@@ -177,10 +193,15 @@ body{-webkit-touch-callout:none}
       <div class="label">Aren, o Guardião do Bosque</div>
       <h2>Como jogar</h2>
       <p id="howText">Aren, aprendiz de guardião, só tem a velha espada da família quando o enxame invade o bosque. Criaturas derrotadas deixam joias de experiência: as mais fortes valem mais, e só contam quando Aren as recolhe. Nos níveis 2, 3, 5, 7 e 10, e depois a cada 3 níveis, ele escolhe um entre três poderes; nos outros níveis, recupera meio coração. Aos 5:00 surge o Paladino Possuído e aos 10:00 o Lich Ancião: derrote-os para ganhar relíquias lendárias. Aos 15:00, o Dragão Esqueleto desperta.</p>
+      <p id="howStyle">Cada arma tem um estilo: <b>Corpo a corpo</b> bate mais forte, mas Aren precisa chegar perto; <b>A distância</b> ataca de longe; <b>Híbrido</b> fica no meio. As Manoplas do Guerreiro reforçam o corpo a corpo e o Grimório Arcano, o ataque a distância. Aren carrega até <span id="howCap">5</span> armas (a espada conta; relíquias e passivos não).</p>
       <div class="row"><button class="btn" id="startBtn" type="button">Começar</button><button class="btn alt" id="backBtn" type="button">Voltar</button><button class="btn alt" id="fsBtn" type="button" hidden>Tela cheia</button><button class="btn alt" id="installBtn" type="button" hidden>Instalar app</button></div>
       <div class="best" id="bestStart"></div>
       <div class="controls">
         <kbd>WASD</kbd> ou <kbd>setas</kbd> para andar · no celular, toque e arraste em qualquer lugar · a espada ataca sozinha · <kbd>P</kbd> pausa · <kbd>F</kbd> tela cheia · o jogo tem música e efeitos sonoros
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:6px">Poderes · monte seu estilo</div>
+        <div class="powers" id="powerList"></div>
       </div>
       <div>
         <div class="label" style="margin-bottom:6px">Bestiário · quando aparecem</div>
@@ -874,9 +895,24 @@ const BAL = {
   /* style passives (Etapa 4), per level: Manoplas give melee powers +dmg and +area (sword range, radius of the
      hammer and the aura, width of the holy waves); Grimório gives ranged powers +dmg and -cooldown.
      Hybrid powers (Fogo-fátuo) get half of each (sDmg/sArea/sCd) */
-  gauntlets: {dmg:.1, area:.06}, grimoire: {dmg:.08, cd:.06},
-  /* level-up picks: weapons not owned yet get +newWeapon weight */
-  pick:   {newWeapon:1.4},
+  gauntlets: {dmg:.1, area:.06}, grimoire: {dmg:.1, cd:.07},
+  /* Etapa 4 weapons, level l = 1..5 (the first level also x firstLvl.power).
+     hammer: every max(cdMin, cdBase - l*cdPerLvl) s (only with an enemy in reach) Aren slams the ground after windup s:
+     a shockwave ring grows to R = rBase + l*rPerLvl px in grow s and hits each enemy it reaches once for dmgBase + l*dmgPerLvl
+     with knockback kb; from afterLvl on a second ring (afterR x R, afterDmg x damage) follows afterDelay s later */
+  hammer: {dmgBase:20, dmgPerLvl:10, rBase:36, rPerLvl:5, cdBase:3, cdPerLvl:.3, cdMin:1.5, windup:.14, grow:.3, kb:150, afterLvl:5, afterDelay:.35, afterR:1.5, afterDmg:.6},
+  /* thorns: aura of R = rBase + l*rPerLvl px around Aren (ellipse, height x .75); every max(tickMin, tickBase - l*tickPerLvl) s
+     every enemy inside takes dmgBase + l*dmgPerLvl (knockback kb); from slowLvl on, enemies inside move x (1 - slow - (l - slowLvl)*slowPerLvl) */
+  thorns: {dmgBase:7, dmgPerLvl:5, rBase:26, rPerLvl:4, tickBase:.6, tickPerLvl:.06, tickMin:.3, kb:30, slowLvl:3, slow:.12, slowPerLvl:.06},
+  /* bow: every max(cdMin, cdBase - l*cdPerLvl) s a volley of arrows[l - 1] arrows (spread rad apart) at the nearest enemy within
+     range px (facing direction when none); each arrow flies speed px/s for life s and passes through pierce[l - 1] enemies
+     (hits pierce + 1), dmgBase + l*dmgPerLvl each */
+  bow:    {arrows:[1, 2, 2, 3, 3], pierce:[1, 1, 2, 3, 4], dmgBase:11, dmgPerLvl:4, cdBase:1.3, cdPerLvl:.14, cdMin:.55, speed:230, life:.85, range:170, spread:.16},
+  /* level-up picks: while Aren has fewer than newUntil weapons, weapons not owned yet get +newWeapon weight; powers already
+     owned x owned (with 14 powers the offers would otherwise spread a build over many weak level-1 weapons);
+     Aren carries at most maxWeapons weapons (the sword counts; relics and passives do not): once full, new weapons stop
+     showing up (design decision of Etapa 4, to be confirmed by the owner) */
+  pick:   {newWeapon:1.4, newUntil:3, owned:2, maxWeapons:4},
   /* experience: it comes from the gems (each enemy drops ET.gem, elites x elite.gems), granted when the gem is picked up.
      xpNeed(L) = round(base + lin*(L - 1) + quad*(L - 1)^2). Power choice on the levels in picks, then every pickEvery levels. */
   xp:     {base:8, lin:4.5, quad:.3, picks:[2, 3, 5, 7, 10], pickEvery:3},
@@ -1024,6 +1060,32 @@ function drawSword(x, y, a, holy){
   ctx.drawImage(set.get(k), Math.round(x - set.R), Math.round(y - set.R));
 }
 
+/* elven arrow (Arco Élfico), pre-rotated like the sword */
+function arrowBase(){
+  // 1px empty border so outlineC has room
+  return outlineC(mk([
+    "...............",
+    ".ff........h...",
+    "..ffaaaaaaashw.",
+    ".ff........h...",
+    "..............."], {f:'#8ae860', a:'#e0b070', h:'#c8d4e0', s:'#8a96a6', w:'#ffffff'}), '#1a2a1c');
+}
+const ARROWS = rotSet(arrowBase(), 7.5, 2.5);
+/* seismic hammer swung over Aren's head (handle at the pivot, head to the right) */
+function hammerBase(){
+  const c = cnv(20, 11), p = painter(c);
+  p.rect(1, 4, 11, 2, '#8a5328'); p.rect(1, 4, 11, 1, '#b07a44'); p.rect(4, 4, 1, 2, '#5a3418'); p.rect(8, 4, 1, 2, '#5a3418');
+  p.rect(11, 3, 2, 4, '#f2c14e'); p.px(11, 3, '#fff2a0'); p.rect(12, 3, 1, 4, '#a8781c');
+  p.rect(13, 1, 6, 9, '#9aa8b8'); p.rect(13, 1, 6, 2, '#e6eef5'); p.rect(13, 8, 6, 2, '#5c6878'); p.rect(18, 1, 1, 9, '#5c6878'); p.px(13, 1, '#ffffff');
+  p.px(15, 5, '#f2c14e'); p.px(16, 4, '#f2c14e'); p.px(16, 6, '#f2c14e');
+  return outlineC(c, '#1c1622');
+}
+const HAMMER = rotSet(hammerBase(), 2.5, 5.5);
+function drawRot(set, x, y, a){
+  const k = ((Math.round(a/(Math.PI*2)*SWORD_N) % SWORD_N) + SWORD_N) % SWORD_N;
+  ctx.drawImage(set.get(k), Math.round(x - set.R), Math.round(y - set.R));
+}
+
 /* items */
 const ICONS = {
   sword:{rows:[".....oww","....owwo","...owwo.","o.owwo..",".oowo...","..oo....",".obbo...","ob.o...."], pal:{o:OUT,w:'#e6eef5',b:'#8a5328'}},
@@ -1036,8 +1098,22 @@ const ICONS = {
   apple:{rows:["....g...","...g....",".oo.oo..","orrorro.","orwrrro.","orrrrro.",".orrro..","..ooo..."], pal:{o:OUT,r:'#e53b3b',w:'#ffc0b0',g:'#4f9a2a'}},
   holy: {rows:[".....oww","....owwo","...owwo.","y.owwo..",".yywo...","..yy....",".oyyo...","oy.o...."], pal:{o:'#5a3a0a',w:'#fff6c8',y:'#ffd94a'}},
   storm:{rows:[".occco..","ocwccco.","occccco.",".occco..","...bo...","...bo...","...bo...","...oo..."], pal:{o:'#10304a',c:'#7fd8ff',w:'#ffffff',b:'#6c4a8a'}},
-  up:   {rows:["...oo...","..owyo..",".oyyyyo.","oyyyyyyo","oooyyooo","..oyyo..","..oyyo..","..oooo.."], pal:{o:'#4a1a6a',y:'#ffd94a',w:'#ffffff'}}
+  up:   {rows:["...oo...","..owyo..",".oyyyyo.","oyyyyyyo","oooyyooo","..oyyo..","..oyyo..","..oooo.."], pal:{o:'#4a1a6a',y:'#ffd94a',w:'#ffffff'}},
+  // Etapa 4
+  hammer:{rows:[".oooooo.","owwgggdo","ogggggdo","oddddddo","..oyyyo.","...obo..","...obo..","...ooo.."], pal:{o:OUT,w:'#e6eef5',g:'#9aa8b8',d:'#5c6878',y:'#f2c14e',b:'#8a5328'}},
+  thorns:{rows:["s.oggo.s",".ogdgdo.","og.o..go","gd....dg","gd....dg","od....do",".oddddo.","s.oddo.s"], pal:{o:'#123d22',g:'#6fd05a',d:'#3f8a32',s:'#f2ead8'}},
+  bow:  {rows:[".obs....","ob.s....","ob.s..o.","ogaaaawo","ob.s..o.","ob.s....",".obs....","..o....."], pal:{o:OUT,b:'#8a5328',s:'#f2ead8',w:'#e6eef5',a:'#c89a5a',g:'#6fd05a'}},
+  gauntlets:{rows:["..o.o.o.",".owowowo",".ogogogo","owgggggo","owgggddo",".ogggddo",".oyyyyo.",".oooooo."], pal:{o:OUT,w:'#e6eef5',g:'#9aa8b8',d:'#5c6878',y:'#f2c14e'}},
+  grimoire:{rows:[".ooooooo","oypppppp","oyppcppo","oypcwcpo","oyppcppo","oyppppyo","oywwwwwo",".ooooooo"], pal:{o:'#2a1040',p:'#6c3aa8',y:'#f2c14e',c:'#7fd8ff',w:'#f2ead8'}}
 };
+/* style badges (level-up cards, HUD, power list): shape + colour, never colour alone */
+const STY = {melee:'Corpo a corpo', ranged:'A distância', hybrid:'Híbrido'};
+const BADGE = {
+  melee: mk([".ooooo.","oyoyoyo","oyyyyyo","owyyyyo","owwyyyo",".oyyyo.","..ooo.."], {o:'#4a1a08',w:'#ffe0c8',y:'#ff8a3a'}),     // fist
+  ranged:mk([".ooooo.","owwwwwo","owoooWo","owoaoWo","owoooWo","owwwwwo",".ooooo."], {o:'#0a2a4a',w:'#5fc0ff',a:'#dff4ff',W:'#5fc0ff'}), // target
+  hybrid:mk(["...o...","..oro..",".orrbo.","orrrbbo",".orbbo.","..obo..","...o..."], {o:'#1a1030',r:'#ff8a3a',b:'#5fc0ff'})  // half and half
+};
+const BADGE_URL = {}; for (const k in BADGE) BADGE_URL[k] = BADGE[k].toDataURL();
 for (const k in ICONS) ICONS[k].spr = mk(ICONS[k].rows, ICONS[k].pal);
 /* giant shuriken: procedural 4-blade star with curved blades, pre-rendered per rotation */
 const SHUR_PAL = [
@@ -1076,15 +1152,32 @@ const GEM_R = mk(GEM_ROWS, {o:'#4d1220',x:'#ff4f7a',w:'#fff0f4'});
 const UPG = {
   sword: {name:'Espada', max:5, w:3, kind:'weapon', style:'melee', desc:l => l===3 ? 'Golpe duplo: corta na frente e atrás' : l===5 ? 'Giro completo ao redor de Aren' : 'Mais dano e alcance'},
   boom:  {name:'Shuriken Gigante', max:5, w:2.4, kind:'weapon', style:'ranged', desc:l => l===1 ? 'Uma shuriken enorme vai e volta atravessando inimigos' : l===2 ? 'Duas shurikens, agora vermelhas e mais afiadas' : l===3 ? 'Três shurikens douradas e mais dano' : 'Mais uma shuriken dourada e mais dano'},
-  orb:   {name:'Will-o\'-Wisp', max:5, w:2.2, kind:'weapon', style:'hybrid', desc:l => l===1 ? 'Uma chama fantasma azul gira ao seu redor' : 'Mais uma chama fantasma e mais dano'},
+  orb:   {name:'Fogo-fátuo', max:5, w:2.2, kind:'weapon', style:'hybrid', desc:l => l===1 ? 'Uma chama fantasma azul gira ao seu redor' : 'Mais uma chama fantasma e mais dano'},
   fire:  {name:'Magia de Fogo', max:5, w:2.2, kind:'weapon', style:'ranged', desc:l => l===1 ? 'Bolas de fogo explodem e deixam o chão em chamas por 2 s' : 'Mais bolas de fogo, explosão e chamas maiores'},
   boots: {name:'Botas Ligeiras', max:5, w:1.2, kind:'passive', desc:() => 'Aren anda mais rápido'},
   magnet:{name:'Amuleto Ímã', max:5, w:1, kind:'passive', desc:() => 'Atrai joias e itens de mais longe'},
   heart: {name:'Recipiente de Coração', max:5, w:1.4, kind:'passive', desc:() => '+1 coração máximo e cura 1 coração'},
+  hammer:{name:'Martelo Sísmico', max:5, w:2.2, kind:'weapon', style:'melee', desc:l => l===1 ? 'Aren golpeia o chão: uma onda de choque fere e empurra quem está perto' : l===BAL.hammer.afterLvl ? 'Um tremor secundário segue cada golpe, ainda mais longe' : 'Onda maior, mais dano e golpes mais frequentes'},
+  thorns:{name:'Aura de Espinhos', max:5, w:2.2, kind:'weapon', style:'melee', desc:l => l===1 ? 'Espinhos ao redor de Aren ferem sem parar quem chega perto' : l===BAL.thorns.slowLvl ? 'Aura maior e os espinhos prendem: quem está dentro fica mais lento' : l > BAL.thorns.slowLvl ? 'Aura maior, mais dano e mais lentidão' : 'Aura maior e mais dano'},
+  bow:   {name:'Arco Élfico', max:5, w:2.2, kind:'weapon', style:'ranged', desc:l => bowDesc(l)},
+  gauntlets:{name:'Manoplas do Guerreiro', max:5, w:1.2, kind:'passive', boost:'melee', desc:l => `Poderes corpo a corpo: +${pct(l*BAL.gauntlets.dmg)} de dano e +${pct(l*BAL.gauntlets.area)} de alcance (híbridos: metade)`},
+  grimoire:{name:'Grimório Arcano', max:5, w:1.2, kind:'passive', boost:'ranged', desc:l => `Poderes à distância: +${pct(l*BAL.grimoire.dmg)} de dano e recarga ${pct(l*BAL.grimoire.cd)} mais curta (híbridos: metade)`},
   holy:  {name:'Espada Sagrada', max:3, w:2.5, relic:true, kind:'relic', style:'melee', desc:l => l===1 ? 'Espada dourada: mais dano, mais alcance e ondas de luz' : 'Ondas mais longas e golpes mais fortes'},
   storm: {name:'Cajado da Tempestade', max:3, w:2.5, relic:true, kind:'relic', style:'ranged', desc:l => l===1 ? 'Raios caem do céu, saltam entre inimigos e paralisam' : 'Mais raios e área maior'}
 };
-const UPG_ORDER = ['sword','boom','orb','fire','boots','magnet','heart','holy','storm'];
+const UPG_ORDER = ['sword','hammer','thorns','boom','bow','orb','fire','boots','magnet','heart','gauntlets','grimoire','holy','storm'];
+const pct = v => Math.round(v*100) + '%';
+function bowDesc(l){
+  const A = BAL.bow.arrows, Pi = BAL.bow.pierce, n = A[l - 1], p = Pi[l - 1], tx = q => q === 1 ? '1 inimigo' : q + ' inimigos';
+  if (l === 1) return `Flechas no inimigo mais próximo; cada uma atravessa ${tx(p)}`;
+  const parts = [];
+  if (n > A[l - 2]) parts.push(`${n} flechas por disparo`);
+  if (p > Pi[l - 2]) parts.push(`atravessam ${tx(p)}`);
+  parts.push('mais dano');
+  if (parts.length < 3) parts.push('disparos mais rápidos');
+  const t = parts.join(', ').replace(/, ([^,]*)$/, ' e $1');
+  return t[0].toUpperCase() + t.slice(1);
+}
 /* relics (relic:true) only come from boss guardians (BOSSES); once owned they can show up in level-up picks.
    They have 3 levels; each is worth the old levels 1, 3 and 5 */
 const rl = k => [0, 1, 3, 5][W[k]];
@@ -1775,6 +1868,23 @@ const SFX = (() => {
     const o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(38, t + .32);
     env(og, t, .004, .38, .36); o.connect(og); route(og, .2); o.start(t); o.stop(t + .4);
   }
+  /* seismic hammer: low thump + crunching earth + a few pebbles; the aftershock is softer and lower */
+  function slam(after){
+    if (!ready(after ? 'slam2' : 'slam', .25)) return; const t = ac.currentTime + .01, v = after ? .6 : 1;
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(after ? 80 : 110, t); o.frequency.exponentialRampToValueAtTime(32, t + .28);
+    env(g, t, .004, .5*v, .34); o.connect(g); route(g, .25); o.start(t); o.stop(t + .4);
+    const n = noise(t, .3), lp = filt('lowpass', 1400, .8), ng = ac.createGain(); lp.frequency.setValueAtTime(1800, t); lp.frequency.exponentialRampToValueAtTime(200, t + .25);
+    env(ng, t, .003, .3*v, .3); n.connect(lp); lp.connect(ng); route(ng, .3);
+    for (let i = 0; i < 4; i++){ const tt = t + .05 + i*.045, c = noise(tt, .02), bp = filt('bandpass', 700 + i*260, 5), cg = ac.createGain(); env(cg, tt, .001, .1*v, .03); c.connect(bp); bp.connect(cg); route(cg, .2); }
+  }
+  /* elven bow: short airy "fwip" + a soft string twang */
+  function bowShot(){
+    if (!ready('bow', .09)) return; const t = ac.currentTime + .005;
+    const n = noise(t, .09), bp = filt('bandpass', 1800, 2.2), g = ac.createGain(); bp.frequency.setValueAtTime(1300, t); bp.frequency.exponentialRampToValueAtTime(5200, t + .08);
+    env(g, t, .004, .7, .09); n.connect(bp); bp.connect(g); route(g, .15);
+    const o = ac.createOscillator(), og = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(230, t); o.frequency.exponentialRampToValueAtTime(190, t + .12);
+    env(og, t, .002, .3, .14); o.connect(og); route(og, .1); o.start(t); o.stop(t + .16);
+  }
 
   /* ================= MUSIC: ocarina, flute, lute ================= */
   const mtof = m => 440*Math.pow(2, (m - 69)/12);
@@ -1916,7 +2026,7 @@ const SFX = (() => {
   function setMusic(v){ musicOn = v; try { localStorage.setItem('bosque-enxame-musica', v ? '1' : '0'); } catch {} if (musDry){ musDry.gain.value = v ? .34 : 0; musWet.gain.value = v ? .34 : 0; } }
   function pause(p){ if (!ac) return; if (p) ac.suspend().catch(() => {}); else ac.resume().catch(() => {}); }
   function moodFn(fn){ M.fn = fn; }
-  return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, setOn, setMusic, pause, moodFn,
+  return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, slam, bow: bowShot, setOn, setMusic, pause, moodFn,
     get on(){ return on; }, get music(){ return musicOn; }};
 })();
 
@@ -1926,9 +2036,9 @@ let state = 'menu';
 let overTimer = 0; /* delayed game-over/victory panel; cleared on every new run or title */
 function reset(){
   clearTimeout(overTimer);
-  G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mi:0, guard:[], boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0};
+  G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mi:0, guard:[], boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0, hmCd:1.5, slam:null, thT:.5, thPulse:0, bwCd:1};
   P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
-  W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, gauntlets:0, grimoire:0};
+  W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, gauntlets:0, grimoire:0, hammer:0, thorns:0, bow:0};
   E = []; B = []; EB = []; GEMS = []; ITEMS = []; FX = []; NUMS = []; ORBS = []; MARKS = []; CURSES = []; DECALS = []; BURNS = [];
   renderGear(); lastHearts = '';
 }
@@ -2039,14 +2149,18 @@ function gainXp(n){
   }
 }
 /* powers that can show up in a level-up pick (relics only after a guardian dropped them) */
+const weaponCount = () => UPG_ORDER.reduce((n, k) => n + (UPG[k].kind === 'weapon' && W[k] > 0 ? 1 : 0), 0);
 function available(){
-  return UPG_ORDER.filter(k => W[k] < UPG[k].max && !(UPG[k].relic && !W[k]));
+  const full = weaponCount() >= BAL.pick.maxWeapons;
+  return UPG_ORDER.filter(k => W[k] < UPG[k].max && !(UPG[k].relic && !W[k]) && !(full && UPG[k].kind === 'weapon' && !W[k]));
 }
 function enhanceable(){ return UPG_ORDER.filter(k => W[k] > 0 && W[k] < UPG[k].max && k !== 'heart'); }
 function pickOptions(n){
+  const nw = weaponCount();
   const pool = available().map(k => {
     let w = UPG[k].w;
-    if (W[k] === 0 && UPG[k].kind === 'weapon') w += BAL.pick.newWeapon;
+    if (W[k] === 0 && UPG[k].kind === 'weapon' && nw < BAL.pick.newUntil) w += BAL.pick.newWeapon;
+    if (W[k] > 0) w *= BAL.pick.owned;
     if (k === 'heart' && P.hp < P.maxHp*.5) w += 1;
     return [k, w];
   });
@@ -2082,6 +2196,12 @@ function applyItem(kind, rk){
     toast(`Relíquia obtida: ${UPG[k].name}`, UPG[k].desc(W[k]) + ' · agora ela pode aparecer nas escolhas');
   }
 }
+/* style pill: badge + colour + text; passives show "Passivo" (and the style they boost) */
+function styleTag(k){
+  const u = UPG[k], s = u.style || u.boost;
+  if (!s) return '<span class="sty">Passivo</span>';
+  return `<span class="sty ${s}"><img alt="" src="${BADGE_URL[s]}">${u.style ? STY[s] : 'Passivo · ' + STY[s].toLowerCase()}</span>`;
+}
 function iconFor(k, lvl){ return k === 'boom' ? SHUR_ICON[shurTier(Math.max(1, lvl))] : ICON_URL[k]; }
 let lvlOpts = [], lvlOpenedAt = 0;
 function openLevelUp(){
@@ -2097,7 +2217,7 @@ function openLevelUp(){
     b.type = 'button'; b.className = 'choice' + (u.relic ? ' legend' : ''); b.id = 'choice' + i;
     let pips = ''; for (let n = 1; n <= u.max; n++) pips += `<i class="${n <= cur ? 'on' : n === nxt ? 'add' : ''}"></i>`;
     const tag = cur === 0 ? `<span class="tag new">${u.relic ? 'Relíquia lendária' : 'Novo'}</span>` : `<span class="tag">${u.relic ? 'Relíquia · ' : ''}Nv ${cur} → ${nxt}</span>`;
-    b.innerHTML = `<span class="key">${i + 1}</span><span class="top"><img alt="" src="${iconFor(k, nxt)}"><span><span class="nm">${u.name}</span><br>${tag}</span></span><span class="pips" aria-hidden="true">${pips}</span><span class="ds">${u.desc(nxt)}</span>`;
+    b.innerHTML = `<span class="key">${i + 1}</span><span class="top"><img alt="" src="${iconFor(k, nxt)}"><span><span class="nm">${u.name}</span><br>${tag}</span></span><span class="meta"><span class="pips" aria-hidden="true">${pips}</span>${styleTag(k)}</span><span class="ds">${u.desc(nxt)}</span>`;
     b.onclick = () => chooseLevel(i);
     box.appendChild(b);
   });
@@ -2111,6 +2231,25 @@ function chooseLevel(i){
   $('#levelScreen').hidden = true; state = 'play';
   toast(W[k] === 1 ? UPG[k].name : `${UPG[k].name} · Nv ${W[k]}`, UPG[k].desc(W[k]));
   P.inv = Math.max(P.inv, BAL.hero.invAfterPick);
+}
+/* Etapa 4 helpers */
+const THORN_SY = .75;   // the aura and the shockwave are ellipses on the ground (height x .75), hits use the same shape
+const thornR = () => (BAL.thorns.rBase + W.thorns*BAL.thorns.rPerLvl)*sArea('thorns');
+function freeHit(b){ b.dead = true; b.hit.clear(); WAVE_SETS.push(b.hit); }
+function slamImpact(s){
+  const HM = BAL.hammer;
+  B.push({k:'hammer', x:P.x, y:P.y, R:s.R, dmg:s.dmg, t:0, on:false, after:false, hit:WAVE_SETS.pop() || new Set(), cr:crackSet()});
+  if (W.hammer >= HM.afterLvl) B.push({k:'hammer', x:P.x, y:P.y, R:s.R*HM.afterR, dmg:s.dmg*HM.afterDmg, t:-HM.afterDelay, on:false, after:true, hit:WAVE_SETS.pop() || new Set(), cr:null});
+  slamFx(P.x, P.y, s.R, false);
+}
+function crackSet(){ const a = []; for (let i = 0; i < 5; i++) a.push(i/5*Math.PI*2 + Math.random()*.9, .45 + Math.random()*.4); return a; }
+function slamFx(x, y, R, after){
+  for (let i = 0; i < (after ? 6 : 10); i++){ const a = Math.random()*Math.PI*2, d = R*(.15 + Math.random()*.35);
+    FX.push({k:'sm', x:x + Math.cos(a)*d, y:y + Math.sin(a)*d*THORN_SY, vx:Math.cos(a)*14, vy:-8 - Math.random()*10, t:-Math.random()*.08, life:.6 + Math.random()*.3, s:2 + Math.random()*1.5}); }
+  for (let i = 0; i < (after ? 4 : 8); i++){ const a = -Math.PI/2 + (Math.random() - .5)*2.8, sp = 40 + Math.random()*50;
+    FX.push({k:'p', x:x + (Math.random() - .5)*10, y:y - 2, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, t:0, life:.35 + Math.random()*.2, col: i % 2 ? '#a07840' : '#d8c8a0', s: i % 3 ? 1 : 2}); }
+  if (!reduceMotion) G.shake = Math.max(G.shake, after ? .05 : .09);
+  SFX.slam(after);
 }
 function fireExplosion(x, y, R){
   FX.push({k:'xpl', x, y, R, t:0, life:.55, seed:Math.random()*10});
@@ -2682,6 +2821,60 @@ function update(dt){
       G.stCd = Math.max(BAL.cd.stormMin, BAL.cd.stormBase - rl('storm')*BAL.cd.stormPerLvl)*sCd('storm');
     }
   }
+  // seismic hammer (melee): a slam after a short wind-up, then a shockwave ring (B, k 'hammer')
+  if (W.hammer){
+    const HM = BAL.hammer, l = W.hammer;
+    G.hmCd -= dt;
+    if (G.slam){
+      const s = G.slam; s.t += dt;
+      if (!s.hit && s.t >= HM.windup){ s.hit = true; slamImpact(s); }
+      if (s.t >= HM.windup + .22) G.slam = null;
+    }
+    if (G.hmCd <= 0 && !G.slam){
+      const R = (HM.rBase + l*HM.rPerLvl)*sArea('hammer');
+      if (nearest(P.x, P.y, R + 6, true) || bossInReach(R)){
+        G.slam = {t:0, hit:false, side: Math.cos(P.faceA) < 0 ? -1 : 1, R, dmg:(HM.dmgBase + l*HM.dmgPerLvl)*f1('hammer')*sDmg('hammer')};
+        G.hmCd = Math.max(HM.cdMin, HM.cdBase - l*HM.cdPerLvl);
+      } else G.hmCd = .1;
+    }
+  }
+  // thorn aura (melee): every tick hits everything inside; slows from slowLvl
+  if (W.thorns){
+    const TH = BAL.thorns, l = W.thorns, R = thornR();
+    G.thT -= dt; G.thPulse = Math.max(0, G.thPulse - dt);
+    if (G.thT <= 0){
+      const tick = Math.max(TH.tickMin, TH.tickBase - l*TH.tickPerLvl);
+      G.thT += tick;
+      const dmg = (TH.dmgBase + l*TH.dmgPerLvl)*f1('thorns')*sDmg('thorns'), slow = l >= TH.slowLvl;
+      let any = false;
+      query(P.x, P.y, R + 12, e => {
+        if (e.d.boss) return;
+        const dx = e.x - P.x, dy = (e.y - P.y)/THORN_SY, d = Math.hypot(dx, dy);
+        if (d > R + e.d.r*.5) return;
+        any = true;
+        const n = NUMS.length; hit(e, dmg, dx/(d || 1), dy/(d || 1), TH.kb); if (NUMS.length > n) NUMS[NUMS.length - 1].col = '#a8e870';
+        if (slow) e.thorn = tick + .05;
+      });
+      const bz = bossInReach(R); if (bz){ hit(bz.e, dmg); any = true; }
+      if (any) G.thPulse = .14;
+    }
+  }
+  // elven bow (ranged): volleys at the nearest enemy; arrows (B, k 'bow') pierce
+  if (W.bow){
+    const BW = BAL.bow, l = W.bow;
+    G.bwCd -= dt;
+    if (G.bwCd <= 0){
+      const tg = nearest(P.x, P.y, BW.range), n = BW.arrows[l - 1];
+      const base = tg ? Math.atan2(tg.y - tg.d.h/3 - (P.y - 10), tg.x - P.x) : P.faceA;
+      const dmg = (BW.dmgBase + l*BW.dmgPerLvl)*f1('bow')*sDmg('bow');
+      for (let i = 0; i < n; i++){
+        const a = base + (i - (n - 1)/2)*BW.spread;
+        B.push({k:'bow', x:P.x, y:P.y - 10, a, vx:Math.cos(a)*BW.speed, vy:Math.sin(a)*BW.speed, life:BW.life, dmg, left:BW.pierce[l - 1] + 1, hit:WAVE_SETS.pop() || new Set()});
+      }
+      G.bwCd = Math.max(BW.cdMin, BW.cdBase - l*BW.cdPerLvl)*sCd('bow');
+      SFX.bow();
+    }
+  }
   // orbs
   ORBS.length = 0;
   if (W.orb){
@@ -2712,6 +2905,31 @@ function update(dt){
       if (b.d >= b.max){ b.dead = true; b.hit.clear(); WAVE_SETS.push(b.hit); continue; }
       const r = b.r;
       query(b.x, b.y, r + 12, e => { if (!b.hit.has(e) && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < r + e.d.r){ b.hit.add(e); hit(e, b.dmg, Math.cos(b.a), Math.sin(b.a), 80); } });
+    } else if (b.k === 'bow'){
+      b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
+      if (b.life <= 0){ freeHit(b); continue; }
+      query(b.x, b.y, 18, e => {
+        if (b.dead || b.hit.has(e) || Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) >= 3 + e.d.r) return;
+        b.hit.add(e); hit(e, b.dmg, b.vx/BAL.bow.speed, b.vy/BAL.bow.speed, 40);
+        if (--b.left <= 0) b.dead = true;
+      });
+      if (b.dead) freeHit(b);
+    } else if (b.k === 'hammer'){
+      b.t += dt;
+      if (b.t < 0) continue;
+      if (!b.on){ b.on = true; if (b.after) slamFx(b.x, b.y, b.R, true); }
+      const HM = BAL.hammer, q = Math.min(1, b.t/HM.grow), rr = b.R*(1 - (1 - q)*(1 - q));
+      if (b.t >= HM.grow + .3){ freeHit(b); continue; }
+      if (q < 1 || !b.done){
+        if (q >= 1) b.done = true;
+        query(b.x, b.y, rr + 14, e => {
+          if (e.d.boss || b.hit.has(e)) return;
+          const dx = e.x - b.x, dy = (e.y - b.y)/THORN_SY, d = Math.hypot(dx, dy);
+          if (d > rr + e.d.r) return;
+          b.hit.add(e); hit(e, b.dmg, dx/(d || 1), dy/(d || 1), HM.kb);
+        });
+        if (!b.bossHit){ const bz = bossInReach(rr); if (bz){ b.bossHit = true; hit(bz.e, b.dmg); } }
+      }
     } else if (b.k === 'fire'){
       b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
       let boom = b.life <= 0;
@@ -2745,6 +2963,7 @@ function update(dt){
     const ux = dx/dist, uy = dy/dist;
     if (!d.fly) e.face = Math.abs(ux) > Math.abs(uy)*1.1 ? (ux < 0 ? 'left' : 'side') : (uy < 0 ? 'up' : 'down');
     let sp = d.spd * (e.elite ? BAL.elite.spd : 1), mx = ux, my = uy;
+    if (e.thorn > 0){ e.thorn -= dt; const TH = BAL.thorns; sp *= 1 - TH.slow - (W.thorns - TH.slowLvl)*TH.slowPerLvl; }
     if (d.ai === 'swoop'){
       e.st -= dt;
       if (e.st <= 0){ e.state = e.state ? 0 : 1; e.st = e.state ? .55 : 3.2 + Math.random()*2; }
@@ -2953,6 +3172,9 @@ function drawScene(dt){
     for (let k = 0; k < 6; k++){ const a = tt*2.4 + k*Math.PI/3; ctx.fillStyle = '#ffd0f0'; ctx.fillRect(Math.round(x + Math.cos(a)*z.r*.66) - 1, Math.round(y + Math.sin(a)*z.r*.66*.7) - 1, 2, 2); }
     ctx.globalAlpha = 1;
   }
+  // ground powers: thorn aura and hammer shockwaves (under the creatures)
+  if (W.thorns) drawThorns(P.x - cx, P.y - cy, thornR());
+  for (const b of B) if (b.k === 'hammer' && b.t >= 0) drawQuake(b, cx, cy);
   // y-sorted
   const list = YS.list; list.length = 0;
   propsIn(cx - 24, cy - 8, cx + VW + 24, cy + VH + 46, list);
@@ -3051,6 +3273,16 @@ function drawScene(dt){
       }
     }
   }
+  // hammer swing: raised behind Aren, slams down in front (impact at BAL.hammer.windup)
+  if (G.slam){
+    const s = G.slam, wu = BAL.hammer.windup, px = P.x - cx, py = P.y - 10 - cy;
+    const q = Math.min(1, s.t/wu), e = q*q;   // accelerates into the ground
+    const a0 = -Math.PI/2 - s.side*.7, a1 = s.side > 0 ? .75 : Math.PI - .75;
+    const a = a0 + angDiff(a1, a0)*e;
+    ctx.globalAlpha = s.t < wu + .1 ? 1 : Math.max(0, 1 - (s.t - wu - .1)/.12);
+    drawRot(HAMMER, px, py, a);
+    ctx.globalAlpha = 1;
+  }
   // orbs
   for (const [ox, oy, i] of ORBS) drawWisp(Math.round(ox - cx), Math.round(oy - cy), performance.now()/1000, i);
   // projectiles
@@ -3076,7 +3308,14 @@ function drawScene(dt){
         }
       }
       ctx.globalAlpha = 1;
-    } else {
+    } else if (b.k === 'bow'){
+      const X = b.x - cx, Y = b.y - cy, ux = b.vx/BAL.bow.speed, uy = b.vy/BAL.bow.speed;
+      ctx.fillStyle = '#b8f08a';
+      for (let k = 1; k <= 4; k++){ ctx.globalAlpha = .6 - k*.13; ctx.fillRect(Math.round(X - ux*(5 + k*2)), Math.round(Y - uy*(5 + k*2)), 1, 1); }
+      ctx.globalAlpha = 1;
+      drawRot(ARROWS, X, Y, b.a);
+    } else if (b.k === 'hammer') continue;
+    else {
       const X = b.x - cx, Y = b.y - cy, tt2 = (b.age || 0), fl = Math.sin(tt2*40)*.6;
       ctx.globalAlpha = .22; pixCircle(X, Y, 8 + fl, '#ff6a2a'); ctx.globalAlpha = .4; pixCircle(X, Y, 6, '#ff8a2a'); ctx.globalAlpha = 1;
       const ux = b.vx/130, uy = b.vy/130;
@@ -3164,6 +3403,47 @@ function drawScene(dt){
   }
 }
 
+/* thorn aura: a shaded zone on the ground ringed by a bramble with bone-white thorns pointing out, slowly turning;
+   brighter on each damage tick (G.thPulse) */
+function drawThorns(x, y, R){
+  const sy = THORN_SY, pulse = G.thPulse > 0 ? G.thPulse/.14 : 0, rot = reduceMotion ? 0 : G.t*.35;
+  const X = Math.round(x), Y = Math.round(y), H = Math.round(R*sy);
+  ctx.globalAlpha = .1 + .08*pulse; ctx.fillStyle = pulse > .5 ? '#9be05a' : '#1e4a16';
+  for (let oy = -H; oy <= H; oy++){ const w = Math.round(R*Math.sqrt(Math.max(0, 1 - (oy/(R*sy))**2))); ctx.fillRect(X - w, Y + oy, w*2 + 1, 1); }
+  ctx.globalAlpha = .8; pixRing(X, Y, R, '#3a2a14', sy);
+  ctx.globalAlpha = .55 + .3*pulse; pixRing(X, Y, R - 1, '#5e8a2a', sy);
+  const n = Math.max(10, Math.round(R*2*Math.PI/6));
+  // one pixel at a time: straight into the software layer when it is on (hot path, ~250 pixels)
+  const put = ctx === LX ? (px, py, col, A) => LX.px(px, py, lxParse(col), A)
+                         : (px, py, col, A) => { ctx.globalAlpha = A; ctx.fillStyle = col; ctx.fillRect(px, py, 1, 1); };
+  const tip = pulse > .3 ? '#ffffff' : '#f2ead8', tipA = .85 + .15*pulse;
+  for (let i = 0; i < n; i++){
+    const a = i/n*Math.PI*2 + rot, c = Math.cos(a), sn = Math.sin(a), L = i % 2 ? 2 : 3;
+    // two-pixel bramble base, then the thorn tapering out to a light tip
+    put(Math.round(X + c*R - sn), Math.round(Y + (sn*R + c)*sy), '#5a3a1a', .9);
+    for (let k = 1; k <= L; k++) put(Math.round(X + c*(R + k)), Math.round(Y + sn*(R + k)*sy), k === L ? tip : k === 1 ? '#7a5a2a' : '#c8b080', k === L ? tipA : .9);
+    if (i % 3 === 1) put(Math.round(X + c*(R - 1) + sn), Math.round(Y + (sn*(R - 1) - c)*sy), '#8ad65a', .9);
+  }
+  ctx.globalAlpha = 1;
+}
+/* hammer shockwave: cracks from the centre, a bright ring front with a dirt band behind it, fading out */
+function drawQuake(b, cx, cy){
+  const HM = BAL.hammer, q = Math.min(1, b.t/HM.grow), rr = b.R*(1 - (1 - q)*(1 - q)), sy = THORN_SY;
+  const fade = b.t < HM.grow ? 1 : Math.max(0, 1 - (b.t - HM.grow)/.3), X = b.x - cx, Y = b.y - cy;
+  if (b.cr && b.t < .9){
+    ctx.globalAlpha = .5*Math.min(1, (.9 - b.t)/.4);
+    for (let i = 0; i < b.cr.length; i += 2){
+      const a = b.cr[i], L = b.R*b.cr[i + 1]*Math.min(1, q*1.6), mx = Math.cos(a + .25)*L*.55, my = Math.sin(a + .25)*L*.55*sy;
+      pixLine(X, Y, X + mx, Y + my, '#3a2a1a'); pixLine(X + mx, Y + my, X + Math.cos(a)*L, Y + Math.sin(a)*L*sy, '#3a2a1a');
+    }
+  }
+  if (rr < 2){ ctx.globalAlpha = 1; return; }
+  ctx.globalAlpha = .45*fade; pixRing(X, Y, Math.max(1, rr - 3), '#7a5a30', sy);
+  ctx.globalAlpha = .7*fade; pixRing(X, Y, Math.max(1, rr - 2), '#c8a060', sy);
+  ctx.globalAlpha = .9*fade; pixRing(X, Y, rr - 1, b.after ? '#e8d8b0' : '#f2d890', sy);
+  ctx.globalAlpha = fade; pixRing(X, Y, rr, '#fff6dc', sy);
+  ctx.globalAlpha = 1;
+}
 function drawWisp(x, y, t, seed){
   ctx.globalAlpha = .22 + .06*Math.sin(t*9 + seed); pixCircle(x, y, 7, '#3f7ae8');
   ctx.globalAlpha = .3; pixCircle(x, y, 5, '#8fd4ff'); ctx.globalAlpha = 1;
@@ -3280,10 +3560,12 @@ function hud(){
 const ICON_URL = {}; for (const k in ICONS) ICON_URL[k] = ICONS[k].spr.toDataURL();
 function renderGear(){
   const box = $('#gear'); box.innerHTML = '';
-  for (const k of ['holy','storm','sword','boom','orb','fire','boots','magnet']){
+  for (const k of ['holy','storm','sword','hammer','thorns','boom','bow','orb','fire','gauntlets','grimoire','boots','magnet']){
     if (!W[k]) continue;
-    const c = document.createElement('div'); c.className = UPG[k].relic ? 'chip legend' : 'chip';
-    c.innerHTML = `<img alt="" src="${iconFor(k, W[k])}"><span>${UPG[k].name}</span><b>${W[k]}</b>`;
+    const s = UPG[k].style || UPG[k].boost, c = document.createElement('div');
+    c.className = (UPG[k].relic ? 'chip legend' : 'chip') + (s ? ' s-' + s : '');
+    c.title = UPG[k].name + (s ? ' · ' + (UPG[k].style ? STY[s] : 'Passivo, ' + STY[s].toLowerCase()) : '');
+    c.innerHTML = `<img alt="" src="${iconFor(k, W[k])}">${s ? `<img class="bd" alt="${STY[s]}" src="${BADGE_URL[s]}">` : ''}<span>${UPG[k].name}</span><b>${W[k]}</b>`;
     box.appendChild(c);
   }
 }
@@ -3390,6 +3672,15 @@ async function keepAwake(on){
     else if (!on && wakeLock){ const w = wakeLock; wakeLock = null; await w.release(); }
   } catch { wakeLock = null; }
 }
+/* power list in "Como jogar": every power with its style */
+(() => {
+  const box = $('#powerList'); $('#howCap').textContent = BAL.pick.maxWeapons;
+  for (const k of UPG_ORDER){
+    const u = UPG[k], el = document.createElement('div'); el.className = 'pw' + (u.relic ? ' relic' : '');
+    el.innerHTML = `<img alt="" src="${iconFor(k, 1)}"><span>${u.name}${u.relic ? ' <small style="color:var(--gold)">(relíquia)</small>' : ''}</span>${styleTag(k)}`;
+    box.appendChild(el);
+  }
+})();
 /* bestiary */
 (() => {
   const box = $('#bestiary');
