@@ -12,7 +12,8 @@
   const STYLE = {
     melee:  {ok:['hammer','thorns','sword','gauntlets','holy','heart','boots','magnet'], tail:['orb','grimoire','storm','fire','boom','bow']},
     ranged: {ok:['bow','fire','boom','grimoire','storm','heart','boots','magnet'], tail:['orb','gauntlets','holy','sword','thorns','hammer']},
-    hybrid: {ok:['orb','bow','thorns','gauntlets','grimoire','fire','hammer','boom','holy','storm','sword','heart','boots','magnet'], tail:[]},
+    // hybrid: alternates melee and ranged weapons (plus the hybrid Fogo-fátuo) and both style passives
+    hybrid: {ok:['hammer','bow','orb','thorns','fire','gauntlets','grimoire','boom','holy','storm','sword','heart','boots','magnet'], tail:[]},
   };
   const PRIO = {
     melee: STYLE.melee.ok.concat(STYLE.melee.tail), ranged: STYLE.ranged.ok.concat(STYLE.ranged.tail), hybrid: STYLE.hybrid.ok,

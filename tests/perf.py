@@ -14,7 +14,7 @@ invulnerable hero and a fixed power schedule, and measures:
 at CPU throttle 1x and 4x (Chrome DevTools CPU throttling via CDP).
 
 Scenarios: early (30 s), mid (300 s), late (840 s, all powers maxed incl.
-relics), boss (dragon fight, ~912 s). (Before Etapa 3 late was 540 s and the boss
+relics and the Etapa 4 powers), boss (dragon fight, ~912 s). (Before Etapa 3 late was 540 s and the boss
 came at 600 s; numbers in CHANGELOG for Etapa 2 use those times.)
 
 Usage:
@@ -98,7 +98,9 @@ window.__bench = (N, calls) => {
 
 SCHED_EARLY = [(0, {'sword': 2, 'boom': 1})]
 SCHED_MID = SCHED_EARLY + [(120, {'sword': 3, 'boom': 2, 'orb': 2, 'fire': 2}), (240, {'sword': 5, 'boom': 4, 'orb': 4, 'fire': 4, 'boots': 2, 'magnet': 2})]
-SCHED_LATE = SCHED_MID + [(300, {'holy': 1}), (450, {'holy': 3, 'boom': 5, 'orb': 5, 'fire': 5, 'boots': 5, 'magnet': 5}), (600, {'storm': 2}), (700, {'storm': 3})]
+# Etapa 4: the new powers are maxed too (older versions just ignore the extra W keys), more than the 5-weapon cap allows: worst case
+SCHED_LATE = SCHED_MID + [(300, {'holy': 1}), (450, {'holy': 3, 'boom': 5, 'orb': 5, 'fire': 5, 'boots': 5, 'magnet': 5,
+                                                   'hammer': 5, 'thorns': 5, 'bow': 5, 'gauntlets': 5, 'grimoire': 5}), (600, {'storm': 2}), (700, {'storm': 3})]
 SCEN = {'early': (30, SCHED_EARLY), 'mid': (300, SCHED_MID), 'late': (840, SCHED_LATE), 'boss': (912, SCHED_LATE)}
 
 

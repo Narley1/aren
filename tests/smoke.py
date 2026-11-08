@@ -41,12 +41,15 @@ window.__t = {
   get G(){ return G; }, get P(){ return P; }, get W(){ return W; }, get E(){ return E; }, get FX(){ return FX; },
   get B(){ return B; }, get EB(){ return EB; }, get GEMS(){ return GEMS; }, get ITEMS(){ return ITEMS; }, get NUMS(){ return NUMS; },
   get state(){ return state; }, set state(v){ state = v; }, get J(){ return J; }, set J(v){ J = v; },
-  keys, update, start, goTitle, togglePause, gameOver, victory, hurt, ambUpdate, hud, render, openLevelUp, startBoss,
+  keys, update, start, goTitle, togglePause, gameOver, victory, hurt, ambUpdate, hud, render, openLevelUp, startBoss, renderGear,
   pick(i){ lvlOpenedAt = -1e9; chooseLevel(i); },
   // newer names (Etapa 3); undefined in older versions
   get BOSSES(){ return typeof BOSSES !== 'undefined' ? BOSSES : null; },
   get avail(){ return typeof available === 'function' ? available : null; },
-  get lvlOpts(){ return lvlOpts; }
+  get lvlOpts(){ return lvlOpts; },
+  // Etapa 4
+  get BAL(){ return typeof BAL !== 'undefined' ? BAL : null; },
+  get UPG(){ return typeof UPG !== 'undefined' ? UPG : null; }
 };
 '''
 
@@ -80,7 +83,7 @@ STRESS = r'''
   const DT = 1/30;
   let maxE = 0, maxFX = 0, maxB = 0, maxEB = 0, maxGEMS = 0, maxITEMS = 0, maxNUMS = 0, picks = 0, nan = 0, steps = 0;
   let at120 = null, bossSeen = false, fightSeen = false, forced = false;
-  for (const k of ['sword','boom','orb','fire','boots','magnet']) T.W[k] = 5;
+  for (const k of ['sword','boom','orb','fire','boots','magnet','hammer','thorns','bow','gauntlets','grimoire']) if (k in T.W) T.W[k] = 5;
   let guards = 0;
   for (; steps < 1000*30; steps++){
     T.P.inv = 5; T.P.hp = T.P.maxHp;
@@ -180,6 +183,39 @@ MILESTONES = r'''
 }
 '''
 
+# Etapa 4 powers: each new weapon alone (plus the starting sword) must kill more than the sword alone in 40 s,
+# the weapon cap must hide new weapons once full, and level-up cards must show the style pill.
+POWERS = r'''
+(seed) => {
+  const T = window.__t, out = {kills: {}, seen: {}};
+  if (!T.BAL || !T.BAL.pick || !T.BAL.pick.maxWeapons) return {skipped: true};
+  for (const k of ['none', 'hammer', 'thorns', 'bow']){
+    window.__seed(seed); T.start();
+    if (k !== 'none') T.W[k] = 5;
+    let seen = false;
+    for (let i = 0; i < 40*30; i++){
+      T.P.inv = 5; T.P.x = 0; T.P.y = 0; T.update(1/30); T.G.pending = 0;
+      if (T.B.some(b => b.k === k) || (k === 'thorns' && T.G.thPulse > 0)) seen = true;
+      if (i % 15 === 0) T.render(1/30);
+    }
+    out.kills[k] = T.G.kills; out.seen[k] = seen;
+  }
+  T.start();
+  const ws = Object.keys(T.UPG).filter(k => T.UPG[k].kind === 'weapon');
+  for (const k of ws.slice(0, T.BAL.pick.maxWeapons)) T.W[k] = Math.max(1, T.W[k]);
+  out.capNewOffered = T.avail().filter(k => T.UPG[k].kind === 'weapon' && !T.W[k]);
+  T.W[ws[ws.length - 1]] = 0; T.W[ws[1]] = 0;
+  out.belowCapNewOffered = T.avail().filter(k => T.UPG[k].kind === 'weapon' && !T.W[k]).length;
+  T.G.pending = 1; T.openLevelUp();
+  const cards = [...document.querySelectorAll('#choices .choice')];
+  out.cards = cards.length; out.cardsWithStyle = cards.filter(c => c.querySelector('.sty')).length;
+  T.pick(0);
+  out.powerList = document.querySelectorAll('#powerList .pw').length; out.upgCount = Object.keys(T.UPG).length;
+  T.goTitle();
+  return out;
+}
+'''
+
 AFTER_VICTORY = r'''
 async () => {
   const T = window.__t, r = {};
@@ -275,6 +311,7 @@ async def run(src, seed):
             res['stress'] = await pg.evaluate(STRESS, seed)
             res['afterVictory'] = await pg.evaluate(AFTER_VICTORY)
             res['milestones'] = await pg.evaluate(MILESTONES, seed + 2)
+            res['powers'] = await pg.evaluate(POWERS, seed + 3)
             await pg.evaluate('() => window.__t.goTitle()')
             res['normal'] = await pg.evaluate(NORMAL, seed + 1)
             await pg.evaluate('() => window.__t.goTitle()')
@@ -335,6 +372,13 @@ def checks(r):
         ok('milestones: guardian death drops the relic; relic not offered before pickup', m.get('guardDead') and m.get('relicDropped') == 'holy' and not m.get('holyBefore') and not m.get('holyAfterDropNotPicked'), json.dumps(m))
         ok('milestones: picking the relic grants level 1 and opens it to picks', m.get('holyLevel') == 1 and m.get('holyAvailAfter') and m.get('relicGone'), json.dumps(m))
         ok('stress: both guardians spawned (mi reached 3)', s.get('mi') == 3, f"mi={s.get('mi')} guards={s.get('guards')}")
+    pw = r.get('powers') or {}
+    if not pw.get('skipped'):
+        kl = pw['kills']
+        for k in ('hammer', 'thorns', 'bow'):
+            ok(f'power {k}: works alone (more kills than the sword alone, effect seen)', kl[k] > kl['none'] and pw['seen'][k], json.dumps(pw['kills']))
+        ok('weapon cap: no new weapon offered when full, offered again below the cap', not pw['capNewOffered'] and pw['belowCapNewOffered'] > 0, json.dumps(pw['capNewOffered']))
+        ok('level-up cards show the style pill; power list complete', pw['cards'] > 0 and pw['cards'] == pw['cardsWithStyle'] and pw['powerList'] == pw['upgCount'], json.dumps({k: pw[k] for k in ('cards', 'cardsWithStyle', 'powerList', 'upgCount')}))
     ok('victory: game-over panel shown', a['overShown'] and a['overTitle'] == 'Vitória!')
     ok('victory: back to title', a['titleShown'])
     for i, cy in enumerate(a['cycles']):
