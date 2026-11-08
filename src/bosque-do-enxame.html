@@ -911,8 +911,8 @@ const BAL = {
   /* level-up picks: while Aren has fewer than newUntil weapons, weapons not owned yet get +newWeapon weight; powers already
      owned x owned (with 14 powers the offers would otherwise spread a build over many weak level-1 weapons);
      Aren carries at most maxWeapons weapons (the sword counts; relics and passives do not): once full, new weapons stop
-     showing up (design decision of Etapa 4, to be confirmed by the owner) */
-  pick:   {newWeapon:1.4, newUntil:3, owned:2, maxWeapons:4},
+     showing up (Narley chose 5 on 2026-11-08) */
+  pick:   {newWeapon:1.4, newUntil:3, owned:2, maxWeapons:5},
   /* experience: it comes from the gems (each enemy drops ET.gem, elites x elite.gems), granted when the gem is picked up.
      xpNeed(L) = round(base + lin*(L - 1) + quad*(L - 1)^2). Power choice on the levels in picks, then every pickEvery levels. */
   xp:     {base:8, lin:4.5, quad:.3, picks:[2, 3, 5, 7, 10], pickEvery:3},

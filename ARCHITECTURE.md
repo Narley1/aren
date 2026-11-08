@@ -79,7 +79,7 @@ Cada entrada de `UPG` tem `kind` (`weapon`, `passive`, `relic`) e, nas armas e r
 
 ## Experiência e escolhas
 
-Cada inimigo solta joias no valor de `ET[type].gem` (elites × `BAL.elite.gems`, guardiões `BAL.guard[id].gem`), em pedras de 1/5/10. A experiência só entra quando a joia é recolhida (`gainXp`), então o Amuleto Ímã importa. Com mais de `gemCap` joias no chão, a mais antiga é somada à vizinha mais próxima (`mergeGem`) — nada se perde. Nível de escolha (`isPickLevel`) abre 3 opções (`pickOptions(3)`); os outros níveis curam meio coração. Pesos (`BAL.pick`): `UPG[k].w`; arma ainda não tida +`newWeapon` enquanto Aren tem menos de `newUntil` armas; poder já tido × `owned`; Recipiente de Coração +1 com menos de metade da vida. **Limite de armas:** com `maxWeapons` (4) armas (a espada conta; relíquias e passivos não), `available()` deixa de oferecer armas novas — decisão da Etapa 4 que aguarda o Narley.
+Cada inimigo solta joias no valor de `ET[type].gem` (elites × `BAL.elite.gems`, guardiões `BAL.guard[id].gem`), em pedras de 1/5/10. A experiência só entra quando a joia é recolhida (`gainXp`), então o Amuleto Ímã importa. Com mais de `gemCap` joias no chão, a mais antiga é somada à vizinha mais próxima (`mergeGem`) — nada se perde. Nível de escolha (`isPickLevel`) abre 3 opções (`pickOptions(3)`); os outros níveis curam meio coração. Pesos (`BAL.pick`): `UPG[k].w`; arma ainda não tida +`newWeapon` enquanto Aren tem menos de `newUntil` armas; poder já tido × `owned`; Recipiente de Coração +1 com menos de metade da vida. **Limite de armas:** com `maxWeapons` (5) armas (a espada conta; relíquias e passivos não), `available()` deixa de oferecer armas novas — o Narley escolheu 5 em 08/11/2026.
 
 ## Chefes
 

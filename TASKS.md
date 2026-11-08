@@ -58,7 +58,7 @@
 
 - [ ] Jogar 2–3 partidas: o ritmo das escolhas (~40 s) e o pico de 7:00–9:00 (Wyvern + hordas de demônios + elites) parecem bons?
 - [ ] Guardiões provisórios: vida (Paladino ~2600, Lich ~6000 na hora em que surgem) — fáceis/difíceis demais? Se não matar, a relíquia se perde às 15:00
-- [ ] Quedas de cristal/meio coração agora caem depois dos 4:00 (decisão nossa para a partida longa — confirmar)
+- [x] Quedas de cristal/meio coração caem depois dos 4:00 — confirmado pelo Narley (08/11/2026); serpe-dragão mais rara ao aparecer também confirmada
 - [ ] Dragão: com build cheia a luta dura ~2 min; com build média ~4 min. A espada no dragão atordoado é perceptível?
 - [ ] Flechas dos elfos são a maior fonte de dano para o bot; ver se para humanos também
 - [ ] Bot: a política "balanced" (espalha níveis) morre cedo (~4:00); builds só de espada morrem ~7:00
@@ -70,15 +70,16 @@
 - [x] Martelo Sísmico, Aura de Espinhos, Arco Élfico (5 níveis, nerf do 1º nível), Manoplas do Guerreiro, Grimório Arcano (5 níveis); números em `BAL`
 - [x] Ícones 8×8, flecha e martelo pré-rotacionados, anel de choque com rachaduras, aura de espinhos; capturas em 390×844 e 1366×768
 - [x] Sons do martelo (golpe e tremor) e do arco, volume medido contra a explosão do fogo; aura sem som
-- [x] Pesos das escolhas (arma nova só até ter 3, poder já tido ×2) e limite de 4 armas
+- [x] Pesos das escolhas (arma nova só até ter 3, poder já tido ×2) e limite de armas (5, escolha do Narley)
 - [x] Bot: políticas `melee`/`ranged`/`hybrid`, 48 sementes; `smoke.py` 34/34; `perf.py` late com as armas novas no máximo
 - [x] "Will-o'-Wisp" passou a se chamar "Fogo-fátuo" (texto da interface em PT-BR)
 
 ## Pendências da Etapa 4 (decisões e testes do Narley)
 
-- [ ] **Confirmar o limite de 4 armas** (a espada conta; relíquias e passivos não). Sem limite (ou com 5) as builds se espalham em armas de nível 1 e o bot morre bem mais cedo (ver `CHANGELOG.md`). Alternativas: 5 armas, ou sem limite e só os pesos
-- [ ] Confirmar os pesos novos das escolhas (`BAL.pick`: arma nova +1,4 só enquanto houver menos de 3 armas; poder já tido ×2) — mudam também a chance de Shuriken/Fogo/Fogo-fátuo aparecerem
-- [ ] Confirmar o nome "Fogo-fátuo" (era "Will-o'-Wisp", em inglês)
+- [x] Limite de armas: o Narley escolheu **5** (08/11/2026). Com 5 o bot espalhava mais as builds na medição da Etapa 4 (ver `CHANGELOG.md`); remedir na Etapa 5
+- [x] Pesos novos das escolhas confirmados pelo Narley (08/11/2026)
+- [x] Nome "Fogo-fátuo" confirmado pelo Narley (08/11/2026); no futuro haverá opção de jogar em inglês
+- [ ] Grimório Arcano mais forte que o planejado (+10% de dano e −7% de recarga por nível): aguardando o Narley depois de relembrar o que é
 - [ ] Jogar uma build de cada estilo: o corpo a corpo parece arriscado mas recompensador? A aura dá para ler sem poluir?
 - [ ] O Fogo-fátuo (único híbrido) continua a arma mais fraca (67 de dano/s aos 10:00 no nível 5 contra 217 da Espada e 370–680 das outras); não foi mexido porque é número de poder existente
 - [ ] O bot com movimento de perto (`agg`) sobrevive menos que o cauteloso mesmo com corpo a corpo; um humano pode render bem diferente

@@ -20,10 +20,14 @@ Falta: testes do Narley (ver `TASKS.md`).
 
 ## Etapa 4 — Novos poderes por estilo ✔
 
-Concluída no `dev` (novembro de 2026), aguardando o Narley jogar. Todo poder tem um estilo (Corpo a corpo, A distância, Híbrido) mostrado nas cartas, no HUD e em "Como jogar". Novas armas: **Martelo Sísmico** e **Aura de Espinhos** (corpo a corpo), **Arco Élfico** (a distância); novos passivos: **Manoplas do Guerreiro** e **Grimório Arcano**. Escolhas favorecem poderes que Aren já tem e há limite de 4 armas (decisão a confirmar). Bot por estilo: corpo a corpo, a distância e híbrido sobrevivem parecido. Detalhes no `CHANGELOG.md`.
+Concluída no `dev` (novembro de 2026), aguardando o Narley jogar. Todo poder tem um estilo (Corpo a corpo, A distância, Híbrido) mostrado nas cartas, no HUD e em "Como jogar". Novas armas: **Martelo Sísmico** e **Aura de Espinhos** (corpo a corpo), **Arco Élfico** (a distância); novos passivos: **Manoplas do Guerreiro** e **Grimório Arcano**. Escolhas favorecem poderes que Aren já tem e há limite de 5 armas (escolha do Narley). Bot por estilo: corpo a corpo, a distância e híbrido sobrevivem parecido. Detalhes no `CHANGELOG.md`.
 
 Falta: testes do Narley e decisões listadas em `TASKS.md`.
 
 ## Etapa 5 — Chefes
 
 - Implementar Paladino e Lich Ancião com padrões próprios, apresentação e recompensa (relíquia), no mesmo nível de acabamento do Dragão Esqueleto.
+
+## Futuro — opção de jogar em inglês
+
+Pedido do Narley (08/11/2026): no futuro o jogo terá opção de idioma inglês. A interface padrão continua em PT-BR; nomes como "Fogo-fátuo" ganham tradução ("Will-o'-Wisp") quando houver a opção.

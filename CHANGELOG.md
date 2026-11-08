@@ -1,5 +1,11 @@
 # Changelog
 
+## Decisões do Narley (08/11/2026)
+
+- Limite de armas passa de 4 para **5** (`BAL.pick.maxWeapons`).
+- Confirmados: pesos novos das escolhas, nome "Fogo-fátuo" (haverá opção em inglês no futuro), menos corações e cristais depois dos 4:00, serpe-dragão mais rara ao aparecer.
+- Grimório Arcano: aguardando decisão.
+
 ## Etapa 4 — novos poderes por estilo (novembro de 2026, branch `dev`, não publicado)
 
 Pedido do Narley: poderes para montar um arsenal corpo a corpo, a distância ou híbrido, à escolha do jogador. Medido com `tests/balance/` (bot, Chromium headless, `dt` = 1/30 s, **48 sementes** por política; movimento cauteloso `kite` para todos e, para corpo a corpo, também o de perto `agg`). O bot não é um humano: os números servem para comparar versões e estilos. Como a sobrevivência é bimodal (o bot morre perto das 7:00–9:00 ou vence), a média e as vitórias dizem mais que a mediana.
