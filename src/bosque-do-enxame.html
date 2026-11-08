@@ -226,7 +226,10 @@ body{-webkit-touch-callout:none}
 (() => {
 'use strict';
 const $ = s => document.querySelector(s);
-const app = $('#app'), cvs = $('#c'), ctx = cvs.getContext('2d');
+const app = $('#app'), cvs = $('#c'), CTX = cvs.getContext('2d');
+// `ctx` is the context every drawing helper uses: the real canvas, or the software layer LX while
+// render() runs (see "software layer" below).
+let ctx = CTX;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let VW = 200, VH = 300, SCALE = 2;
 
@@ -235,7 +238,7 @@ function resize(){
   SCALE = Math.max(2, Math.round(Math.sqrt((r.width * r.height) / 60000)));
   VW = Math.ceil(r.width / SCALE); VH = Math.ceil(r.height / SCALE);
   cvs.width = VW; cvs.height = VH;
-  ctx.imageSmoothingEnabled = false;
+  CTX.imageSmoothingEnabled = false;
 }
 addEventListener('resize', resize);
 
@@ -1245,10 +1248,196 @@ function propsIn(x0, y0, x1, y1, out){
 }
 
 /* ---------------- helpers ---------------- */
+// Filled pixel circle. Each distinct shape (colour + row widths + sub-pixel row offset) is rasterised
+// once into a small canvas and blitted with drawImage (one call instead of 2r+1 fillRects). Row widths
+// are computed exactly as before; only the fractional row offset of non-integer radii (flames, smoke)
+// is quantised to 1/32 px, so integer radii give exactly the old pixels.
+const CIRC = new Map();
 function pixCircle(x, y, r, col){
-  ctx.fillStyle = col; x = Math.round(x); y = Math.round(y);
-  for (let dy=-r; dy<=r; dy++){ const w = Math.floor(Math.sqrt(r*r - dy*dy + .3)); ctx.fillRect(x-w, y+dy, w*2+1, 1); }
+  if (ctx === LX){ LX.fillStyle = col; x = Math.round(x); y = Math.round(y);
+    for (let dy=-r; dy<=r; dy++){ const w = Math.floor(Math.sqrt(r*r - dy*dy + .3)); LX.fillRect(x-w, y+dy, w*2+1, 1); }
+    return; }
+  let h = 0, n = 0;
+  for (let dy=-r; dy<=r; dy++){ h = (Math.imul(h, 33) + Math.floor(Math.sqrt(r*r - dy*dy + .3)) + 1) | 0; n++; }
+  if (!n) return;
+  const fr = Math.floor(r), f = Math.round((r - fr)*32), key = (h >>> 0)*2048 + n*33 + f;
+  let m = CIRC.get(col);
+  if (!m){ m = new Map(); CIRC.set(col, m); }
+  let s = m.get(key);
+  if (!s){
+    // With a fractional offset two neighbouring rows share a pixel row and the old code blended it
+    // twice; odd rows go to a second canvas so each blit still blends every row exactly once.
+    const R = Math.max(0, Math.ceil(r)) + 1, y0 = R - (fr + f/32), cs = [cnv(2*R + 1, 2*R + 1)];
+    if (f) cs.push(cnv(2*R + 1, 2*R + 1));
+    const gs = cs.map(c => { const g = c.getContext('2d'); g.fillStyle = col; return g; });
+    let i = 0;
+    for (let dy=-r; dy<=r; dy++, i++){ const w = Math.floor(Math.sqrt(r*r - dy*dy + .3)); gs[f ? i & 1 : 0].fillRect(R-w, y0 + i, w*2+1, 1); }
+    s = {c: cs[0], c2: cs[1] || null, R}; m.set(key, s);
+  }
+  const X = Math.round(x) - s.R, Y = Math.round(y) - s.R;
+  ctx.drawImage(s.c, X, Y);
+  if (s.c2) ctx.drawImage(s.c2, X, Y);
 }
+/* ---------------- software layer ----------------
+   In Chromium every canvas call has a fixed cost (drawImage from a canvas ~2.5 us, fillRect ~0.5 us)
+   that dwarfs the handful of pixels most of our calls touch. While render() runs, `ctx` points to LX:
+   an object with the same small API the game uses (fillRect, drawImage(img, x, y), fillStyle,
+   globalAlpha, createRadialGradient) that blends into a Float32 premultiplied RGBA buffer in JS, and
+   is copied to the canvas with one putImageData + drawImage per flush. Source-over is associative,
+   so drawing a run of calls into a transparent layer and compositing it once gives the same image
+   (up to 8-bit rounding). Anything else (gradients, sprites bigger than LX_BIG pixels, scaled or
+   cropped drawImage) flushes the layer and goes straight to the canvas, so the order is kept. */
+const LX_BIG = 40000;
+const LXC = new Map();             // colour string -> [r, g, b, a] (0..1)
+const lxParse = (() => { const g = cnv(1, 1).getContext('2d');
+  return v => { let c = LXC.get(v); if (c) return c;
+    g.fillStyle = '#000000'; g.fillStyle = v; const n = g.fillStyle;
+    if (n[0] === '#') c = [parseInt(n.slice(1, 3), 16)/255, parseInt(n.slice(3, 5), 16)/255, parseInt(n.slice(5, 7), 16)/255, 1];
+    else { const m = n.match(/[\d.]+/g).map(Number); c = [m[0]/255, m[1]/255, m[2]/255, m.length > 3 ? m[3] : 1]; }
+    LXC.set(v, c); return c; }; })();
+const LXS = new WeakMap();         // sprite canvas -> {w, h, n, xs, ys, px (premultiplied rgba)}
+function lxSprite(img){
+  let d = LXS.get(img);
+  if (d && d.w === img.width && d.h === img.height) return d;
+  const w = img.width, h = img.height;
+  let n = 0, xs, ys, px;
+  if (w*h){
+    const a = img.getContext('2d').getImageData(0, 0, w, h).data;
+    for (let i = 3; i < a.length; i += 4) if (a[i]) n++;
+    xs = new Int16Array(n); ys = new Int16Array(n); px = new Float32Array(n*4);
+    let k = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){ const i = (y*w + x)*4, al = a[i + 3]/255; if (!al) continue;
+      xs[k] = x; ys[k] = y; px[k*4] = a[i]/255*al; px[k*4 + 1] = a[i + 1]/255*al; px[k*4 + 2] = a[i + 2]/255*al; px[k*4 + 3] = al; k++; }
+  }
+  d = {w, h, n, xs, ys, px}; LXS.set(img, d); return d;
+}
+const LX = {
+  W: 0, H: 0, buf: null, id: null, d32: null, c: null, g: null, rx0: null, rx1: null,
+  y0: 1e9, y1: -1,                   // dirty rows; rx0/rx1 = dirty span of each row
+  ga: 1, fs: '#000000', col: [0, 0, 0, 1], real: false,
+  get globalAlpha(){ return this.ga; },
+  set globalAlpha(v){ if (v >= 0 && v <= 1) this.ga = v; },
+  get fillStyle(){ return this.fs; },
+  set fillStyle(v){ this.fs = v; if (typeof v === 'string'){ this.col = lxParse(v); this.real = false; } else this.real = true; },
+  begin(){
+    if (this.W !== VW || this.H !== VH){
+      this.W = VW; this.H = VH; this.buf = new Float32Array(VW*VH*4); this.c = cnv(VW, VH);
+      this.g = this.c.getContext('2d'); this.id = this.g.createImageData(VW, VH); this.d32 = new Uint32Array(this.id.data.buffer);
+      this.rx0 = new Int32Array(VH).fill(1e9); this.rx1 = new Int32Array(VH).fill(-1); this.y0 = 1e9; this.y1 = -1;
+    }
+    this.ga = CTX.globalAlpha; this.fillStyle = CTX.fillStyle;
+  },
+  flush(){
+    if (this.y1 < 0) return;
+    const W = this.W, f = this.buf, d = this.d32, rx0 = this.rx0, rx1 = this.rx1, y0 = this.y0, y1 = this.y1;
+    let x0 = 1e9, x1 = -1;
+    for (let y = y0; y <= y1; y++){
+      const a0 = rx0[y], a1 = rx1[y];
+      if (a1 < 0) continue;
+      if (a0 < x0) x0 = a0; if (a1 > x1) x1 = a1;
+      for (let j = y*W + a0, e = y*W + a1, i = j*4; j <= e; j++, i += 4){
+        const a = f[i + 3];
+        if (a > 0){ const k = 255/a;
+          d[j] = ((a*255 + .5) << 24) | ((f[i + 2]*k + .5) << 16) | ((f[i + 1]*k + .5) << 8) | (f[i]*k + .5); }
+      }
+      f.fill(0, (y*W + a0)*4, (y*W + a1 + 1)*4);
+    }
+    const w = x1 - x0 + 1, h = y1 - y0 + 1;
+    this.g.putImageData(this.id, 0, 0, x0, y0, w, h);
+    const ga = CTX.globalAlpha; CTX.globalAlpha = 1;
+    CTX.drawImage(this.c, x0, y0, w, h, x0, y0, w, h);
+    CTX.globalAlpha = ga;
+    // the ImageData stays transparent outside the spans in use
+    for (let y = y0; y <= y1; y++){ if (rx1[y] >= 0) d.fill(0, y*W + rx0[y], y*W + rx1[y] + 1); rx0[y] = 1e9; rx1[y] = -1; }
+    this.y0 = 1e9; this.y1 = -1;
+  },
+  // hand the current state to the real context (after a flush) for a call the layer does not do
+  pass(){ this.flush(); CTX.globalAlpha = this.ga; if (CTX.fillStyle !== this.fs) CTX.fillStyle = this.fs; return CTX; },
+  dirty(x0, y0, x1, y1){
+    if (y0 < this.y0) this.y0 = y0; if (y1 > this.y1) this.y1 = y1;
+    const r0 = this.rx0, r1 = this.rx1;
+    for (let y = y0; y <= y1; y++){ if (x0 < r0[y]) r0[y] = x0; if (x1 > r1[y]) r1[y] = x1; }
+  },
+  // one pixel of colour c ([r, g, b, a]) at alpha A, integer coordinates (hot paths: sword arc, rings)
+  px(x, y, c, A){
+    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return;
+    A *= c[3]; if (A <= 0) return;
+    const i = (y*this.W + x)*4, f = this.buf, ia = 1 - A;
+    f[i] = c[0]*A + f[i]*ia; f[i + 1] = c[1]*A + f[i + 1]*ia; f[i + 2] = c[2]*A + f[i + 2]*ia; f[i + 3] = A + f[i + 3]*ia;
+    if (y < this.y0) this.y0 = y; if (y > this.y1) this.y1 = y;
+    if (x < this.rx0[y]) this.rx0[y] = x; if (x > this.rx1[y]) this.rx1[y] = x;
+  },
+  span(X0, X1, yy, a, r, g, b){
+    const f = this.buf, ia = 1 - a, ra = r*a, gA = g*a, ba = b*a;
+    for (let i = (yy*this.W + X0)*4, e = (yy*this.W + X1)*4; i <= e; i += 4){
+      f[i] = ra + f[i]*ia; f[i + 1] = gA + f[i + 1]*ia; f[i + 2] = ba + f[i + 2]*ia; f[i + 3] = a + f[i + 3]*ia;
+    }
+  },
+  fillRect(x, y, w, h){
+    if (this.real){ this.pass().fillRect(x, y, w, h); return; }
+    if (w < 0){ x += w; w = -w; } if (h < 0){ y += h; h = -h; }
+    if (!(w > 0 && h > 0)) return;
+    if (w*h > 8192){ this.pass().fillRect(x, y, w, h); return; }  // big fills (flash, beams): the canvas is faster
+    const c = this.col, A = this.ga*c[3];
+    if (A <= 0) return;
+    const W = this.W, H = this.H, f = this.buf, r = c[0], g = c[1], b = c[2];
+    if ((x|0) === x && (w|0) === w){
+      let X0 = x, X1 = x + w - 1;
+      if (X0 < 0) X0 = 0; if (X1 >= W) X1 = W - 1;
+      if (X0 > X1) return;
+      if ((y|0) === y && (h|0) === h){
+        let Y0 = y, Y1 = y + h - 1;
+        if (Y0 < 0) Y0 = 0; if (Y1 >= H) Y1 = H - 1;
+        if (Y0 > Y1) return;
+        for (let yy = Y0; yy <= Y1; yy++) this.span(X0, X1, yy, A, r, g, b);
+        this.dirty(X0, Y0, X1, Y1);
+        return;
+      }
+      // fractional rows only (pixel circles with a fractional radius): vertical coverage
+      const ye = y + h; let Y0 = Math.floor(y), Y1 = Math.ceil(ye) - 1;
+      if (Y0 < 0) Y0 = 0; if (Y1 >= H) Y1 = H - 1;
+      if (Y0 > Y1) return;
+      for (let yy = Y0; yy <= Y1; yy++){ const cy = Math.min(ye, yy + 1) - Math.max(y, yy); if (cy > 0) this.span(X0, X1, yy, A*cy, r, g, b); }
+      this.dirty(X0, Y0, X1, Y1);
+      return;
+    }
+    // fractional edges: area coverage, like the canvas' anti-aliased fill
+    const xe = x + w, ye = y + h;
+    let X0 = Math.floor(x), Y0 = Math.floor(y), X1 = Math.ceil(xe) - 1, Y1 = Math.ceil(ye) - 1;
+    if (X0 < 0) X0 = 0; if (Y0 < 0) Y0 = 0; if (X1 >= W) X1 = W - 1; if (Y1 >= H) Y1 = H - 1;
+    if (X0 > X1 || Y0 > Y1) return;
+    for (let yy = Y0; yy <= Y1; yy++){
+      const cy = Math.min(ye, yy + 1) - Math.max(y, yy);
+      if (cy <= 0) continue;
+      for (let xx = X0; xx <= X1; xx++){
+        const cx = Math.min(xe, xx + 1) - Math.max(x, xx), a = A*cx*cy;
+        if (a <= 0) continue;
+        const i = (yy*W + xx)*4, ia = 1 - a;
+        f[i] = r*a + f[i]*ia; f[i + 1] = g*a + f[i + 1]*ia; f[i + 2] = b*a + f[i + 2]*ia; f[i + 3] = a + f[i + 3]*ia;
+      }
+    }
+    this.dirty(X0, Y0, X1, Y1);
+  },
+  drawImage(img, x, y, a3, a4, a5, a6, a7, a8){
+    if (a3 !== undefined){ this.pass().drawImage(img, x, y, a3, a4, a5, a6, a7, a8); return; }
+    const d = lxSprite(img);
+    if (d.n > LX_BIG){ this.pass().drawImage(img, x, y); return; }
+    const G = this.ga;
+    if (G <= 0 || !d.n) return;
+    x = Math.round(x); y = Math.round(y);
+    const W = this.W, H = this.H;
+    if (x >= W || y >= H || x + d.w <= 0 || y + d.h <= 0) return;
+    const f = this.buf, xs = d.xs, ys = d.ys, px = d.px, n = d.n, inside = x >= 0 && y >= 0 && x + d.w <= W && y + d.h <= H;
+    for (let k = 0, q = 0; k < n; k++, q += 4){
+      const X = x + xs[k], Y = y + ys[k];
+      if (!inside && (X < 0 || Y < 0 || X >= W || Y >= H)) continue;
+      const i = (Y*W + X)*4, ia = 1 - px[q + 3]*G;
+      f[i] = px[q]*G + f[i]*ia; f[i + 1] = px[q + 1]*G + f[i + 1]*ia; f[i + 2] = px[q + 2]*G + f[i + 2]*ia; f[i + 3] = px[q + 3]*G + f[i + 3]*ia;
+    }
+    this.dirty(Math.max(0, x), Math.max(0, y), Math.min(W - 1, x + d.w - 1), Math.min(H - 1, y + d.h - 1));
+  },
+  createRadialGradient(...a){ return CTX.createRadialGradient(...a); }
+};
 function pixLine(x0, y0, x1, y1, col){
   ctx.fillStyle = col; const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) | 0;
   for (let i=0;i<=n;i++){ const t = n ? i/n : 0; ctx.fillRect(Math.round(x0 + (x1 - x0)*t), Math.round(y0 + (y1 - y0)*t), 1, 1); }
@@ -1265,15 +1454,23 @@ function shadow(w){
   return SHADOWS[w];
 }
 const DIG = ["111101101101111","010110010010111","111001111100111","111001111001111","101101111001001","111100111001111","111100111101111","111001001001001","111101111101111","111101111001111"];
-function drawNum(n, x, y, col){
-  const s = String(n); x = Math.round(x - s.length*2); y = Math.round(y);
-  for (const pass of [0,1]){
-    ctx.fillStyle = pass ? col : '#1b1020';
-    for (let i=0;i<s.length;i++){
-      const p = DIG[+s[i]];
-      for (let j=0;j<15;j++) if (p[j]==='1') ctx.fillRect(x + i*4 + (j%3) + (pass?0:1), y + ((j/3)|0) + (pass?0:1), 1, 1);
-    }
+// Damage numbers: one cached 4x6 sprite per (colour, digit) = dark shadow offset by 1 px + the digit.
+// A digit's shadow never touches its neighbours, so blitting digit by digit gives the old pixels.
+const DIGSPR = new Map();
+function digitSprites(col){
+  let a = DIGSPR.get(col);
+  if (!a){
+    a = DIG.map(p => { const c = cnv(4, 6), g = c.getContext('2d');
+      for (const pass of [0, 1]){ g.fillStyle = pass ? col : '#1b1020';
+        for (let j=0;j<15;j++) if (p[j]==='1') g.fillRect((j%3) + (pass?0:1), ((j/3)|0) + (pass?0:1), 1, 1); }
+      return c; });
+    DIGSPR.set(col, a);
   }
+  return a;
+}
+function drawNum(n, x, y, col){
+  const s = String(n), spr = digitSprites(col); x = Math.round(x - s.length*2); y = Math.round(y);
+  for (let i=0;i<s.length;i++) ctx.drawImage(spr[s.charCodeAt(i) - 48], x + i*4, y);
 }
 const fmt = t => `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 const store = {
@@ -2029,6 +2226,9 @@ function drawBoss(e, cx, cy){
 }
 function pixRing(x, y, r, col, sy = 1){
   ctx.fillStyle = col; const n = Math.max(12, Math.round(r*6));
+  if (ctx === LX){ const c = LX.col, A = LX.ga;
+    for (let i=0;i<n;i++){ const a = i/n*Math.PI*2; LX.px(Math.round(x + Math.cos(a)*r), Math.round(y + Math.sin(a)*r*sy), c, A); }
+    return; }
   for (let i=0;i<n;i++){ const a = i/n*Math.PI*2; ctx.fillRect(Math.round(x + Math.cos(a)*r), Math.round(y + Math.sin(a)*r*sy), 1, 1); }
 }
 function drawBossLayer(cx, cy){
@@ -2483,6 +2683,9 @@ function update(dt){
 
 /* ---------------- render ---------------- */
 function render(dt){
+  try { drawScene(dt); } finally { if (ctx === LX){ LX.flush(); CTX.globalAlpha = 1; ctx = CTX; } }
+}
+function drawScene(dt){
   let sx = 0, sy = 0;
   if (G.shake > 0 && state === 'play'){ sx = (Math.random()-.5)*4; sy = (Math.random()-.5)*4; }
   const cx = Math.round(P.x - VW/2 + sx), cy = Math.round(P.y - VH/2 + sy);
@@ -2490,14 +2693,18 @@ function render(dt){
   for (let j = Math.floor(cy/GCH); j <= Math.floor((cy + VH)/GCH); j++)
     for (let i = Math.floor(cx/GCH); i <= Math.floor((cx + VW)/GCH); i++) ctx.drawImage(groundChunk(i, j), i*GCH - cx, j*GCH - cy);
   pregenGround(cx, cy);
+  LX.begin(); ctx = LX;
 
   // gems & items
   const tt = performance.now()/1000;
+  const vx1 = cx + VW, vy1 = cy + VH;
   for (const g of GEMS){
+    if (g.x < cx - 8 || g.x > vx1 + 8 || g.y < cy - 8 || g.y > vy1 + 8) continue;
     const img = g.v >= 10 ? GEM_R : g.v >= 5 ? GEM_B : GEM_G;
     ctx.drawImage(img, Math.round(g.x - cx - 2), Math.round(g.y - cy - 3));
   }
   for (const it of ITEMS){
+    if (it.x < cx - 24 || it.x > vx1 + 24 || it.y < cy - 24 || it.y > vy1 + 24) continue;
     if (it.t > 40 && Math.floor(it.t*8)%2) continue;
     const bob = Math.round(Math.sin(it.t*4)*1.5);
     const x = Math.round(it.x - cx), y = Math.round(it.y - cy);
@@ -2546,7 +2753,11 @@ function render(dt){
   // y-sorted
   const list = [];
   propsIn(cx - 24, cy - 8, cx + VW + 24, cy + VH + 46, list);
-  for (const e of E) list.push({y:e.d.boss ? e.y + 400 : e.d.fly ? e.y + 14 : e.y, k:'e', e});
+  for (const e of E){
+    const d = e.d;
+    if (!d.boss && (e.x + d.w < cx || e.x - d.w > vx1 || e.y + 12 < cy || e.y - d.h - 20 > vy1)) continue;  // off-screen
+    list.push({y:d.boss ? e.y + 400 : d.fly ? e.y + 14 : e.y, k:'e', e});
+  }
   list.push({y:P.y, k:'p'});
   list.sort((a, b) => a.y - b.y);
   // shadows first
@@ -2613,7 +2824,9 @@ function render(dt){
           for (let k = 0; k < th; k++){
             const r = R - k;
             ctx.globalAlpha = fade * (1 - age*.85) * (k === 0 ? 1 : k < 2 ? .9 : .55);
-            ctx.fillStyle = k === 0 ? edge : k < Math.max(2, th*.5) ? core : mid;
+            const col = k === 0 ? edge : k < Math.max(2, th*.5) ? core : mid;
+            if (ctx === LX){ LX.px(Math.round(px + c*r), Math.round(py + sn*r), lxParse(col), LX.ga); continue; }
+            ctx.fillStyle = col;
             ctx.fillRect(Math.round(px + c*r), Math.round(py + sn*r), 1, 1);
           }
         }
@@ -2647,7 +2860,9 @@ function render(dt){
         const back = (i/r)*(i/r)*5;
         for (let th=0; th<3; th++){
           ctx.globalAlpha = (.9 - th*.25) * (.4 + fade*.6);
-          ctx.fillStyle = th === 0 ? '#ffffff' : '#ffd94a';
+          const col = th === 0 ? '#ffffff' : '#ffd94a';
+          if (ctx === LX){ LX.px(Math.round(b.x - ca*(back + th) - sa*i - cx), Math.round(b.y - sa*(back + th) + ca*i - cy), lxParse(col), LX.ga); continue; }
+          ctx.fillStyle = col;
           ctx.fillRect(Math.round(b.x - ca*(back + th) - sa*i - cx), Math.round(b.y - sa*(back + th) + ca*i - cy), 1, 1);
         }
       }
