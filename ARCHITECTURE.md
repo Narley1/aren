@@ -1,6 +1,6 @@
 # Arquitetura — Aren, o Guardião do Bosque
 
-Tudo está em `src/bosque-do-enxame.html` (3678 linhas). O script é uma IIFE única (`'use strict'`) sem módulos; as "seções" abaixo são blocos marcados por comentários `/* ---------------- nome ---------------- */`. As linhas valem para o fim da Etapa 2 — confira com `grep -n` antes de editar.
+Tudo está em `src/bosque-do-enxame.html` (3781 linhas). O script é uma IIFE única (`'use strict'`) sem módulos; as "seções" abaixo são blocos marcados por comentários `/* ---------------- nome ---------------- */`. As linhas valem para o fim da Etapa 3 — confira com `grep -n` antes de editar.
 
 ## Mapa do arquivo
 
@@ -12,27 +12,28 @@ Tudo está em `src/bosque-do-enxame.html` (3678 linhas). O script é uma IIFE ú
 | 257–322 | kit de sprites | `cnv`, `painter` (px/rect/ell/sell/poly/line), `outlineC`, `flipC`, `tintC`, `EFrame` (quadro de inimigo com cópias branca/dourada/azul feitas no primeiro uso) |
 | 323–402 | voadores | `gargoyleSprite`, `succubusSprite`, `wyvernSprite` (4 quadros de asa) |
 | 403–856 | sprites 32 bits | `gridSprite`, `buildGrid`, `SPR32` (herói e inimigos desenhados em grade de caracteres) |
-| 857–887 | **`BAL`** | todas as constantes de balanceamento soltas (ver abaixo) |
-| 888–906 | dados de inimigos | `ET`, `SCHED`, geração de quadros (`EFrame`) |
-| 907–966 | chefe | `dragonSprite`, `BOSS_T`, `ET.dragon`, `BONE_SPR` |
-| 967–1055 | herói, espada, ícones | `HERO`, `swordBase`/`rotSet`/`drawSword` (48 rotações feitas sob demanda: `set.get(k)`), `ICONS`, shuriken (`SHUR`), joias |
-| 1056–1086 | poderes | `UPG`, `UPG_ORDER`, `rl()`, `xpNeed()`, `isPickLevel()`, `nextPickLevel()`, `f1()` |
-| 1087–1308 | chão e cenário | ruído, `GP`, `STAMPS`, blocos de chão de 128 px (`gCache`, geração fatiada: `pregenGround`, `chunkStart/chunkRows/chunkFinish`, `idleGround`), árvores/arbustos/pedras, `propsIn` (com cache `PROPS`) |
-| 1309–1557 | utilitários e camada | `pixCircle` (cache `CIRC` fora da camada), **camada de software `LX`** (ver "Desempenho"), `pixLine`, sombras, `drawNum` (sprites por dígito), `fmt`, `store` |
-| 1558–1895 | **som** | `SFX`: mixer, efeitos sintetizados, música procedural |
-| 1896–1936 | estado | `G, P, W, E, B, EB, …`, `state`, `reset()`, `dropDead/dropExpired/dropOld` (remoção no lugar), grade espacial (`gridBuild` reaproveita arrays, `query`, `nearest`) |
-| 1937–1959 | spawn | `spawn()`, `pickType()` |
-| 1960–2111 | combate | `hit`, `kill`, `pickOptions`, `grant`, `applyItem`, `openLevelUp`, `chooseLevel`, `fireExplosion`, `blob`, `strike`, `hurt` |
-| 2112–2385 | chefe | `startBoss`, `bossDirector`, `sealTick`, `holyStrike`, `bossDie`, `bossTick`, `drawBoss`, `pixRing`, `drawBossLayer`, `victory` |
-| 2386–2421 | entrada | `keys`, `CODE_KEYS`, `clearInput`, teclado, `trapFocus`, blur, joystick de toque `J` |
-| 2422–2768 | `update(dt)` | tempo, chefe, movimento, avisos, spawn/hordas, espada (`SWS`), shuriken, fogo, tempestade, meteoros, wisps, projéteis, inimigos, projéteis inimigos, maldições, ossos, joias, itens, efeitos |
-| 2769–3077 | `render(dt)` → `drawScene` | chão (canvas real) → camada `LX`: joias/itens → chamas/marcas/maldições → sombras + entidades ordenadas por y (`YS`) → vida ambiente → noite/chefe (gradiente em cache, vai direto ao canvas) → espada → wisps → projéteis → efeitos (`FX_DRAW_MAX`) → números → joystick; `render` descarrega a camada no fim |
-| 3078–3146 | vida ambiente | borboletas/folhas (`AMB`, `ambUpdate`, `ambDraw`), nuvens (`CLOUD`, feita em tempo ocioso) |
-| 3147–3188 | HUD | `hud()`, `renderGear`, `toast` |
-| 3189–3247 | fluxo | `start`, `togglePause`, `audioSync`, `gameOver`, `goTitle`, botões, humor da música, `visibilitychange` |
-| 3248–3307 | extras do navegador | tela cheia, instalar app, wake lock (`keepAwake`), bestiário |
-| 3308–3649 | tela de título | `buildTitleBg`, `TS2`, `drawNapScene`, `renderTitle`, `buildLogo` |
-| 3650–3678 | loop | `idleGround` e `warmIdle` (tarefas em tempo ocioso), `frame(now)` com `requestAnimationFrame`, `dt` limitado a 0,05 s; fora de `play` a cena só é redesenhada ao mudar de estado ou após `resize` |
+| 859–900 | **`BAL`** | todas as constantes de balanceamento soltas (ver abaixo) |
+| 901 | **`BOSSES`** | marcos de chefe da partida (ver "Chefes") |
+| 903–921 | dados de inimigos | `ET`, `SCHED`, geração de quadros (`EFrame`) |
+| 922–980 | chefe | `dragonSprite`, `BOSS_T` (tirado de `BOSSES`), `ET.dragon`, `BONE_SPR` |
+| 981–1069 | herói, espada, ícones | `HERO`, `swordBase`/`rotSet`/`drawSword` (48 rotações feitas sob demanda: `set.get(k)`), `ICONS`, shuriken (`SHUR`), joias |
+| 1070–1101 | poderes | `UPG`, `UPG_ORDER`, `rl()`, `xpNeed()`, `isPickLevel()`, `nextPickLevel()`, `f1()` (números em `BAL.xp`/`BAL.firstLvl`) |
+| 1103–1324 | chão e cenário | ruído, `GP`, `STAMPS`, blocos de chão de 128 px (`gCache`, geração fatiada: `pregenGround`, `chunkStart/chunkRows/chunkFinish`, `idleGround`), árvores/arbustos/pedras, `propsIn` (com cache `PROPS`) |
+| 1325–1573 | utilitários e camada | `pixCircle` (cache `CIRC` fora da camada), **camada de software `LX`** (ver "Desempenho"), `pixLine`, sombras, `drawNum` (sprites por dígito), `fmt`, `store` |
+| 1574–1911 | **som** | `SFX`: mixer, efeitos sintetizados, música procedural |
+| 1912–1952 | estado | `G, P, W, E, B, EB, …`, `state`, `reset()`, `dropDead/dropExpired/dropOld` (remoção no lugar), grade espacial (`gridBuild` reaproveita arrays, `query`, `nearest(x, y, d, noBoss)`) |
+| 1953–1976 | spawn | `hpScale()`, `spawn()`, `pickType()` |
+| 1977–2150 | combate | `hit`, `kill` (solta joias), `mergeGem`, `gainXp`, `available`, `pickOptions`, `grant`, `applyItem` (inclui `relic`), `openLevelUp` (3 opções), `chooseLevel`, `fireExplosion`, `blob`, `strike`, `hurt` |
+| 2151–2490 | chefes | marcos (`BZ`/`bossInReach`, `bossEvent`, `GUARD_EV`, `guardType`, `spawnGuardian`, `guardDown`, `dropRelic`), dragão (`startBoss`, `bossDirector`, `sealTick`, `holyStrike`, `bossDie`, `bossTick`, `drawBoss`), `pixRing`, `drawRelic`, `drawBossLayer`, `victory` |
+| 2491–2533 | entrada | `keys`, `CODE_KEYS`, `clearInput`, teclado, `trapFocus`, blur, joystick de toque `J` |
+| 2534–2859 | `update(dt)` | tempo, marcos de chefe, movimento, avisos, spawn/hordas, espada (`SWS`, alcança o dragão), shuriken, fogo, tempestade, wisps, projéteis, inimigos, projéteis inimigos, maldições, ossos, joias (dão experiência), itens, efeitos |
+| 2860–3171 | `render(dt)` → `drawScene` | chão (canvas real) → camada `LX`: joias/itens → chamas/marcas/maldições → sombras + entidades ordenadas por y (`YS`) → vida ambiente → noite/chefe (gradiente em cache, vai direto ao canvas) → espada → wisps → projéteis → efeitos (`FX_DRAW_MAX`) → números → joystick; `render` descarrega a camada no fim |
+| 3172–3240 | vida ambiente | borboletas/folhas (`AMB`, `ambUpdate`, `ambDraw`), nuvens (`CLOUD`, feita em tempo ocioso) |
+| 3241–3283 | HUD | `hud()` (barra de chefe também para guardiões, nome em `#bossName`), `renderGear`, `toast` |
+| 3284–3342 | fluxo | `start`, `togglePause`, `audioSync`, `gameOver`, `goTitle`, botões, humor da música, `visibilitychange` |
+| 3343–3410 | extras do navegador | tela cheia, instalar app, wake lock (`keepAwake`), bestiário (inimigos de `SCHED` + chefes de `BOSSES`) |
+| 3411–3752 | tela de título | `buildTitleBg`, `TS2`, `drawNapScene`, `renderTitle`, `buildLogo` |
+| 3753–3781 | loop | `idleGround` e `warmIdle` (tarefas em tempo ocioso), `frame(now)` com `requestAnimationFrame`, `dt` limitado a 0,05 s; fora de `play` a cena só é redesenhada ao mudar de estado ou após `resize` |
 
 ## Estados e transições
 
@@ -53,25 +54,37 @@ over ──start()──▶ play        over ──goTitle()──▶ menu      
 
 ## Formas das entidades
 
-- `G` (partida): `t, kills, gems, ups, xp, lvl, need, pending` (escolhas de poder pendentes), recargas `swCd, bmCd, frCd, stCd, mtCd`, `spawnT, waveT`, `swing`, `orbA`, `shake, flash, dark`, `unlocked, lateSeen` (Sets dos avisos), `boss`. (`since` é inicializado mas não é usado.)
+- `G` (partida): `t, kills, gems` (joias recolhidas = experiência total), `ups, xp, lvl, need, pending` (escolhas de poder pendentes), recargas `swCd, bmCd, frCd, stCd`, `spawnT, waveT`, `swing`, `orbA`, `shake, flash, dark`, `unlocked` (Set dos avisos), `mi` (próximo marco de `BOSSES`), `guard` (guardiões vivos), `boss` (dragão). (`since` é inicializado mas não é usado.)
 - `P` (herói): `x, y, hp, maxHp` (em meios corações), `slow`, `inv` (invulnerável enquanto > 0), `dir, moving, anim, faceA`.
-- `W`: nível de cada poder (`sword, boom, orb, fire, boots, magnet, heart, holy, storm, meteor`).
-- Inimigo (`E[]`): `{type, d: ET[type], x, y, hp, kx, ky (empurrão), flash, anim, elite, cd, state, st, orbCd, boomCd, side, dead, stun?, face?, cast?, gig?}`.
+- `W`: nível de cada poder (`sword, boom, orb, fire, boots, magnet, heart, holy, storm`).
+- Inimigo (`E[]`): `{type, d: ET[type], x, y, hp, kx, ky (empurrão), flash, anim, elite, cd, state, st, orbCd, boomCd, side, dead, stun?, face?, cast?, gig?}`; guardião: também `guard, relic, max, born` (tipo `guard_<id>` criado por `guardType`).
 - Chefe: inimigo com `d.boss`, mais `fade, lift, rise, untouch` e `bs = {st, t, last, a, ang, e, k, enraged, stun, sealT, seals, sealWin, sx, sy, orbitA}`.
-- Projéteis do herói (`B[]`, campo `k`): `boom` (shuriken; `alive` = segundos de vida, some após `BAL.boom.maxLife`), `wave` (onda da Espada Sagrada; `hit` é um Set reaproveitado de `WAVE_SETS`), `fire`, `meteor`.
+- Projéteis do herói (`B[]`, campo `k`): `boom` (shuriken; `alive` = segundos de vida, some após `BAL.boom.maxLife`), `wave` (onda da Espada Sagrada; `hit` é um Set reaproveitado de `WAVE_SETS`), `fire`.
 - Projéteis inimigos (`EB[]`): `arrow` (elfo), `wfire` (wyvern), `bb` (chefe). `MARKS` = ossos do chefe, `CURSES` = maldição da succubus.
-- `GEMS {x, y, v, pull}`, `ITEMS {x, y, kind: 'life'|'apple'|'up', t}`, `FX` (`p, fl, sm, ring, bolt, xpl, beam`), `NUMS` (números de dano), `DECALS`, `BURNS` (chão em chamas).
+- `GEMS {x, y, v, pull}` (v = experiência), `ITEMS {x, y, kind: 'life'|'apple'|'up'|'relic', rk? (relíquia), t}`, `FX` (`p, fl, sm, ring, bolt, xpl, beam`), `NUMS` (números de dano), `DECALS`, `BURNS` (chão em chamas).
 
 ## Objeto `BAL`
 
-Linhas 857–887. Reúne os números que antes estavam soltos no código: `hero` (vida, velocidade 71,3 + 9 por nível de botas, invulnerabilidades), `sword` (fórmula do nível efetivo, dano, alcance, recarga), `cd` (recargas de shuriken/fogo/tempestade/meteoro), `firstLvl` (nerf do 1º nível: 0,55 poderes, 0,7 relíquias), `spawn` (intervalo e limite de 230 inimigos), `weights` (pesos de `pickType`), `elite` (chance e multiplicadores), `xpPerKill`, `hpScaleT` (vida × (1 + t/150)), `horde`, `drops` (meio coração, cristal, limite de 400 joias), `boss` (10:00, 60000 de vida, tempos dos selos), `boom` (volta do shuriken: `max(returnSpd, velocidade do herói × returnHeroMul)`, `maxLife` — Etapa 2, aprovado pelo dono). Tabelas `ET`, `SCHED` e `UPG` continuam como estão (já são dados). Mudar `BAL` muda o jogo: precisa de aprovação do dono.
+Linhas 862–900. Reúne os números de jogo que não estão em `ET`/`SCHED`/`UPG`: `hero`, `sword`, `cd` (recargas de shuriken/fogo/tempestade), `boom` (volta do shuriken, Etapa 2), `firstLvl` (nerf do 1º nível: 0,75 poderes, 0,85 relíquias), **`xp`** (curva `xpNeed(L) = round(base + lin·(L−1) + quad·(L−1)²)` e níveis de escolha: `picks` 2, 3, 5, 7, 10 e depois a cada `pickEvery` = 3), `spawn` (intervalo, limite de 230 inimigos, `guardMul`/`guardCalmT`: spawn mais lento e sem hordas nos primeiros 75 s de um guardião vivo), `weights` (pesos de `pickType`), `elite` (chance com rampa de 240 s a 900 s), `hpScaleT`/`hpScaleQ` (vida × `1 + t/hpScaleT + (t/hpScaleQ)²`, ver `hpScale()`), `horde`, `drops` (cristal/meio coração com chance que cai após `decayAt`, `gemCap`: acima dele a joia mais antiga se funde com a vizinha), `guard` (guardiões provisórios: tipo base, nome, vida, joias), `boss` (dragão: vida, selos, atordoamento, `sinkLift`/`bodyR` para a espada). Mudar `BAL` muda o jogo: precisa de aprovação do dono.
 
-## Chefe: Dragão Esqueleto
+## Experiência e escolhas
+
+Cada inimigo solta joias no valor de `ET[type].gem` (elites × `BAL.elite.gems`, guardiões `BAL.guard[id].gem`), em pedras de 1/5/10. A experiência só entra quando a joia é recolhida (`gainXp`), então o Amuleto Ímã importa. Com mais de `gemCap` joias no chão, a mais antiga é somada à vizinha mais próxima (`mergeGem`) — nada se perde. Nível de escolha (`isPickLevel`) abre 3 opções (`pickOptions(3)`); os outros níveis curam meio coração.
+
+## Chefes
+
+`BOSSES = [{t:300, id:'paladin', relic:'holy'}, {t:600, id:'lich', relic:'storm'}, {t:900, id:'dragon'}]`. `update` chama `bossEvent(m)` uma vez quando `G.t` passa de `m.t` (`G.mi` guarda o próximo).
+
+- **Paladino Possuído (5:00) e Lich Ancião (10:00) — provisórios.** `GUARD_EV[id]` aponta para `spawnGuardian`: toast + um guardião elite (tipo `BAL.guard[id].type`, orc e elfo negro, desenhado em 2x por `guardType`, vida `BAL.guard[id].hp × hpScale()`), com a barra de chefe. O elfo-guardião atira leque de 5 flechas. Ao morrer (`kill` → `guardDown`) solta a relíquia `m.relic` (`dropRelic`: item `relic`, não expira, coluna de luz e marcador na borda da tela). Pegar a relíquia dá o nível 1 (`applyItem('relic')`); a partir daí ela pode aparecer nas escolhas (`available`). Se o guardião não morrer antes das 15:00, `startBoss` o apaga e a relíquia se perde.
+- **Para trocar um provisório por um chefe de verdade (Etapa 5):** escrever a função de início (e a IA, de preferência com um ramo próprio em `update`/`bossTick`), apontar `GUARD_EV.paladin`/`GUARD_EV.lich` para ela e, na derrota, chamar `dropRelic(x, y, m.relic)`. Para manter o spawn calmo durante a luta, pôr o chefe em `G.guard` (com `born = G.t`) ou trocar a condição `calm` em `update`. O bestiário lê `BOSSES` e `BAL.guard` para nome e horário.
+- **Relíquias** (`UPG[k].relic`): só vêm dos chefes; não há mais desbloqueio por tempo. A Chuva de Meteoros foi removida.
+
+## Chefe final: Dragão Esqueleto
 
 `G.boss = {phase, t, e}`.
 
-1. **intro** (`startBoss` em `BOSS_T` = 600 s): apaga os inimigos, o spawn para; tremor, raios em 1,4/2,3/3,1 s; o dragão surge em 3 s (rugido); vira `fight` em 5,4 s.
-2. **fight** (`bossTick`): orbita acima do herói; em `rest` escolhe um ataque diferente do anterior entre `spiral`, `rings`, `breath`, `bones`, `dive`. Abaixo de 50% de vida fica **enfurecido** (recargas × 0,72, mais braços/anéis/ondas, música `boss2`). Contato causa 2 de dano. **Selos de Luz** (`sealTick`): 3 selos aparecem (primeiro aos 14 s, ficam 22 s); ficar 1,6 s sobre cada um acende; os três acesos → `holyStrike` (−20% da vida máxima, atordoa 3,5 s, dano × 1,5 enquanto atordoado, 2 maçãs); depois voltam em 30 s (acertou) ou 24 s (falhou).
+1. **intro** (`startBoss` em `BOSS_T` = 900 s): apaga os inimigos e guardiões, o spawn para; tremor, raios em 1,4/2,3/3,1 s; o dragão surge em 3 s (rugido); vira `fight` em 5,4 s.
+2. **fight** (`bossTick`): orbita acima do herói; em `rest` escolhe um ataque diferente do anterior entre `spiral`, `rings`, `breath`, `bones`, `dive`. Abaixo de 50% de vida fica **enfurecido** (recargas × 0,72, mais braços/anéis/ondas, música `boss2`). Contato causa 2 de dano. **Selos de Luz** (`sealTick`): 3 selos aparecem (primeiro aos 14 s, ficam 22 s); ficar 1,6 s sobre cada um acende; os três acesos → `holyStrike` (−`sealHit` = 7% da vida máxima, atordoa `sealStun` = 5 s, dano das armas × 1,5 enquanto atordoado, 2 maçãs); atordoado, o dragão desce (`lift` até `sinkLift`) e não causa dano de contato, e a espada alcança o peito dele (`bossInReach`: alcance da espada + `bodyR`). Vida 20000 (era 60000 com selos de 20%): as armas fazem a maior parte do dano.
 3. **won** (`bossDie`): animação de 2,8 s com explosões, 40 joias, `victory()`.
 
 ## Áudio
@@ -83,13 +96,14 @@ Humores (`SFX.moodFn`, em "fluxo"): `title` (menu; calm a 60 bpm), `calm` (84 bp
 ## Onde adicionar
 
 - **Inimigo:** sprite em `SPR32` (grade) ou função de voador; entrada em `ET`; horário em `SCHED` (o bestiário se monta sozinho); se tiver IA nova, um ramo `d.ai === '...'` no laço de inimigos de `update`; peso em `pickType`/`BAL.weights`.
-- **Arma/poder:** entrada em `UPG` + `UPG_ORDER`; campo em `W` dentro de `reset()`; ícone em `ICONS`; bloco de disparo em `update` (com recarga em `G` e números em `BAL`); desenho do projétil em `render`; incluir na lista de `renderGear`. Relíquias usam `late` e `rl()`.
+- **Arma/poder:** entrada em `UPG` + `UPG_ORDER`; campo em `W` dentro de `reset()`; ícone em `ICONS`; bloco de disparo em `update` (com recarga em `G` e números em `BAL`); desenho do projétil em `render`; incluir na lista de `renderGear`. Relíquias usam `relic:true` e `rl()` e precisam de uma fonte (um marco em `BOSSES` com `relic`).
+- **Chefe/marco:** entrada em `BOSSES` (tempo, id, relíquia); função de início em `GUARD_EV[id]` (ver "Chefes").
 - **Som:** função dentro de `SFX` usando `ready()`, `route(no, mixWet)` e os barramentos `sfx*`; exportar no `return` do `SFX`; chamar do jogo.
 - **Constante de balanceamento:** em `BAL`, nunca solta no código.
 
 ## Desempenho
 
-Medição: `python3 tests/perf.py` (ver o cabeçalho do script). Cenários `early` (30 s), `mid` (300 s), `late` (540 s, todos os poderes e relíquias no máximo) e `boss`, CPU 1x e 4x. O tempo de `update` é pequeno (< 1 ms a 4x); o custo está no `render`.
+Medição: `python3 tests/perf.py` (ver o cabeçalho do script). Cenários `early` (30 s), `mid` (300 s), `late` (840 s, todos os poderes e relíquias no máximo; era 540 s até a Etapa 2) e `boss` (dragão, ~912 s), CPU 1x e 4x. O tempo de `update` é pequeno (< 1 ms a 4x); o custo está no `render`.
 
 **Por que a camada de software.** No Chromium cada chamada de canvas tem custo fixo alto: `drawImage` de um canvas ~2,5 µs, `fillRect` ~0,5 µs, independente do tamanho (medido também com `--disable-gpu`). O jogo fazia ~12 000 `fillRect` de 1 px e ~850 `drawImage` por quadro no fim de partida. Agora:
 
@@ -103,5 +117,7 @@ Medição: `python3 tests/perf.py` (ver o cabeçalho do script). Cenários `earl
 ## Testes
 
 `tests/smoke.py` copia o fonte para uma pasta temporária, injeta um hook antes do `})();` final que expõe `window.__t` (estado e funções internas) e `window.__seed` (troca `Math.random` por um PRNG semeado). Uma partida inteira roda dentro de um único `evaluate` síncrono, então `requestAnimationFrame` não interfere. A passada de determinismo desliga o áudio porque os efeitos consultam `AudioContext.currentTime` antes de sortear. O `render` também consome `Math.random` (tremor da tela, faíscas da espada) e é chamado pelo teste a cada 15 passos: otimizações de desenho precisam manter essas chamadas na mesma ordem.
+
+`tests/balance/` é o simulador de balanceamento (Etapa 3): `patch.py` instrumenta uma cópia (dano por poder, dano dos selos, causa de cada dano sofrido, vida que entrou), `bot.js` joga (escolha por política: `prio`, `random`, `balanced`, `sword`, `orb`, `defense`; movimento `agg` que vai até a espada ou `kite`, cauteloso, que nunca avança), `run.py` roda muitas sementes, `analyze.py` resume (tempo de morte, % que chega a cada chefe, escolhas, dano por poder, luta do dragão) e `boss.py` testa só o dragão com builds fixas. O bot não é um humano: serve para comparar versões.
 
 `tests/perf.py` monta outra cópia instrumentada (internos em `window.__d()`, `Math.random` semeado, `requestAnimationFrame` embrulhado para medir o JS de cada quadro e poder ser parado com `?halt`).

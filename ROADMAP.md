@@ -12,15 +12,11 @@ Concluída (novembro de 2026). Camada de software para os efeitos (`LX`), chão 
 
 Falta: medir num celular intermediário real (a meta de 60 fps estáveis foi verificada só em emulação).
 
-## Etapa 3 — Balanceamento e estrutura de 15 minutos
+## Etapa 3 — Balanceamento e estrutura de 15 minutos ✔
 
-- Partida de 15 minutos com três chefes: **Paladino** aos 5:00 → **Lich Ancião** aos 10:00 → **Dragão** aos 15:00.
-- Relíquias passam a vir dos chefes: **Espada Sagrada** do Paladino, **Tempestade de Raios** do Lich. A relíquia **Chuva de Meteoros** sai do jogo.
-- Experiência por tipo de inimigo, com as joias como a própria experiência.
-- 3 opções por escolha de poder e escolhas mais frequentes.
-- Armas passam a contar contra o chefe (dano normal relevante, não só os selos).
-- Suavizar o "muro" dos 5:30 (pico de dificuldade).
-- Suavizar o nerf do primeiro nível dos poderes.
+Concluída no `dev` (novembro de 2026), aguardando o Narley jogar. Marcos de chefe aos 5:00/10:00/15:00 (Paladino e Lich provisórios: guardião elite que solta a relíquia), relíquias só dos chefes, Chuva de Meteoros removida, joias como experiência, 3 opções e escolhas mais frequentes, curva de dificuldade até 15:00, nerf do 1º nível suavizado, dragão que depende das armas (a espada o alcança quando atordoado). Simulador `tests/balance/`. Detalhes e números no `CHANGELOG.md`.
+
+Falta: testes do Narley (ver `TASKS.md`).
 
 ## Etapa 4 — Novos poderes por estilo
 

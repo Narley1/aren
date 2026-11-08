@@ -42,6 +42,24 @@
 - [ ] `early` ficou com render médio maior (custo fixo da camada + geração do chão), ainda a 60 fps; se incomodar no celular, desligar a camada quando houver pouca coisa na tela
 - [ ] O rastro do shuriken e as partículas ainda são objetos novos por disparo (pool não foi necessário pelas medições)
 
-## Próxima: Etapa 3 — Balanceamento e estrutura de 15 minutos
+## Etapa 3 — Balanceamento e 15 minutos — concluída no `dev`
 
-Ver `ROADMAP.md`.
+- [x] Simulador `tests/balance/` (antes/depois em 96 partidas cada)
+- [x] Marcos `BOSSES` (5:00 Paladino, 10:00 Lich, 15:00 Dragão); guardiões provisórios soltam a relíquia
+- [x] Relíquias só dos chefes, sem desbloqueio por tempo; Chuva de Meteoros removida
+- [x] Joias = experiência (por tipo de inimigo), fusão de joias acima do limite, nova curva
+- [x] 3 opções; escolhas nos níveis 2, 3, 5, 7, 10 e a cada 3
+- [x] Agenda/vida/elites/hordas até 15:00, spawn reduzido com guardião; quedas de cristal/coração caem com o tempo
+- [x] Nerf do 1º nível 0,75/0,85
+- [x] Dragão 20000 de vida, selos 7%, espada alcança quando atordoado
+- [x] Como jogar, bestiário (chefes com horário), barra de chefe com nome
+
+## Pendências da Etapa 3 (para o Narley testar)
+
+- [ ] Jogar 2–3 partidas: o ritmo das escolhas (~40 s) e o pico de 7:00–9:00 (Wyvern + hordas de demônios + elites) parecem bons?
+- [ ] Guardiões provisórios: vida (Paladino ~2600, Lich ~6000 na hora em que surgem) — fáceis/difíceis demais? Se não matar, a relíquia se perde às 15:00
+- [ ] Quedas de cristal/meio coração agora caem depois dos 4:00 (decisão nossa para a partida longa — confirmar)
+- [ ] Dragão: com build cheia a luta dura ~2 min; com build média ~4 min. A espada no dragão atordoado é perceptível?
+- [ ] Flechas dos elfos são a maior fonte de dano para o bot; ver se para humanos também
+- [ ] Bot: a política "balanced" (espalha níveis) morre cedo (~4:00); builds só de espada morrem ~7:00
+- [ ] Etapa 5 vai trocar os guardiões por Paladino e Lich de verdade (`GUARD_EV`, ver `ARCHITECTURE.md`)
