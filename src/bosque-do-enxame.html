@@ -871,6 +871,12 @@ const BAL = {
   boom:   {returnSpd:125, returnHeroMul:1.6, maxLife:6},
   /* first level of every power except the sword hits softer (f1) */
   firstLvl: {power:.75, relic:.85},
+  /* style passives (Etapa 4), per level: Manoplas give melee powers +dmg and +area (sword range, radius of the
+     hammer and the aura, width of the holy waves); Grimório gives ranged powers +dmg and -cooldown.
+     Hybrid powers (Fogo-fátuo) get half of each (sDmg/sArea/sCd) */
+  gauntlets: {dmg:.1, area:.06}, grimoire: {dmg:.08, cd:.06},
+  /* level-up picks: weapons not owned yet get +newWeapon weight */
+  pick:   {newWeapon:1.4},
   /* experience: it comes from the gems (each enemy drops ET.gem, elites x elite.gems), granted when the gem is picked up.
      xpNeed(L) = round(base + lin*(L - 1) + quad*(L - 1)^2). Power choice on the levels in picks, then every pickEvery levels. */
   xp:     {base:8, lin:4.5, quad:.3, picks:[2, 3, 5, 7, 10], pickEvery:3},
@@ -1068,15 +1074,15 @@ const GEM_B = mk(GEM_ROWS, {o:'#122c4d',x:'#4fa3ff',w:'#e9f4ff'});
 const GEM_R = mk(GEM_ROWS, {o:'#4d1220',x:'#ff4f7a',w:'#fff0f4'});
 
 const UPG = {
-  sword: {name:'Espada', max:5, w:3, desc:l => l===3 ? 'Golpe duplo: corta na frente e atrás' : l===5 ? 'Giro completo ao redor de Aren' : 'Mais dano e alcance'},
-  boom:  {name:'Shuriken Gigante', max:5, w:2.4, desc:l => l===1 ? 'Uma shuriken enorme vai e volta atravessando inimigos' : l===2 ? 'Duas shurikens, agora vermelhas e mais afiadas' : l===3 ? 'Três shurikens douradas e mais dano' : 'Mais uma shuriken dourada e mais dano'},
-  orb:   {name:'Will-o\'-Wisp', max:5, w:2.2, desc:l => l===1 ? 'Uma chama fantasma azul gira ao seu redor' : 'Mais uma chama fantasma e mais dano'},
-  fire:  {name:'Magia de Fogo', max:5, w:2.2, desc:l => l===1 ? 'Bolas de fogo explodem e deixam o chão em chamas por 2 s' : 'Mais bolas de fogo, explosão e chamas maiores'},
-  boots: {name:'Botas Ligeiras', max:5, w:1.2, desc:() => 'Aren anda mais rápido'},
-  magnet:{name:'Amuleto Ímã', max:5, w:1, desc:() => 'Atrai joias e itens de mais longe'},
-  heart: {name:'Recipiente de Coração', max:5, w:1.4, desc:() => '+1 coração máximo e cura 1 coração'},
-  holy:  {name:'Espada Sagrada', max:3, w:2.5, relic:true, desc:l => l===1 ? 'Espada dourada: mais dano, mais alcance e ondas de luz' : 'Ondas mais longas e golpes mais fortes'},
-  storm: {name:'Cajado da Tempestade', max:3, w:2.5, relic:true, desc:l => l===1 ? 'Raios caem do céu, saltam entre inimigos e paralisam' : 'Mais raios e área maior'}
+  sword: {name:'Espada', max:5, w:3, kind:'weapon', style:'melee', desc:l => l===3 ? 'Golpe duplo: corta na frente e atrás' : l===5 ? 'Giro completo ao redor de Aren' : 'Mais dano e alcance'},
+  boom:  {name:'Shuriken Gigante', max:5, w:2.4, kind:'weapon', style:'ranged', desc:l => l===1 ? 'Uma shuriken enorme vai e volta atravessando inimigos' : l===2 ? 'Duas shurikens, agora vermelhas e mais afiadas' : l===3 ? 'Três shurikens douradas e mais dano' : 'Mais uma shuriken dourada e mais dano'},
+  orb:   {name:'Will-o\'-Wisp', max:5, w:2.2, kind:'weapon', style:'hybrid', desc:l => l===1 ? 'Uma chama fantasma azul gira ao seu redor' : 'Mais uma chama fantasma e mais dano'},
+  fire:  {name:'Magia de Fogo', max:5, w:2.2, kind:'weapon', style:'ranged', desc:l => l===1 ? 'Bolas de fogo explodem e deixam o chão em chamas por 2 s' : 'Mais bolas de fogo, explosão e chamas maiores'},
+  boots: {name:'Botas Ligeiras', max:5, w:1.2, kind:'passive', desc:() => 'Aren anda mais rápido'},
+  magnet:{name:'Amuleto Ímã', max:5, w:1, kind:'passive', desc:() => 'Atrai joias e itens de mais longe'},
+  heart: {name:'Recipiente de Coração', max:5, w:1.4, kind:'passive', desc:() => '+1 coração máximo e cura 1 coração'},
+  holy:  {name:'Espada Sagrada', max:3, w:2.5, relic:true, kind:'relic', style:'melee', desc:l => l===1 ? 'Espada dourada: mais dano, mais alcance e ondas de luz' : 'Ondas mais longas e golpes mais fortes'},
+  storm: {name:'Cajado da Tempestade', max:3, w:2.5, relic:true, kind:'relic', style:'ranged', desc:l => l===1 ? 'Raios caem do céu, saltam entre inimigos e paralisam' : 'Mais raios e área maior'}
 };
 const UPG_ORDER = ['sword','boom','orb','fire','boots','magnet','heart','holy','storm'];
 /* relics (relic:true) only come from boss guardians (BOSSES); once owned they can show up in level-up picks.
@@ -1090,6 +1096,11 @@ const isPickLevel = L => XPB.picks.includes(L) || (L > PICK_LAST && (L - PICK_LA
 const nextPickLevel = L => { let n = L + 1; while (!isPickLevel(n)) n++; return n; };
 /* first level of every power except the sword hits softer; relics a bit less so */
 const f1 = k => W[k] === 1 ? (UPG[k].relic ? BAL.firstLvl.relic : BAL.firstLvl.power) : 1;
+/* style of a power (UPG[k].style): 'melee' (Corpo a corpo), 'ranged' (A distância), 'hybrid' (Híbrido); passives have none.
+   The style passives scale powers by style: damage (sDmg), area (sArea, melee) and cooldown (sCd, ranged); hybrid gets half */
+function sDmg(k){ const s = UPG[k].style, g = W.gauntlets*BAL.gauntlets.dmg, r = W.grimoire*BAL.grimoire.dmg; return 1 + (s === 'melee' ? g : s === 'ranged' ? r : s === 'hybrid' ? (g + r)/2 : 0); }
+function sArea(k){ const s = UPG[k].style, g = W.gauntlets*BAL.gauntlets.area; return 1 + (s === 'melee' ? g : s === 'hybrid' ? g/2 : 0); }
+function sCd(k){ const s = UPG[k].style, r = W.grimoire*BAL.grimoire.cd; return 1 - (s === 'ranged' ? r : s === 'hybrid' ? r/2 : 0); }
 
 /* hearts for HUD */
 const HEART_ROWS = [".oo.oo.","owrorro","orrrrro",".orrro.","..oro..","...o..."];
@@ -1917,7 +1928,7 @@ function reset(){
   clearTimeout(overTimer);
   G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mi:0, guard:[], boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0};
   P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
-  W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0};
+  W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, gauntlets:0, grimoire:0};
   E = []; B = []; EB = []; GEMS = []; ITEMS = []; FX = []; NUMS = []; ORBS = []; MARKS = []; CURSES = []; DECALS = []; BURNS = [];
   renderGear(); lastHearts = '';
 }
@@ -2035,7 +2046,7 @@ function enhanceable(){ return UPG_ORDER.filter(k => W[k] > 0 && W[k] < UPG[k].m
 function pickOptions(n){
   const pool = available().map(k => {
     let w = UPG[k].w;
-    if (W[k] === 0 && ['boom','orb','fire'].includes(k)) w += 1.4;
+    if (W[k] === 0 && UPG[k].kind === 'weapon') w += BAL.pick.newWeapon;
     if (k === 'heart' && P.hp < P.maxHp*.5) w += 1;
     return [k, w];
   });
@@ -2594,6 +2605,7 @@ function update(dt){
   const sw = SWS;  // reused every frame
   sw.dmg = SW.dmgBase + el*SW.dmgPerLvl; sw.range = SW.rangeBase + el*SW.rangePerLvl; sw.cd = Math.max(SW.cdMin, SW.cdBase - el*SW.cdPerLvl); sw.arc = l >= 5 ? Math.PI*2 : Math.PI*.8; sw.double = l >= 3 && l < 5;
   if (W.holy){ sw.dmg *= 1 + ((1.5 + rl('holy')*.3)*.75 - 1)*f1('holy'); sw.range += 8 + rl('holy')*4; }
+  sw.dmg *= sDmg('sword'); sw.range *= sArea('sword');
   if (G.swCd <= 0){
     const tg = nearest(P.x, P.y, sw.range + 16, true), bz = bossInReach(sw.range);
     if (tg || bz){
@@ -2603,7 +2615,7 @@ function update(dt){
       G.swing = {t:0, dur:.26, ang, arc:sw.arc, range:sw.range, dirs, holy:W.holy > 0, rev:G.swRev && sw.arc < 6};
       if (W.holy){
         const wd = sw.arc >= 6 ? [0,1,2,3].map(i => ang + i*Math.PI/2) : dirs;
-        for (const a of wd) B.push({k:'wave', x:P.x, y:P.y-10, a, d:0, max:90 + rl('holy')*25, dmg:(8 + rl('holy')*7)*.75*f1('holy'), hit:WAVE_SETS.pop() || new Set()});
+        for (const a of wd) B.push({k:'wave', x:P.x, y:P.y-10, a, d:0, max:90 + rl('holy')*25, dmg:(8 + rl('holy')*7)*.75*f1('holy')*sDmg('holy'), r:(9 + rl('holy')*2)*sArea('holy'), hit:WAVE_SETS.pop() || new Set()});
       }
       query(P.x, P.y-9, sw.range + 14, e => {
         if (e.d.boss) return;
@@ -2629,9 +2641,9 @@ function update(dt){
       const base = tg ? Math.atan2(tg.y - P.y, tg.x - P.x) : P.faceA;
       for (let i=0;i<n;i++){
         const a = n <= 3 ? base + (i - (n-1)/2) * .62 : base + i/n*Math.PI*2;
-        B.push({k:'boom', x:P.x, y:P.y-10, a, out:true, d:0, max:88 + W.boom*6, dmg:(4 + W.boom*2.4)*f1('boom'), rot:Math.random()*SHUR_FR, tier:shurTier(W.boom), tr:[]});
+        B.push({k:'boom', x:P.x, y:P.y-10, a, out:true, d:0, max:88 + W.boom*6, dmg:(4 + W.boom*2.4)*f1('boom')*sDmg('boom'), rot:Math.random()*SHUR_FR, tier:shurTier(W.boom), tr:[]});
       }
-      G.bmCd = Math.max(BAL.cd.boomMin, BAL.cd.boomBase - W.boom*BAL.cd.boomPerLvl);
+      G.bmCd = Math.max(BAL.cd.boomMin, BAL.cd.boomBase - W.boom*BAL.cd.boomPerLvl)*sCd('boom');
     }
   }
   // fire
@@ -2642,9 +2654,9 @@ function update(dt){
       for (let i=0;i<n && cands.length;i++){
         const e = cands.splice((Math.random()*cands.length)|0, 1)[0];
         const a = Math.atan2(e.y - P.y, e.x - P.x);
-        B.push({k:'fire', x:P.x, y:P.y-11, vx:Math.cos(a)*130, vy:Math.sin(a)*130, life:1.3, dmg:(5 + W.fire*3)*f1('fire'), rad:16 + W.fire*3});
+        B.push({k:'fire', x:P.x, y:P.y-11, vx:Math.cos(a)*130, vy:Math.sin(a)*130, life:1.3, dmg:(5 + W.fire*3)*f1('fire')*sDmg('fire'), rad:16 + W.fire*3});
       }
-      G.frCd = Math.max(BAL.cd.fireMin, BAL.cd.fireBase - W.fire*BAL.cd.firePerLvl);
+      G.frCd = Math.max(BAL.cd.fireMin, BAL.cd.fireBase - W.fire*BAL.cd.firePerLvl)*sCd('fire');
     }
   }
   // storm staff
@@ -2652,7 +2664,7 @@ function update(dt){
     G.stCd -= dt;
     if (G.stCd <= 0){
       const cands = E.filter(e => !e.dead && Math.hypot(e.x - P.x, e.y - P.y) < 160);
-      const n = 1 + rl('storm'), R = 20 + rl('storm')*5, dmg = (25 + rl('storm')*15)*.4*f1('storm');
+      const n = 1 + rl('storm'), R = 20 + rl('storm')*5, dmg = (25 + rl('storm')*15)*.4*f1('storm')*sDmg('storm');
       for (let i=0;i<n && cands.length;i++){
         const e = cands.splice((Math.random()*cands.length)|0, 1)[0];
         strike(e.x, e.y - e.d.h/3, R, dmg);
@@ -2667,21 +2679,21 @@ function update(dt){
           from = nx;
         }
       }
-      G.stCd = Math.max(BAL.cd.stormMin, BAL.cd.stormBase - rl('storm')*BAL.cd.stormPerLvl);
+      G.stCd = Math.max(BAL.cd.stormMin, BAL.cd.stormBase - rl('storm')*BAL.cd.stormPerLvl)*sCd('storm');
     }
   }
   // orbs
   ORBS.length = 0;
   if (W.orb){
     G.orbA += dt*(2.6 + W.orb*.2);
-    const R = 24 + W.orb;
+    const R = (24 + W.orb)*sArea('orb'), od = (2 + W.orb*1.6)*f1('orb')*sDmg('orb'), ocd = .45*sCd('orb');
     for (let i=0;i<W.orb;i++){
       const a = G.orbA + i/W.orb*Math.PI*2, ox = P.x + Math.cos(a)*R, oy = P.y - 10 + Math.sin(a)*R*.8;
       ORBS.push([ox, oy, i]);
       if (Math.random() < .35) FX.push({k:'p', x:ox + (Math.random() - .5)*4, y:oy - 2, vx:(Math.random() - .5)*8, vy:-20 - Math.random()*15, t:0, life:.35, col: Math.random() < .6 ? '#6ab8ff' : '#e6f6ff', s:1});
       query(ox, oy, 10, e => {
         if (e.orbCd > 0) return;
-        if (Math.hypot(e.x - ox, e.y - e.d.h/3 - oy) < 6 + e.d.r){ hit(e, (2 + W.orb*1.6)*f1('orb'), undefined, undefined, 50); e.orbCd = .45; }
+        if (Math.hypot(e.x - ox, e.y - e.d.h/3 - oy) < 6 + e.d.r){ hit(e, od, undefined, undefined, 50); e.orbCd = ocd; }
       });
     }
   }
@@ -2698,7 +2710,7 @@ function update(dt){
     } else if (b.k === 'wave'){
       const st = 150*dt; b.x += Math.cos(b.a)*st; b.y += Math.sin(b.a)*st; b.d += st;
       if (b.d >= b.max){ b.dead = true; b.hit.clear(); WAVE_SETS.push(b.hit); continue; }
-      const r = 9 + rl('holy')*2;
+      const r = b.r;
       query(b.x, b.y, r + 12, e => { if (!b.hit.has(e) && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < r + e.d.r){ b.hit.add(e); hit(e, b.dmg, Math.cos(b.a), Math.sin(b.a), 80); } });
     } else if (b.k === 'fire'){
       b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
@@ -3052,7 +3064,7 @@ function drawScene(dt){
       ctx.drawImage(img, Math.round(b.x - h - cx), Math.round(b.y - h - cy));
     }
     else if (b.k === 'wave'){
-      const r = 9 + rl('holy')*2, ca = Math.cos(b.a), sa = Math.sin(b.a), fade = 1 - b.d/b.max;
+      const r = Math.round(b.r), ca = Math.cos(b.a), sa = Math.sin(b.a), fade = 1 - b.d/b.max;
       for (let i=-r;i<=r;i++){
         const back = (i/r)*(i/r)*5;
         for (let th=0; th<3; th++){
