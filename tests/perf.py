@@ -13,8 +13,9 @@ invulnerable hero and a fixed power schedule, and measures:
 
 at CPU throttle 1x and 4x (Chrome DevTools CPU throttling via CDP).
 
-Scenarios: early (30 s), mid (300 s), late (540 s, all powers maxed incl.
-relics), boss (dragon fight, ~612 s).
+Scenarios: early (30 s), mid (300 s), late (840 s, all powers maxed incl.
+relics), boss (dragon fight, ~912 s). (Before Etapa 3 late was 540 s and the boss
+came at 600 s; numbers in CHANGELOG for Etapa 2 use those times.)
 
 Usage:
   python3 tests/perf.py                       # all scenarios, table on stdout
@@ -97,8 +98,8 @@ window.__bench = (N, calls) => {
 
 SCHED_EARLY = [(0, {'sword': 2, 'boom': 1})]
 SCHED_MID = SCHED_EARLY + [(120, {'sword': 3, 'boom': 2, 'orb': 2, 'fire': 2}), (240, {'sword': 5, 'boom': 4, 'orb': 4, 'fire': 4, 'boots': 2, 'magnet': 2})]
-SCHED_LATE = SCHED_MID + [(300, {'holy': 1}), (400, {'holy': 3, 'storm': 2, 'boom': 5, 'orb': 5, 'fire': 5, 'boots': 5, 'magnet': 5}), (490, {'storm': 3, 'meteor': 3})]
-SCEN = {'early': (30, SCHED_EARLY), 'mid': (300, SCHED_MID), 'late': (540, SCHED_LATE), 'boss': (612, SCHED_LATE)}
+SCHED_LATE = SCHED_MID + [(300, {'holy': 1}), (450, {'holy': 3, 'boom': 5, 'orb': 5, 'fire': 5, 'boots': 5, 'magnet': 5}), (600, {'storm': 2}), (700, {'storm': 3})]
+SCEN = {'early': (30, SCHED_EARLY), 'mid': (300, SCHED_MID), 'late': (840, SCHED_LATE), 'boss': (912, SCHED_LATE)}
 
 
 def build(src, outdir):
@@ -129,8 +130,8 @@ async def scenario(p, url, name, throttles, N, rafsec, seed, calls, pause=False)
     T, sched = SCEN[name]
     out = {'scenario': name}
     if name == 'boss':
-        out['ff'] = [await pg.evaluate("([T, s]) => __ff(T, s)", [560, sched])]
-        await pg.evaluate("__d().G.t = 599.9")
+        out['ff'] = [await pg.evaluate("([T, s]) => __ff(T, s)", [860, sched])]
+        await pg.evaluate("__d().G.t = 899.9")
         out['ff'].append(await pg.evaluate("([T, s]) => __ff(T, s)", [T, sched]))
     else:
         out['ff'] = await pg.evaluate("([T, s]) => __ff(T, s)", [T, sched])

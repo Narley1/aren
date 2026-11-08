@@ -56,10 +56,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--display);overflow:h
 #xpFill.pick{background:var(--gold);box-shadow:inset 0 -3px 0 var(--gold-dk)}
 #nextPick{font-size:12px;color:var(--mute);text-shadow:2px 2px 0 #0b1218;white-space:nowrap;font-variant-numeric:tabular-nums}
 #levelScreen{background:rgba(9,16,22,.5)}
-#levelScreen .panel{max-width:500px}
+#levelScreen .panel{max-width:720px}
 .lvl-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:440px){.choices{grid-template-columns:1fr}}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:600px){.choices{grid-template-columns:1fr;gap:8px}.choice{padding:10px;gap:6px}}
 .choice{position:relative;font:inherit;color:var(--ink);text-align:left;background:#152f3e;border:3px solid var(--panel-hi);padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:8px;box-shadow:3px 3px 0 #0b1218;min-width:0}
 .choice:hover,.choice:focus-visible{border-color:var(--gold);outline:none;background:#1f4458}
 .choice:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #0b1218}
@@ -118,6 +118,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--display);overflow:h
 .beast{justify-content:flex-end}
 .beast span{font-size:12px}
 .beast small{font-size:11px;color:var(--mute);font-variant-numeric:tabular-nums}
+.beast.boss{border-color:var(--gold-dk)}.beast.boss small{color:var(--gold)}
 .controls{font-size:13px;color:var(--mute);line-height:1.5}
 .controls kbd{font:600 12px var(--display);color:var(--ink);background:#0f2532;border:1px solid var(--panel-hi);padding:0 4px}
 .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -152,7 +153,7 @@ body{-webkit-touch-callout:none}
     </div>
     <div class="hud-bottom">
       <div id="bossBar" hidden>
-        <div class="bb-name">Dragão Esqueleto <span id="bossInfo"></span></div>
+        <div class="bb-name"><b id="bossName">Dragão Esqueleto</b> <span id="bossInfo"></span></div>
         <div class="bb-track"><div id="bossFill"></div></div>
       </div>
       <div id="gear"></div>
@@ -175,7 +176,7 @@ body{-webkit-touch-callout:none}
     <div class="panel">
       <div class="label">Aren, o Guardião do Bosque</div>
       <h2>Como jogar</h2>
-      <p>Aren, aprendiz de guardião, só tem a velha espada da família quando o enxame invade o bosque. Cada criatura derrotada dá experiência: nos níveis 3 e 5, e depois a cada 5 níveis, ele escolhe entre dois poderes novos ou fortalece os que já tem. Nos outros níveis, recupera meio coração. Depois dos 5 minutos, relíquias lendárias entram na escolha. Aos 10 minutos, o Dragão Esqueleto desperta.</p>
+      <p id="howText">Aren, aprendiz de guardião, só tem a velha espada da família quando o enxame invade o bosque. Criaturas derrotadas deixam joias de experiência: as mais fortes valem mais, e só contam quando Aren as recolhe. Nos níveis 2, 3, 5, 7 e 10, e depois a cada 3 níveis, ele escolhe um entre três poderes; nos outros níveis, recupera meio coração. Aos 5:00 surge o Paladino Possuído e aos 10:00 o Lich Ancião: derrote-os para ganhar relíquias lendárias. Aos 15:00, o Dragão Esqueleto desperta.</p>
       <div class="row"><button class="btn" id="startBtn" type="button">Começar</button><button class="btn alt" id="backBtn" type="button">Voltar</button><button class="btn alt" id="fsBtn" type="button" hidden>Tela cheia</button><button class="btn alt" id="installBtn" type="button" hidden>Instalar app</button></div>
       <div class="best" id="bestStart"></div>
       <div class="controls">
@@ -862,29 +863,42 @@ const BAL = {
   hero:   {hp:10, speed:71.3, bootsSpeed:9, slowMult:.55, invStart:1.2, invHit:1.0, invAfterPick:.6},
   /* sword: el = 1 + (lvl - 1)*lvlStep; dmg = dmgBase + el*dmgPerLvl; range = rangeBase + el*rangePerLvl; cd = max(cdMin, cdBase - el*cdPerLvl) */
   sword:  {lvlStep:1.75, dmgBase:5, dmgPerLvl:1.7, rangeBase:17, rangePerLvl:2.3, cdBase:.85, cdPerLvl:.07, cdMin:.3, cdIdle:.05},
-  /* cooldown = max(min, base - level*perLvl); storm and meteor use the relic level rl() */
+  /* cooldown = max(min, base - level*perLvl); storm uses the relic level rl() */
   cd:     {boomBase:2.8, boomPerLvl:.25, boomMin:1.4, fireBase:2, firePerLvl:.2, fireMin:.75,
-           stormBase:1.5, stormPerLvl:.25, stormMin:.7, meteorBase:8.4, meteorPerLvl:1.2, meteorMin:4.4},
+           stormBase:1.5, stormPerLvl:.25, stormMin:.7},
   /* shuriken on the way back: speed = max(returnSpd, hero speed*returnHeroMul) so a boots-maxed hero no longer
      outruns them; any shuriken still alive after maxLife s vanishes (approved by the owner, Etapa 2) */
   boom:   {returnSpd:125, returnHeroMul:1.6, maxLife:6},
   /* first level of every power except the sword hits softer (f1) */
-  firstLvl: {power:.55, relic:.7},
-  /* spawn interval = max(intervalMin, interval/(1 + t/intervalT)); no spawn while cap enemies are alive */
-  spawn:  {interval:.95, intervalT:45, intervalMin:.07, cap:230},
-  /* weight of each unlocked type in pickType(); goblin = max(goblinMin, goblin - t/goblinDecayT); types unlocked less than newT s ago get a bonus */
-  weights:{goblin:6, goblinDecayT:50, goblinMin:1, wyvern:.5, orc:1.6, succubus:.8, other:3, newT:40, newBonus:3, newBonusSuccubus:1},
-  /* elite chance = chance + max(0, t - rampStart)/rampDur*rampAdd, only after 'after' s; multipliers on hp, speed, knockback divisor, gems, xp */
-  elite:  {after:30, chance:.022, rampStart:300, rampDur:300, rampAdd:.07, hp:7, spd:.9, kbDiv:3, gems:6, xp:3},
-  xpPerKill: 1,
-  /* enemy hp *= 1 + t/hpScaleT */
-  hpScaleT: 150,
+  firstLvl: {power:.75, relic:.85},
+  /* experience: it comes from the gems (each enemy drops ET.gem, elites x elite.gems), granted when the gem is picked up.
+     xpNeed(L) = round(base + lin*(L - 1) + quad*(L - 1)^2). Power choice on the levels in picks, then every pickEvery levels. */
+  xp:     {base:8, lin:4.5, quad:.3, picks:[2, 3, 5, 7, 10], pickEvery:3},
+  /* spawn interval = max(intervalMin, interval/(1 + t/intervalT)); no spawn while cap enemies are alive;
+     for the first guardCalmT s of a living boss guardian the interval is divided by guardMul and there are no hordes */
+  spawn:  {interval:.95, intervalT:75, intervalMin:.07, cap:230, guardMul:.4, guardCalmT:75},
+  /* weight of each unlocked type in pickType(); goblin = max(goblinMin, goblin - t/goblinDecayT); types unlocked less than newT s ago get a bonus (newBonusRare for succubus and wyvern) */
+  weights:{goblin:6, goblinDecayT:50, goblinMin:1, wyvern:.5, orc:1.6, succubus:.8, other:3, newT:40, newBonus:3, newBonusRare:1},
+  /* elite chance = chance + min(1, max(0, t - rampStart)/rampDur)*rampAdd, only after 'after' s; multipliers on hp, speed, knockback divisor, gems */
+  elite:  {after:30, chance:.022, rampStart:240, rampDur:660, rampAdd:.11, hp:7, spd:.9, kbDiv:3, gems:6},
+  /* enemy hp *= 1 + t/hpScaleT + (t/hpScaleQ)^2 */
+  hpScaleT: 220, hpScaleQ: 430,
   /* hordes: first at 'first' s, then every max(everyMin, every - t/everyPerT) s; count = min(countMax, count + floor(t/countPerT)) */
-  horde:  {first:50, every:55, everyPerT:10, everyMin:18, count:16, countPerT:10, countMax:60, hobAt:150, demonAt:300},
-  drops:  {up:.0025, upElite:.12, life:.05, lifeElite:.4, gemCap:400},
-  /* boss: arrives at 'time'; seals first appear after sealFirst s, stay sealWindow s, return after sealAfterHit/sealAfterMiss s */
-  boss:   {time:600, hp:60000, sealFirst:14, sealWindow:22, sealAfterHit:30, sealAfterMiss:24, sealCharge:1.6, sealHit:.2, sealStun:3.5}
+  horde:  {first:50, every:55, everyPerT:12, everyMin:18, count:16, countPerT:18, countMax:60, hobAt:150, demonAt:330},
+  /* drop chance per kill: up (crystal) / life (half heart), x 1/(1 + max(0, t - decayAt)/decayT);
+     gemCap: above it the oldest gem is merged into its nearest neighbour (values add up, no experience is lost) */
+  drops:  {up:.0025, upElite:.12, life:.05, lifeElite:.4, decayAt:240, decayT:160, gemCap:400},
+  /* boss guardians (placeholders for the Paladin and the Lich, see BOSSES): enemy type drawn at 2x, hp = hp*hpScale(), gems dropped */
+  guard:  {paladin:{type:'orc', name:'Paladino Possuído', hp:900, gem:60}, lich:{type:'elf', name:'Lich Ancião', hp:1100, gem:120}},
+  /* dragon: seals first appear after sealFirst s, stay sealWindow s, return after sealAfterHit/sealAfterMiss s;
+     a lit seal set removes sealHit of the max hp and stuns for sealStun s: weapons do x stunMul and it sinks (lift sinkLift)
+     low enough for the sword, which reaches its chest within sword range + bodyR */
+  boss:   {hp:20000, sealFirst:14, sealWindow:22, sealAfterHit:30, sealAfterMiss:24, sealCharge:1.6, sealHit:.07, sealStun:5, stunMul:1.5, sinkLift:-12, bodyR:24}
 };
+/* boss milestones (Etapa 3): at t s the event id starts; relic = the relic its guardian drops.
+   'paladin' and 'lich' are placeholder events (bossEvent: toast + a big elite guardian, see BAL.guard) until their
+   real fights are built (Etapa 5); 'dragon' is the final fight (startBoss). */
+const BOSSES = [{t:300, id:'paladin', relic:'holy'}, {t:600, id:'lich', relic:'storm'}, {t:900, id:'dragon'}];
 
 const ET = {
   goblin:   {name:'Goblin',    hp:4,  spd:28, dmg:1, r:6,  sc:1, gem:1,  ai:'walk'},
@@ -896,7 +910,7 @@ const ET = {
   succubus: {name:'Succubus',  hp:22, spd:34, dmg:1, r:7,  sc:1, gem:4,  ai:'caster', fly:true},
   wyvern:   {name:'Wyvern',    hp:85, spd:30, dmg:2, r:12, sc:2, gem:12, ai:'wyvern', fly:true}
 };
-const SCHED = [['goblin',0],['gargoyle',45],['hobgoblin',90],['orc',140],['elf',190],['demon',250],['succubus',290],['wyvern',330]];
+const SCHED = [['goblin',0],['gargoyle',45],['hobgoblin',90],['orc',140],['elf',190],['demon',250],['succubus',360],['wyvern',480]];
 const FLAPS = [1, 0, -1, 0];
 for (const k in ET){
   const d = ET[k];
@@ -956,7 +970,7 @@ function dragonSprite(up, eye){
   for (const x of [21, 23, 25, 27]) px(x, 15, '#ffffff');
   return c;
 }
-const BOSS_T = BAL.boss.time;
+const BOSS_T = BOSSES.find(b => b.id === 'dragon').t;
 ET.dragon = {name:'Dragão Esqueleto', hp:BAL.boss.hp, spd:0, dmg:2, r:30, sc:1, gem:0, ai:'boss', fly:true, boss:true, w:96, h:80};
 const x2 = src => { const c = cnv(src.width*2, src.height*2), g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0, c.width, c.height); return c; };
 ET.dragon.spr = FLAPS.map(fl => x2(dragonSprite(fl, '#7cf7ff')));
@@ -1016,8 +1030,7 @@ const ICONS = {
   apple:{rows:["....g...","...g....",".oo.oo..","orrorro.","orwrrro.","orrrrro.",".orrro..","..ooo..."], pal:{o:OUT,r:'#e53b3b',w:'#ffc0b0',g:'#4f9a2a'}},
   holy: {rows:[".....oww","....owwo","...owwo.","y.owwo..",".yywo...","..yy....",".oyyo...","oy.o...."], pal:{o:'#5a3a0a',w:'#fff6c8',y:'#ffd94a'}},
   storm:{rows:[".occco..","ocwccco.","occccco.",".occco..","...bo...","...bo...","...bo...","...oo..."], pal:{o:'#10304a',c:'#7fd8ff',w:'#ffffff',b:'#6c4a8a'}},
-  up:   {rows:["...oo...","..owyo..",".oyyyyo.","oyyyyyyo","oooyyooo","..oyyo..","..oyyo..","..oooo.."], pal:{o:'#4a1a6a',y:'#ffd94a',w:'#ffffff'}},
-  meteor:{rows:["o.......",".o......","..oo....","...orro.","..orryro","..oryyro","...orro.","....oo.."], pal:{o:'#3a1508',r:'#f2622e',y:'#ffe066'}}
+  up:   {rows:["...oo...","..owyo..",".oyyyyo.","oyyyyyyo","oooyyooo","..oyyo..","..oyyo..","..oooo.."], pal:{o:'#4a1a6a',y:'#ffd94a',w:'#ffffff'}}
 };
 for (const k in ICONS) ICONS[k].spr = mk(ICONS[k].rows, ICONS[k].pal);
 /* giant shuriken: procedural 4-blade star with curved blades, pre-rendered per rotation */
@@ -1062,19 +1075,21 @@ const UPG = {
   boots: {name:'Botas Ligeiras', max:5, w:1.2, desc:() => 'Aren anda mais rápido'},
   magnet:{name:'Amuleto Ímã', max:5, w:1, desc:() => 'Atrai joias e itens de mais longe'},
   heart: {name:'Recipiente de Coração', max:5, w:1.4, desc:() => '+1 coração máximo e cura 1 coração'},
-  holy:  {name:'Espada Sagrada', max:3, w:5, late:300, desc:l => l===1 ? 'Espada dourada: mais dano, mais alcance e ondas de luz' : 'Ondas mais longas e golpes mais fortes'},
-  storm: {name:'Cajado da Tempestade', max:3, w:5, late:390, desc:l => l===1 ? 'Raios caem do céu, saltam entre inimigos e paralisam' : 'Mais raios e área maior'},
-  meteor:{name:'Chuva de Meteoros', max:3, w:5, late:480, desc:l => l===1 ? 'Meteoros esmagam áreas enormes' : 'Mais meteoros e impacto maior'}
+  holy:  {name:'Espada Sagrada', max:3, w:2.5, relic:true, desc:l => l===1 ? 'Espada dourada: mais dano, mais alcance e ondas de luz' : 'Ondas mais longas e golpes mais fortes'},
+  storm: {name:'Cajado da Tempestade', max:3, w:2.5, relic:true, desc:l => l===1 ? 'Raios caem do céu, saltam entre inimigos e paralisam' : 'Mais raios e área maior'}
 };
-const UPG_ORDER = ['sword','boom','orb','fire','boots','magnet','heart','holy','storm','meteor'];
-/* relics have 3 levels; each is worth the old levels 1, 3 and 5 */
+const UPG_ORDER = ['sword','boom','orb','fire','boots','magnet','heart','holy','storm'];
+/* relics (relic:true) only come from boss guardians (BOSSES); once owned they can show up in level-up picks.
+   They have 3 levels; each is worth the old levels 1, 3 and 5 */
 const rl = k => [0, 1, 3, 5][W[k]];
-const xpNeed = L => L < 5 ? 10 + 5*(L - 1) : L < 10 ? Math.round(25 + 2.5*(L - 5)) : 32 + (L - 10);
-/* a power choice only on these levels: 3, 5, then every 5 levels (10, 15, 20...) */
-const isPickLevel = L => L === 3 || L === 5 || (L >= 10 && L % 5 === 0);
+const XPB = BAL.xp;
+const xpNeed = L => Math.round(XPB.base + XPB.lin*(L - 1) + XPB.quad*(L - 1)*(L - 1));
+/* a power choice on the levels in BAL.xp.picks (2, 3, 5, 7, 10), then every pickEvery levels (13, 16, 19...) */
+const PICK_LAST = XPB.picks[XPB.picks.length - 1];
+const isPickLevel = L => XPB.picks.includes(L) || (L > PICK_LAST && (L - PICK_LAST) % XPB.pickEvery === 0);
 const nextPickLevel = L => { let n = L + 1; while (!isPickLevel(n)) n++; return n; };
 /* first level of every power except the sword hits softer; relics a bit less so */
-const f1 = k => W[k] === 1 ? (UPG[k].late ? BAL.firstLvl.relic : BAL.firstLvl.power) : 1;
+const f1 = k => W[k] === 1 ? (UPG[k].relic ? BAL.firstLvl.relic : BAL.firstLvl.power) : 1;
 
 /* hearts for HUD */
 const HEART_ROWS = [".oo.oo.","owrorro","orrrrro",".orrro.","..oro..","...o..."];
@@ -1900,9 +1915,9 @@ let state = 'menu';
 let overTimer = 0; /* delayed game-over/victory panel; cleared on every new run or title */
 function reset(){
   clearTimeout(overTimer);
-  G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mtCd:2, lateSeen:new Set(), boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0};
+  G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mi:0, guard:[], boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0};
   P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
-  W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, meteor:0};
+  W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0};
   E = []; B = []; EB = []; GEMS = []; ITEMS = []; FX = []; NUMS = []; ORBS = []; MARKS = []; CURSES = []; DECALS = []; BURNS = [];
   renderGear(); lastHearts = '';
 }
@@ -1929,18 +1944,19 @@ function query(x, y, r, fn){
     for (const e of a) if (!e.dead) fn(e);
   }
 }
-function nearest(x, y, maxD){
+function nearest(x, y, maxD, noBoss){
   let best = null, bd = maxD*maxD;
-  for (const e of E){ if (e.dead) continue; const d = (e.x-x)**2 + (e.y-y)**2; if (d < bd){ bd = d; best = e; } }
+  for (const e of E){ if (e.dead || (noBoss && e.d.boss)) continue; const d = (e.x-x)**2 + (e.y-y)**2; if (d < bd){ bd = d; best = e; } }
   return best;
 }
 
 /* ---------------- spawning ---------------- */
+const hpScale = () => 1 + G.t/BAL.hpScaleT + (G.t/BAL.hpScaleQ)**2;
 function spawn(type, ang, dist, elite){
   const d = ET[type];
   const a = ang ?? Math.random()*Math.PI*2;
   const R = dist ?? (Math.hypot(VW, VH)/2 + 18);
-  const m = (1 + G.t/BAL.hpScaleT) * (elite ? BAL.elite.hp : 1);
+  const m = hpScale() * (elite ? BAL.elite.hp : 1);
   E.push({type, d, x:P.x + Math.cos(a)*R, y:P.y + Math.sin(a)*R, hp:d.hp*m, kx:0, ky:0, flash:0, anim:Math.random()*2,
     elite:!!elite, cd:1 + Math.random()*2, state:0, st:Math.random()*2, orbCd:0, boomCd:0, side:Math.random()<.5?1:-1, dead:false});
 }
@@ -1950,7 +1966,7 @@ function pickType(){
     if (G.t < t) continue;
     const Wt = BAL.weights;
     let w = k === 'goblin' ? Math.max(Wt.goblinMin, Wt.goblin - G.t/Wt.goblinDecayT) : k === 'wyvern' ? Wt.wyvern : k === 'orc' ? Wt.orc : k === 'succubus' ? Wt.succubus : Wt.other;
-    if (G.t - t < Wt.newT) w += k === 'succubus' ? Wt.newBonusSuccubus : Wt.newBonus;
+    if (G.t - t < Wt.newT) w += k === 'succubus' || k === 'wyvern' ? Wt.newBonusRare : Wt.newBonus;
     opts.push([k, w]);
   }
   let sum = opts.reduce((s,o) => s+o[1], 0), r = Math.random()*sum;
@@ -1963,7 +1979,7 @@ function hit(e, dmg, nx, ny, kb = 70){
   if (e.dead) return;
   if (e.d.boss){
     if (e.untouch || e.bs.st === 'dying' || !G.boss || G.boss.phase !== 'fight') return;
-    if (e.bs.stun > 0) dmg *= 1.5;
+    if (e.bs.stun > 0) dmg *= BAL.boss.stunMul;
     e.hp -= dmg; if (e.flash < -.25) e.flash = .06;
     NUMS.push({x:e.x + (Math.random()*40 - 20), y:e.y - 62, v:Math.max(1, Math.round(dmg)), t:0, col: e.bs.stun > 0 ? '#ffd94a' : '#ffffff'});
     if (e.hp <= 0) bossDie(e);
@@ -1981,24 +1997,39 @@ function kill(e){
   const n = e.d.sc > 1 ? 10 : 6;
   for (let i=0;i<n;i++){ const a = Math.random()*Math.PI*2, s = 20 + Math.random()*40;
     FX.push({k:'p', x:e.x, y:e.y - e.d.h/2, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:.35+Math.random()*.25, col: i%2 ? '#ffffff' : '#d6d0e6', s: Math.random()<.5?1:2}); }
-  let v = e.d.gem * (e.elite ? BAL.elite.gems : 1);
+  // experience drops as gems (ET.gem; elites x BAL.elite.gems; guardians their own amount); it counts when picked up
+  let v = e.guard ? e.d.gem : e.d.gem * (e.elite ? BAL.elite.gems : 1);
+  const spread = e.guard ? 28 : 10;
   while (v > 0){
     const val = v >= 10 ? 10 : v >= 5 ? 5 : 1; v -= val;
-    GEMS.push({x:e.x + (Math.random()*10-5), y:e.y + (Math.random()*8-4), v:val, pull:false});
+    GEMS.push({x:e.x + (Math.random() - .5)*spread, y:e.y + (Math.random() - .5)*spread*.8, v:val, pull:false});
   }
-  G.xp += e.elite ? BAL.elite.xp : BAL.xpPerKill;
+  if (e.guard) guardDown(e);
+  // floor drops: healing hearts, and a rare enhancement that levels up a power Aren already has
+  // (the chances fall over time, since many more enemies die per minute late in the run)
+  const DR = BAL.drops, dm = 1/(1 + Math.max(0, G.t - DR.decayAt)/DR.decayT);
+  if (Math.random() < (e.elite ? DR.upElite : DR.up)*dm && enhanceable().length) ITEMS.push({x:e.x, y:e.y, kind:'up', t:0});
+  else if (Math.random() < (e.elite ? DR.lifeElite : DR.life)*dm) ITEMS.push({x:e.x, y:e.y, kind:'life', t:0});
+  while (GEMS.length > BAL.drops.gemCap) mergeGem();
+}
+/* too many gems on the floor: the oldest one joins its nearest neighbour (the value adds up, no experience is lost) */
+function mergeGem(){
+  const g = GEMS.shift();
+  let best = GEMS[0], bd = Infinity;
+  for (const o of GEMS){ const d = (o.x - g.x)**2 + (o.y - g.y)**2; if (d < bd){ bd = d; best = o; } }
+  best.v += g.v;
+}
+function gainXp(n){
+  G.xp += n;
   while (G.xp >= G.need){
     G.xp -= G.need; G.lvl++; G.need = xpNeed(G.lvl);
     if (isPickLevel(G.lvl)) G.pending++;
     else { P.hp = Math.min(P.maxHp, P.hp + 1); toast(`Nível ${G.lvl}`, `+½ coração · próximo poder no nível ${nextPickLevel(G.lvl)}`); }
   }
-  // floor drops: healing hearts, and a rare enhancement that levels up a power Aren already has
-  if (Math.random() < (e.elite ? BAL.drops.upElite : BAL.drops.up) && enhanceable().length) ITEMS.push({x:e.x, y:e.y, kind:'up', t:0});
-  else if (Math.random() < (e.elite ? BAL.drops.lifeElite : BAL.drops.life)) ITEMS.push({x:e.x, y:e.y, kind:'life', t:0});
-  if (GEMS.length > BAL.drops.gemCap) GEMS.splice(0, GEMS.length - BAL.drops.gemCap);
 }
+/* powers that can show up in a level-up pick (relics only after a guardian dropped them) */
 function available(){
-  return UPG_ORDER.filter(k => W[k] < UPG[k].max && !(UPG[k].late && G.t < UPG[k].late));
+  return UPG_ORDER.filter(k => W[k] < UPG[k].max && !(UPG[k].relic && !W[k]));
 }
 function enhanceable(){ return UPG_ORDER.filter(k => W[k] > 0 && W[k] < UPG[k].max && k !== 'heart'); }
 function pickOptions(n){
@@ -2019,10 +2050,10 @@ function pickOptions(n){
 function grant(k){
   W[k]++; G.ups++;
   if (k === 'heart'){ P.maxHp += 2; P.hp = Math.min(P.maxHp, P.hp + 2); }
-  burst(P.x, P.y-11, UPG[k].late ? '#ffe27a' : '#9fe6ff');
+  burst(P.x, P.y-11, UPG[k].relic ? '#ffe27a' : '#9fe6ff');
   renderGear();
 }
-function applyItem(kind){
+function applyItem(kind, rk){
   if (kind === 'life'){ P.hp = Math.min(P.maxHp, P.hp + 1); toast('Meio coração', 'Recupera ½ coração'); burst(P.x, P.y-11, '#ff6b6b'); return; }
   if (kind === 'apple'){ P.hp = Math.min(P.maxHp, P.hp + 2); toast('Coração', 'Recupera 1 coração'); burst(P.x, P.y-11, '#ff6b6b'); return; }
   if (kind === 'up'){
@@ -2032,12 +2063,19 @@ function applyItem(kind){
     grant(k); SFX.enhance();
     toast(`Aprimoramento! ${UPG[k].name} · Nv ${W[k]}`, UPG[k].desc(W[k]));
   }
+  if (kind === 'relic'){
+    const k = rk;
+    if (W[k] >= UPG[k].max){ P.hp = Math.min(P.maxHp, P.hp + 2); return; }
+    grant(k); SFX.enhance(); G.flash = Math.max(G.flash, .5);
+    for (let i = 0; i < 3; i++) FX.push({k:'ring', x:P.x, y:P.y - 11, r:2 + i*3, max:26 + i*10, t:-i*.08, life:.5, col: i === 1 ? '#fff7d0' : '#ffe27a'});
+    toast(`Relíquia obtida: ${UPG[k].name}`, UPG[k].desc(W[k]) + ' · agora ela pode aparecer nas escolhas');
+  }
 }
 function iconFor(k, lvl){ return k === 'boom' ? SHUR_ICON[shurTier(Math.max(1, lvl))] : ICON_URL[k]; }
 let lvlOpts = [], lvlOpenedAt = 0;
 function openLevelUp(){
   G.pending--;
-  lvlOpts = pickOptions(2);
+  lvlOpts = pickOptions(3);
   if (!lvlOpts.length){ P.hp = Math.min(P.maxHp, P.hp + 2); toast(`Nível ${G.lvl}!`, 'Todos os poderes no máximo: recupera 1 coração'); return; }
   state = 'levelup'; clearInput();
   SFX.levelup();
@@ -2045,9 +2083,9 @@ function openLevelUp(){
   const box = $('#choices'); box.innerHTML = '';
   lvlOpts.forEach((k, i) => {
     const u = UPG[k], cur = W[k], nxt = cur + 1, b = document.createElement('button');
-    b.type = 'button'; b.className = 'choice' + (u.late ? ' legend' : ''); b.id = 'choice' + i;
+    b.type = 'button'; b.className = 'choice' + (u.relic ? ' legend' : ''); b.id = 'choice' + i;
     let pips = ''; for (let n = 1; n <= u.max; n++) pips += `<i class="${n <= cur ? 'on' : n === nxt ? 'add' : ''}"></i>`;
-    const tag = cur === 0 ? `<span class="tag new">${u.late ? 'Relíquia lendária' : 'Novo'}</span>` : `<span class="tag">Nv ${cur} → ${nxt}</span>`;
+    const tag = cur === 0 ? `<span class="tag new">${u.relic ? 'Relíquia lendária' : 'Novo'}</span>` : `<span class="tag">${u.relic ? 'Relíquia · ' : ''}Nv ${cur} → ${nxt}</span>`;
     b.innerHTML = `<span class="key">${i + 1}</span><span class="top"><img alt="" src="${iconFor(k, nxt)}"><span><span class="nm">${u.name}</span><br>${tag}</span></span><span class="pips" aria-hidden="true">${pips}</span><span class="ds">${u.desc(nxt)}</span>`;
     b.onclick = () => chooseLevel(i);
     box.appendChild(b);
@@ -2115,8 +2153,54 @@ const BOSS_ATKS = ['spiral', 'rings', 'breath', 'bones', 'dive'];
 function bb(x, y, a, spd, col, r){ EB.push({k:'bb', x, y, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, life:6, dmg:2, col, r:r || 2}); }
 function angDiff(a, b){ return Math.atan2(Math.sin(a - b), Math.cos(a - b)); }
 function toRest(s){ s.st = 'rest'; s.t = 0; }
+/* ---------- boss milestones (BOSSES) ----------
+   update() calls bossEvent(m) once when G.t reaches m.t (G.mi = index of the next milestone).
+   'dragon' starts the final fight (startBoss). Any other id runs GUARD_EV[id](m): for now a placeholder that
+   spawns a big elite guardian (BAL.guard[id], an existing enemy drawn at 2x) whose death drops m.relic.
+   To replace a placeholder with a real boss (Etapa 5): point GUARD_EV[id] at its start function and, when it is
+   defeated, call dropRelic(x, y, m.relic). For BAL.spawn.guardCalmT s after a guardian appears (while it lives) spawning slows and hordes wait. */
+/* the dragon's body for melee: its chest, lower while it is stunned (it sinks, see bossTick); BZ is reused */
+const BZ = {x:0, y:0, e:null};
+function bossInReach(range){
+  const e = G.boss && G.boss.e;
+  if (!e || e.untouch || G.boss.phase !== 'fight' || e.bs.st === 'dying') return null;
+  BZ.x = e.x; BZ.y = e.y - 27 + (14 - e.lift); BZ.e = e;
+  return Math.hypot(BZ.x - P.x, BZ.y - (P.y - 9)) < range + BAL.boss.bodyR ? BZ : null;
+}
+function bossEvent(m){
+  if (m.id === 'dragon'){ startBoss(); return; }
+  (GUARD_EV[m.id] || spawnGuardian)(m);
+}
+const GUARD_EV = {paladin: spawnGuardian, lich: spawnGuardian};
+/* enemy type for a guardian: a copy of BAL.guard[id].type at 2x (built on first use) */
+function guardType(id){
+  const key = 'guard_' + id;
+  if (ET[key]) return key;
+  const g = BAL.guard[id], b = ET[g.type], dirs = {};
+  for (const dir in b.dirs) dirs[dir] = b.dirs[dir].map(fr => new EFrame(x2(fr.n)));
+  ET[key] = Object.assign({}, b, {name:g.name, gem:g.gem, r:b.r*2, sc:2, spd:b.spd*1.35, dirs, w:b.w*2, h:b.h*2});
+  return key;
+}
+function spawnGuardian(m){
+  const g = BAL.guard[m.id];
+  spawn(guardType(m.id), Math.random()*Math.PI*2, Math.hypot(VW, VH)/2 + 10, true);
+  const e = E[E.length - 1];
+  e.hp = e.max = g.hp*hpScale(); e.guard = true; e.relic = m.relic; e.born = G.t;
+  G.guard.push(e);
+  G.flash = .6; if (!reduceMotion) G.shake = .3;
+  SFX.roar({len:1.5, pitch:1.3, force:true});
+  toast(`${g.name} surge!`, `Derrote o guardião para ganhar a relíquia ${UPG[m.relic].name}`);
+}
+function guardDown(e){
+  const i = G.guard.indexOf(e); if (i >= 0) G.guard.splice(i, 1);
+  dropRelic(e.x, e.y, e.relic);
+  G.flash = .6; if (!reduceMotion) G.shake = .25;
+  for (let i = 0; i < 3; i++) FX.push({k:'ring', x:e.x, y:e.y - e.d.h/2, r:3, max:30 + i*14, t:-i*.1, life:.45, col:'#ffe27a'});
+  toast(`${e.d.name} caiu!`, `Pegue a relíquia: ${UPG[e.relic].name}`);
+}
+function dropRelic(x, y, k){ ITEMS.push({x, y, kind:'relic', rk:k, t:0}); }
 function startBoss(){
-  G.boss = {phase:'intro', t:0, e:null};
+  G.boss = {phase:'intro', t:0, e:null}; G.guard.length = 0;
   for (const e of E){
     if (e.dead) continue;
     e.dead = true;
@@ -2184,7 +2268,7 @@ function holyStrike(e){
   NUMS.push({x:e.x, y:e.y - 75, v:Math.round(dmg), t:-.4, col:'#ffd94a'});
   for (let i=0;i<2;i++) ITEMS.push({x:P.x + (i ? 14 : -14), y:P.y + 10, kind:'apple', t:0});
   SFX.roar({len:1.2, pitch:1.75, force:true});
-  toast('A luz atinge o dragão!', '−20% de vida · ele fica atordoado');
+  toast('A luz atinge o dragão!', `−${Math.round(BAL.boss.sealHit*100)}% de vida · ele cai atordoado: ataque com a espada!`);
   if (e.hp <= 0) bossDie(e);
 }
 function bossDie(e){
@@ -2220,7 +2304,8 @@ function bossTick(e, dt){
   if (!G.boss || G.boss.phase !== 'fight') return;
   sealTick(e, dt);
   if (!s.enraged && e.hp < e.d.hp*.5){ s.enraged = true; G.flash = .5; SFX.roar({len:1.9, pitch:.7, force:true}); toast('O dragão se enfurece!', 'Os ataques ficam mais rápidos'); }
-  if (s.stun > 0){ s.stun -= dt; return; }
+  if (s.stun > 0){ s.stun -= dt; e.lift = Math.max(BAL.boss.sinkLift, e.lift - dt*45); return; }
+  if (e.lift < 14 && s.st !== 'dive') e.lift = Math.min(14, e.lift + dt*30);
   const fast = s.enraged ? .72 : 1, col = s.enraged ? '#ff5a7a' : '#7cf7ff';
   if (s.st !== 'dive' && s.st !== 'breath'){
     s.orbitA += dt*.35;
@@ -2314,6 +2399,25 @@ function pixRing(x, y, r, col, sy = 1){
     return; }
   for (let i=0;i<n;i++){ const a = i/n*Math.PI*2; ctx.fillRect(Math.round(x + Math.cos(a)*r), Math.round(y + Math.sin(a)*r*sy), 1, 1); }
 }
+/* relic on the floor (dropped by a guardian): the power icon at 2x on a golden halo under a pillar of light;
+   off screen, a blinking marker on the edge points to it */
+const RELIC_SPR = {};
+function drawRelic(it, cx, cy){
+  const x = Math.round(it.x - cx), y = Math.round(it.y - cy), tt = it.t;
+  if (x < -20 || x > VW + 20 || y < -20 || y > VH + 100){
+    if (Math.floor(tt*4)%2){ const ex = Math.max(5, Math.min(VW - 6, x)), ey = Math.max(5, Math.min(VH - 6, y)); pixCircle(ex, ey, 3, '#ffe27a'); ctx.fillStyle = '#5a3a0a'; ctx.fillRect(ex, ey, 1, 1); }
+    return;
+  }
+  const spr = RELIC_SPR[it.rk] || (RELIC_SPR[it.rk] = x2(ICONS[it.rk].spr));
+  const bob = Math.round(Math.sin(tt*3)*2), r = 13 + Math.round(Math.sin(tt*4)*1.5);
+  ctx.drawImage(shadow(14), x - 7, y + 1);
+  ctx.globalAlpha = .16 + .06*Math.sin(tt*5); ctx.fillStyle = '#ffe27a'; ctx.fillRect(x - 5, y - 96, 11, 90);
+  ctx.globalAlpha = .4; ctx.fillStyle = '#fff7d0'; ctx.fillRect(x - 1, y - 96, 3, 90);
+  ctx.globalAlpha = .3; pixCircle(x, y - 8 + bob, r, '#ffd94a'); ctx.globalAlpha = .45; pixCircle(x, y - 8 + bob, r - 5, '#fff3a0'); ctx.globalAlpha = 1;
+  for (let i = 0; i < 6; i++){ const a = tt*1.6 + i*Math.PI/3; ctx.fillStyle = i%2 ? '#ffffff' : '#ffe27a'; ctx.fillRect(Math.round(x + Math.cos(a)*(r + 3)), Math.round(y - 8 + bob + Math.sin(a)*(r + 3)*.6), 1, 1); }
+  ctx.drawImage(spr, x - 8, y - 16 + bob);
+  if (Math.floor(tt*3)%3 === 0){ ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 6, y - 17 + bob, 1, 1); }
+}
 function drawBossLayer(cx, cy){
   const e = G.boss && G.boss.e;
   if (e && !e.dead){
@@ -2396,7 +2500,14 @@ addEventListener('keydown', e => {
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
   keys[k] = true; if (CODE_KEYS[e.code]) keys[CODE_KEYS[e.code]] = true;
   if (k === 'tab' && state === 'pause'){ trapFocus(e, $('#pauseScreen')); return; }
-  if (state === 'levelup'){ if (k === '1' || k === '2') chooseLevel(+k - 1); else if (k === 'arrowleft' || k === 'arrowup') $('#choice0')?.focus(); else if ((k === 'arrowright' || k === 'arrowdown') && $('#choice1')) $('#choice1').focus(); return; }
+  if (state === 'levelup'){
+    if (k >= '1' && k <= '3' && k.length === 1) chooseLevel(+k - 1);
+    else if (['arrowleft','arrowup','arrowright','arrowdown'].includes(k)){
+      const bs = [...$('#choices').children], i = bs.indexOf(document.activeElement), back = k === 'arrowleft' || k === 'arrowup';
+      bs[i < 0 ? 0 : (i + (back ? -1 : 1) + bs.length) % bs.length]?.focus();
+    }
+    return;
+  }
   if ((k === 'p' || k === 'escape') && (state === 'play' || state === 'pause')) togglePause();
   if (k === 'escape' && state === 'menu' && !$('#startScreen').hidden){ $('#startScreen').hidden = true; return; }
   if (k === 'enter' && state === 'menu' && !e.target.closest?.('button')) start();
@@ -2424,7 +2535,7 @@ addEventListener('pointerup', endJ); addEventListener('pointercancel', endJ);
 const SWS = {dmg: 0, range: 0, cd: 0, arc: 0, double: false}, WAVE_SETS = [];
 function update(dt){
   G.t += dt;
-  if (!G.boss && G.t >= BOSS_T) startBoss();
+  while (G.mi < BOSSES.length && G.t >= BOSSES[G.mi].t) bossEvent(BOSSES[G.mi++]);
   if (G.boss) bossDirector(dt);
   G.flash = Math.max(0, G.flash - dt*1.5);
   // movement
@@ -2454,19 +2565,16 @@ function update(dt){
   for (const [k, t] of SCHED){
     if (G.t >= t && !G.unlocked.has(k)){ G.unlocked.add(k); toast(`Novo inimigo: ${ET[k].name}`, 'Mais criaturas surgem no bosque'); }
   }
-  for (const k of ['holy','storm','meteor']){
-    if (G.t >= UPG[k].late && !G.lateSeen.has(k)){ G.lateSeen.add(k); toast(`Relíquia desperta: ${UPG[k].name}`, 'Ela pode aparecer quando você subir de nível'); }
-  }
-  // spawning (stops once the boss arrives)
+  // spawning (slower and without hordes while a guardian lives; stops once the dragon arrives)
   if (!G.boss){
   G.spawnT -= dt;
-  const SP = BAL.spawn, EL = BAL.elite, HO = BAL.horde;
-  const interval = Math.max(SP.intervalMin, SP.interval / (1 + G.t/SP.intervalT));
+  const SP = BAL.spawn, EL = BAL.elite, HO = BAL.horde, calm = G.guard.some(e => G.t - e.born < SP.guardCalmT);
+  const interval = Math.max(SP.intervalMin, SP.interval / (1 + G.t/SP.intervalT)) / (calm ? SP.guardMul : 1);
   while (G.spawnT <= 0){
     G.spawnT += interval;
-    if (E.length < SP.cap) spawn(pickType(), undefined, undefined, G.t > EL.after && Math.random() < EL.chance + Math.max(0, G.t - EL.rampStart)/EL.rampDur*EL.rampAdd);
+    if (E.length < SP.cap) spawn(pickType(), undefined, undefined, G.t > EL.after && Math.random() < EL.chance + Math.min(1, Math.max(0, G.t - EL.rampStart)/EL.rampDur)*EL.rampAdd);
   }
-  G.waveT -= dt;
+  if (!calm) G.waveT -= dt;
   if (G.waveT <= 0){
     G.waveT = Math.max(HO.everyMin, HO.every - G.t/HO.everyPerT);
     const type = G.t < HO.hobAt ? 'goblin' : G.t < HO.demonAt ? 'hobgoblin' : 'demon';
@@ -2487,9 +2595,9 @@ function update(dt){
   sw.dmg = SW.dmgBase + el*SW.dmgPerLvl; sw.range = SW.rangeBase + el*SW.rangePerLvl; sw.cd = Math.max(SW.cdMin, SW.cdBase - el*SW.cdPerLvl); sw.arc = l >= 5 ? Math.PI*2 : Math.PI*.8; sw.double = l >= 3 && l < 5;
   if (W.holy){ sw.dmg *= 1 + ((1.5 + rl('holy')*.3)*.75 - 1)*f1('holy'); sw.range += 8 + rl('holy')*4; }
   if (G.swCd <= 0){
-    const tg = nearest(P.x, P.y, sw.range + 16);
-    if (tg){
-      const ang = Math.atan2(tg.y - (P.y-9), tg.x - P.x);
+    const tg = nearest(P.x, P.y, sw.range + 16, true), bz = bossInReach(sw.range);
+    if (tg || bz){
+      const ang = tg ? Math.atan2(tg.y - (P.y-9), tg.x - P.x) : Math.atan2(bz.y - (P.y-9), bz.x - P.x);
       const dirs = sw.double ? [ang, ang + Math.PI] : [ang];
       G.swRev = !G.swRev;
       G.swing = {t:0, dur:.26, ang, arc:sw.arc, range:sw.range, dirs, holy:W.holy > 0, rev:G.swRev && sw.arc < 6};
@@ -2498,12 +2606,17 @@ function update(dt){
         for (const a of wd) B.push({k:'wave', x:P.x, y:P.y-10, a, d:0, max:90 + rl('holy')*25, dmg:(8 + rl('holy')*7)*.75*f1('holy'), hit:WAVE_SETS.pop() || new Set()});
       }
       query(P.x, P.y-9, sw.range + 14, e => {
+        if (e.d.boss) return;
         const dx = e.x - P.x, dy = (e.y - e.d.h/3) - (P.y-9), dist = Math.hypot(dx, dy);
         if (dist > sw.range + e.d.r) return;
         const a = Math.atan2(dy, dx);
         const ok = sw.arc >= 6 || dirs.some(d => Math.abs(Math.atan2(Math.sin(a-d), Math.cos(a-d))) <= sw.arc/2 + .25);
         if (ok) hit(e, sw.dmg, dx/(dist||1), dy/(dist||1), 90);
       });
+      if (bz){
+        const a = Math.atan2(bz.y - (P.y-9), bz.x - P.x);
+        if (sw.arc >= 6 || dirs.some(d => Math.abs(angDiff(a, d)) <= sw.arc/2 + .25)) hit(bz.e, sw.dmg);
+      }
       G.swCd = sw.cd;
       if (!P.moving){ if (Math.abs(Math.cos(ang)) > Math.abs(Math.sin(ang))) P.dir = Math.cos(ang) < 0 ? 'left' : 'side'; else P.dir = Math.sin(ang) < 0 ? 'up' : 'down'; }
     } else G.swCd = SW.cdIdle;
@@ -2557,20 +2670,6 @@ function update(dt){
       G.stCd = Math.max(BAL.cd.stormMin, BAL.cd.stormBase - rl('storm')*BAL.cd.stormPerLvl);
     }
   }
-  // meteors
-  if (W.meteor){
-    G.mtCd -= dt;
-    if (G.mtCd <= 0){
-      const cands = E.filter(e => !e.dead && Math.hypot(e.x - P.x, e.y - P.y) < 140);
-      for (let i=0;i<rl('meteor');i++){
-        let tx, ty;
-        if (cands.length){ const e = cands[(Math.random()*cands.length)|0]; tx = e.x; ty = e.y; }
-        else { const a = Math.random()*Math.PI*2, r = 40 + Math.random()*60; tx = P.x + Math.cos(a)*r; ty = P.y + Math.sin(a)*r; }
-        B.push({k:'meteor', tx, ty, t:-i*.18, fall:.7, dmg:(60 + rl('meteor')*30)*.5*f1('meteor')});
-      }
-      G.mtCd = Math.max(BAL.cd.meteorMin, BAL.cd.meteorBase - rl('meteor')*BAL.cd.meteorPerLvl);
-    }
-  }
   // orbs
   ORBS.length = 0;
   if (W.orb){
@@ -2601,18 +2700,6 @@ function update(dt){
       if (b.d >= b.max){ b.dead = true; b.hit.clear(); WAVE_SETS.push(b.hit); continue; }
       const r = 9 + rl('holy')*2;
       query(b.x, b.y, r + 12, e => { if (!b.hit.has(e) && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < r + e.d.r){ b.hit.add(e); hit(e, b.dmg, Math.cos(b.a), Math.sin(b.a), 80); } });
-    } else if (b.k === 'meteor'){
-      b.t += dt;
-      if (b.t > 0 && b.t < b.fall){ const p = b.t/b.fall; FX.push({k:'p', x:b.tx + (1-p)*50 + (Math.random()-.5)*4, y:b.ty - (1-p)*150, vx:(Math.random()-.5)*10, vy:-10, t:0, life:.3, col: Math.random()<.5 ? '#ffb02e' : '#6a2a1a', s:2}); }
-      if (b.t >= b.fall){
-        b.dead = true;
-        const R = 30 + rl('meteor')*6;
-        query(b.tx, b.ty, R + 14, e => { const dx = e.x - b.tx, dy = e.y - b.ty, d = Math.hypot(dx, dy); if (d < R + e.d.r) hit(e, b.dmg, dx/(d||1), dy/(d||1), 160); });
-        FX.push({k:'ring', x:b.tx, y:b.ty, r:4, max:R, t:0, life:.4, col:'#ff8a2a'});
-        FX.push({k:'ring', x:b.tx, y:b.ty, r:2, max:R*.55, t:0, life:.3, col:'#ffe066'});
-        for (let i=0;i<16;i++){ const a = Math.random()*Math.PI*2, s = 40 + Math.random()*70; FX.push({k:'p', x:b.tx, y:b.ty, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:.45, col: i%3 ? '#ff8a2a' : '#5a3a2a', s:2}); }
-        if (!reduceMotion) G.shake = Math.max(G.shake, .12);
-      }
     } else if (b.k === 'fire'){
       b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
       let boom = b.life <= 0;
@@ -2653,7 +2740,10 @@ function update(dt){
     } else if (d.ai === 'archer'){
       if (dist < 62){ mx = -ux; my = -uy; } else if (dist < 100){ mx = -uy*e.side; my = ux*e.side; sp *= .7; }
       e.cd -= dt;
-      if (e.cd <= 0 && dist < 150){ EB.push({k:'arrow', x:e.x, y:e.y - 12, vx:ux*75, vy:uy*75, life:2.8, dmg:2}); e.cd = 2.4 + Math.random(); }
+      if (e.cd <= 0 && dist < 150){
+        if (e.guard){ const a = Math.atan2(uy, ux); for (const o of [-.5, -.25, 0, .25, .5]) EB.push({k:'arrow', x:e.x, y:e.y - 24, vx:Math.cos(a + o)*75, vy:Math.sin(a + o)*75, life:2.8, dmg:2}); e.cd = 1.8 + Math.random()*.6; }
+        else { EB.push({k:'arrow', x:e.x, y:e.y - 12, vx:ux*75, vy:uy*75, life:2.8, dmg:2}); e.cd = 2.4 + Math.random(); }
+      }
     } else if (d.ai === 'caster'){
       if (dist < 70){ mx = -ux; my = -uy; } else if (dist < 105){ mx = -uy*e.side; my = ux*e.side; sp *= .6; }
       e.cd -= dt;
@@ -2727,7 +2817,7 @@ function update(dt){
     const dx = P.x - g.x, dy = P.y - 8 - g.y, d = Math.hypot(dx, dy);
     if (d < mag) g.pull = true;
     if (g.pull){ const s = 120 + (mag - Math.min(d, mag))*3; g.x += dx/(d||1)*s*dt; g.y += dy/(d||1)*s*dt; }
-    if (d < 6){ g.dead = true; G.gems += g.v; }
+    if (d < 6){ g.dead = true; G.gems += g.v; gainXp(g.v); }
   }
   dropDead(GEMS);
   // items
@@ -2735,8 +2825,8 @@ function update(dt){
     it.t += dt;
     const dx = P.x - it.x, dy = P.y - it.y, d = Math.hypot(dx, dy);
     if (d < mag*.6 && d > 0){ it.x += dx/d*70*dt; it.y += dy/d*70*dt; }
-    if (d < 9){ it.dead = true; applyItem(it.kind); }
-    if (it.t > 45) it.dead = true;
+    if (d < 9){ it.dead = true; applyItem(it.kind, it.rk); }
+    if (it.t > 45 && it.kind !== 'relic') it.dead = true;
   }
   dropDead(ITEMS);
   // fx
@@ -2804,6 +2894,7 @@ function drawScene(dt){
     ctx.drawImage(img, Math.round(g.x - cx - 2), Math.round(g.y - cy - 3));
   }
   for (const it of ITEMS){
+    if (it.kind === 'relic'){ drawRelic(it, cx, cy); continue; }
     if (it.x < cx - 24 || it.x > vx1 + 24 || it.y < cy - 24 || it.y > vy1 + 24) continue;
     if (it.t > 40 && Math.floor(it.t*8)%2) continue;
     const bob = Math.round(Math.sin(it.t*4)*1.5);
@@ -2973,14 +3064,6 @@ function drawScene(dt){
         }
       }
       ctx.globalAlpha = 1;
-    } else if (b.k === 'meteor'){
-      if (b.t < 0) continue;
-      const p = Math.min(1, b.t/b.fall), R = 30 + rl('meteor')*6, rr = Math.round(R*(.4 + .6*p));
-      ctx.globalAlpha = .25 + p*.4; ctx.fillStyle = '#ff4a2a';
-      for (let i=0;i<rr*5;i+=2){ const a = i/(rr*5)*Math.PI*2; ctx.fillRect(Math.round(b.tx - cx + Math.cos(a)*rr), Math.round(b.ty - cy + Math.sin(a)*rr*.6), 1, 1); }
-      ctx.globalAlpha = 1;
-      const mx = b.tx + (1-p)*50 - cx, my = b.ty - (1-p)*150 - cy;
-      pixCircle(mx, my, 6, '#5a1a0a'); pixCircle(mx, my, 5, '#f2622e'); pixCircle(mx - 1, my - 1, 3, '#ffb02e'); pixCircle(mx - 1, my - 1, 1, '#fff7c0');
     } else {
       const X = b.x - cx, Y = b.y - cy, tt2 = (b.age || 0), fl = Math.sin(tt2*40)*.6;
       ctx.globalAlpha = .22; pixCircle(X, Y, 8 + fl, '#ff6a2a'); ctx.globalAlpha = .4; pixCircle(X, Y, 6, '#ff8a2a'); ctx.globalAlpha = 1;
@@ -3172,21 +3255,22 @@ function hud(){
   const xk = G.lvl + ':' + G.xp;
   if (xk !== lastXp){ lastXp = xk; $('#lvl').textContent = 'Nv ' + G.lvl; $('#xpFill').style.width = (G.xp/G.need*100).toFixed(1) + '%'; $('#xpFill').classList.toggle('pick', isPickLevel(G.lvl + 1)); $('#nextPick').textContent = 'poder no ' + nextPickLevel(G.lvl); }
   if (G.gems !== lastGems){ lastGems = G.gems; $('#gems').textContent = G.gems; }
-  const be = G.boss && G.boss.e, bar = $('#bossBar');
+  const be = (G.boss && G.boss.e) || G.guard[0], bar = $('#bossBar');
   if (be && !be.dead && be.hp > 0){
     if (bar.hidden) bar.hidden = false;
-    $('#bossFill').style.width = (Math.max(0, be.hp)/be.d.hp*100).toFixed(1) + '%';
+    $('#bossFill').style.width = (Math.max(0, be.hp)/(be.max || be.d.hp)*100).toFixed(1) + '%';
     const s = be.bs;
-    const info = s.seals ? `Selos ${s.seals.filter(z => z.lit).length}/3 · ${Math.max(0, Math.ceil(s.sealWin))}s` : s.stun > 0 ? 'Atordoado' : s.enraged ? 'Enfurecido' : '';
+    const info = !s ? 'Guardião' : s.seals ? `Selos ${s.seals.filter(z => z.lit).length}/3 · ${Math.max(0, Math.ceil(s.sealWin))}s` : s.stun > 0 ? 'Atordoado' : s.enraged ? 'Enfurecido' : '';
     const el = $('#bossInfo'); if (el.textContent !== info) el.textContent = info;
+    const nm = $('#bossName'); if (nm.textContent !== be.d.name) nm.textContent = be.d.name;
   } else if (!bar.hidden) bar.hidden = true;
 }
 const ICON_URL = {}; for (const k in ICONS) ICON_URL[k] = ICONS[k].spr.toDataURL();
 function renderGear(){
   const box = $('#gear'); box.innerHTML = '';
-  for (const k of ['holy','storm','meteor','sword','boom','orb','fire','boots','magnet']){
+  for (const k of ['holy','storm','sword','boom','orb','fire','boots','magnet']){
     if (!W[k]) continue;
-    const c = document.createElement('div'); c.className = UPG[k].late ? 'chip legend' : 'chip';
+    const c = document.createElement('div'); c.className = UPG[k].relic ? 'chip legend' : 'chip';
     c.innerHTML = `<img alt="" src="${iconFor(k, W[k])}"><span>${UPG[k].name}</span><b>${W[k]}</b>`;
     box.appendChild(c);
   }
@@ -3306,11 +3390,19 @@ async function keepAwake(on){
     el.insertAdjacentHTML('beforeend', `<span>${d.name}</span><small>${fmt(t)}</small>`);
     box.appendChild(el);
   }
-  {
-    const c = document.createElement('canvas'); c.width = 48; c.height = 40; { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(ET.dragon.spr[0], 0, 0, 48, 40); }
-    c.style.height = '36px';
-    const el = document.createElement('div'); el.className = 'beast'; el.appendChild(c);
-    el.insertAdjacentHTML('beforeend', '<span>Dragão Esqueleto</span><small>10:00 · chefe</small>');
+  // bosses, in BOSSES order: guardians (placeholders) show their base enemy with the elite gold outline
+  for (const m of BOSSES){
+    const c = document.createElement('canvas'), g = c.getContext('2d');
+    let name;
+    if (m.id === 'dragon'){ c.width = 48; c.height = 40; g.imageSmoothingEnabled = false; g.drawImage(ET.dragon.spr[0], 0, 0, 48, 40); c.style.height = '36px'; name = ET.dragon.name; }
+    else {
+      const b = ET[BAL.guard[m.id].type], fr = (b.dirs.down || b.dirs.all)[0];
+      c.width = fr.n.width + 2; c.height = fr.n.height + 2;
+      for (const [ox, oy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) g.drawImage(fr.g, ox, oy);
+      g.drawImage(fr.n, 1, 1); c.style.height = Math.min(44, c.height*1.5) + 'px'; name = BAL.guard[m.id].name;
+    }
+    const el = document.createElement('div'); el.className = 'beast boss'; el.appendChild(c);
+    el.insertAdjacentHTML('beforeend', `<span>${name}</span><small>${fmt(m.t)} · chefe</small>`);
     box.appendChild(el);
   }
   const b = store.get(); $('#bestStart').textContent = b ? `Seu recorde: ${fmt(b)}` : '';

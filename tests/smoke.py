@@ -6,9 +6,12 @@ that exposes the game's internals as window.__t (and a seeded Math.random), then
 drives the game headless with Playwright/Chromium.
 
 Runs:
-  stress  -- title -> start -> ~620 s with an invulnerable hero and every power
-             maxed (relics included), boss intro/fight, forced victory, back to
-             title, then 3 restart cycles (play 30 s, die, game-over screen, title).
+  stress  -- title -> start -> ~920 s with an invulnerable hero and every power
+             maxed (relics given at 300/600 s), guardians at 5:00 and 10:00, dragon
+             intro/fight at 15:00, forced victory, back to title, then 3 restart
+             cycles (play 30 s, die, game-over screen, title).
+  milestones -- guardian spawns at its time, slows spawning, drops its relic;
+             the relic is not offered before it is picked up, and is after.
   normal  -- 120 s with a simple kiting bot (hero can die).
   races   -- die / win and restart immediately: the stale game-over screen must
              not pop over the new run; keys are cleared on blur.
@@ -39,7 +42,11 @@ window.__t = {
   get B(){ return B; }, get EB(){ return EB; }, get GEMS(){ return GEMS; }, get ITEMS(){ return ITEMS; }, get NUMS(){ return NUMS; },
   get state(){ return state; }, set state(v){ state = v; }, get J(){ return J; }, set J(v){ J = v; },
   keys, update, start, goTitle, togglePause, gameOver, victory, hurt, ambUpdate, hud, render, openLevelUp, startBoss,
-  pick(i){ lvlOpenedAt = -1e9; chooseLevel(i); }
+  pick(i){ lvlOpenedAt = -1e9; chooseLevel(i); },
+  // newer names (Etapa 3); undefined in older versions
+  get BOSSES(){ return typeof BOSSES !== 'undefined' ? BOSSES : null; },
+  get avail(){ return typeof available === 'function' ? available : null; },
+  get lvlOpts(){ return lvlOpts; }
 };
 '''
 
@@ -74,9 +81,12 @@ STRESS = r'''
   let maxE = 0, maxFX = 0, maxB = 0, maxEB = 0, maxGEMS = 0, maxITEMS = 0, maxNUMS = 0, picks = 0, nan = 0, steps = 0;
   let at120 = null, bossSeen = false, fightSeen = false, forced = false;
   for (const k of ['sword','boom','orb','fire','boots','magnet']) T.W[k] = 5;
-  for (; steps < 700*30; steps++){
+  let guards = 0;
+  for (; steps < 1000*30; steps++){
     T.P.inv = 5; T.P.hp = T.P.maxHp;
-    if (T.G.t >= 300) for (const k of ['holy','storm','meteor']) T.W[k] = 3;
+    if (T.G.t >= 300) T.W.holy = 3;
+    if (T.G.t >= 600) T.W.storm = 3;
+    if (T.G.guard) guards = Math.max(guards, T.G.guard.length);
     T.update(DT); T.ambUpdate(DT);
     if (steps % 10 === 0) T.hud();
     if (steps % 15 === 0) T.render(DT);
@@ -89,11 +99,11 @@ STRESS = r'''
     if (!at120 && T.G.t >= 120) at120 = {kills: T.G.kills, xp: T.G.xp, lvl: T.G.lvl, gems: T.G.gems, E: T.E.length};
     const bo = T.G.boss;
     if (bo){ bossSeen = true; if (bo.phase === 'fight') fightSeen = true; }
-    if (bo && bo.phase === 'fight' && T.G.t > 615 && bo.e && bo.e.hp > 1){ bo.e.hp = 1; forced = true; }
+    if (bo && bo.phase === 'fight' && T.G.t > 915 && bo.e && bo.e.hp > 1){ bo.e.hp = 1; forced = true; }
     if (T.state === 'over') break;
   }
   const bo = T.G.boss;
-  Object.assign(out, {steps, t: +T.G.t.toFixed(3), state: T.state, bossSeen, fightSeen, forced, bossPhase: bo && bo.phase,
+  Object.assign(out, {steps, t: +T.G.t.toFixed(3), state: T.state, bossSeen, guards, mi: T.G.mi, fightSeen, forced, bossPhase: bo && bo.phase,
     kills: T.G.kills, lvl: T.G.lvl, xp: T.G.xp, gems: T.G.gems, ups: T.G.ups, picks, nan, at120,
     max: {E: maxE, FX: maxFX, B: maxB, EB: maxEB, GEMS: maxGEMS, ITEMS: maxITEMS, NUMS: maxNUMS},
     W: Object.assign({}, T.W)});
@@ -132,6 +142,41 @@ NORMAL = r'''
   }
   for (const k in K) K[k] = false;
   return {died, at120, picks, maxE, nan, end: {t: +T.G.t.toFixed(3), kills: T.G.kills, xp: T.G.xp, lvl: T.G.lvl, hp: T.P.hp, gems: T.G.gems, W: Object.assign({}, T.W)}};
+}
+'''
+
+MILESTONES = r'''
+(seed) => {
+  const T = window.__t, r = {};
+  window.__seed(seed);
+  T.start();
+  if (!T.BOSSES) return {skipped: true};
+  T.P.inv = 1e9;
+  r.holyBefore = T.avail().includes('holy');
+  T.G.t = 299.5;
+  for (let i = 0; i < 30; i++){ T.update(1/30); if (T.G.pending) T.G.pending = 0; }
+  const g = T.G.guard[0];
+  r.guard = g ? {type: g.type, hp: Math.round(g.hp), elite: g.elite, relic: g.relic} : null;
+  r.barShown = (T.hud(), !document.querySelector('#bossBar').hidden);
+  r.barName = document.querySelector('#bossName').textContent;
+  // spawning while the guardian lives: count spawns over 20 s vs 20 s after it dies
+  const n0 = T.E.length; let spawnedCalm = 0;
+  for (let i = 0; i < 20*30; i++){ const n = T.E.length; T.update(1/30); spawnedCalm += Math.max(0, T.E.length - n); if (T.G.pending) T.G.pending = 0; T.P.x = 0; T.P.y = 0; }
+  if (!g) return r;
+  g.hp = 1; g.x = T.P.x + 300; g.y = T.P.y; T.update(1/30);
+  // kill it with a direct hit via the hero's sword range: move it next to the hero
+  for (let i = 0; i < 90 && !g.dead; i++){ for (const e of T.E) if (e !== g) e.dead = true; g.x = T.P.x + 14; g.y = T.P.y; T.update(1/30); }
+  r.guardDead = g.dead; r.guardsLeft = T.G.guard.length;
+  const rel = T.ITEMS.find(it => it.kind === 'relic');
+  r.relicDropped = rel ? rel.rk : null;
+  r.holyAfterDropNotPicked = T.avail().includes('holy');
+  if (rel){ rel.x = T.P.x; rel.y = T.P.y; T.update(1/30); }
+  r.holyLevel = T.W.holy;
+  r.holyAvailAfter = T.avail().includes('holy');
+  r.relicGone = !T.ITEMS.some(it => it.kind === 'relic');
+  r.spawnedCalm = spawnedCalm;
+  T.goTitle();
+  return r;
 }
 '''
 
@@ -229,6 +274,7 @@ async def run(src, seed):
             await pg.wait_for_timeout(700)
             res['stress'] = await pg.evaluate(STRESS, seed)
             res['afterVictory'] = await pg.evaluate(AFTER_VICTORY)
+            res['milestones'] = await pg.evaluate(MILESTONES, seed + 2)
             await pg.evaluate('() => window.__t.goTitle()')
             res['normal'] = await pg.evaluate(NORMAL, seed + 1)
             await pg.evaluate('() => window.__t.goTitle()')
@@ -282,6 +328,13 @@ def checks(r):
     ok('stress: victory reached (state over, boss won)', s['state'] == 'over' and s['bossPhase'] == 'won', f"state={s['state']} phase={s['bossPhase']} t={s['t']}")
     ok('stress: no NaN positions', s['nan'] == 0)
     ok('stress: entity counts sane', s['max']['E'] <= 300 and s['max']['GEMS'] <= 450 and s['max']['NUMS'] <= 80 and s['max']['FX'] < 20000, json.dumps(s['max']))
+    m = r.get('milestones') or {}
+    if not m.get('skipped'):
+        ok('milestones: guardian spawns at 5:00 as elite with relic holy', m.get('guard') and m['guard']['elite'] and m['guard']['relic'] == 'holy', json.dumps(m.get('guard')))
+        ok('milestones: boss bar shows the guardian', m.get('barShown') and m.get('barName') == 'Paladino Possuído', m.get('barName', ''))
+        ok('milestones: guardian death drops the relic; relic not offered before pickup', m.get('guardDead') and m.get('relicDropped') == 'holy' and not m.get('holyBefore') and not m.get('holyAfterDropNotPicked'), json.dumps(m))
+        ok('milestones: picking the relic grants level 1 and opens it to picks', m.get('holyLevel') == 1 and m.get('holyAvailAfter') and m.get('relicGone'), json.dumps(m))
+        ok('stress: both guardians spawned (mi reached 3)', s.get('mi') == 3, f"mi={s.get('mi')} guards={s.get('guards')}")
     ok('victory: game-over panel shown', a['overShown'] and a['overTitle'] == 'Vitória!')
     ok('victory: back to title', a['titleShown'])
     for i, cy in enumerate(a['cycles']):
