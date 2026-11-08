@@ -62,16 +62,20 @@ rep("  // elven bow", "  window.__S='bow';\n  // elven bow", need=False)
 rep("  // player projectiles\n  for (const b of B){\n", "  // player projectiles\n  for (const b of B){\n    window.__S = b.k === 'wave' ? 'holy' : b.k;\n")
 rep("  for (const z of BURNS){\n    z.t += dt; z.tick -= dt;", "  window.__S='fire'; for (const z of BURNS){\n    z.t += dt; z.tick -= dt;")
 # hurt causes
-rep("function hurt(n){\n  if (P.inv > 0) return;", "function hurt(n){\n  if (P.inv > 0) return;\n  { const st = window.__ST, h = window.__H || '?'; st.hurt[h] = (st.hurt[h]||0) + n; st.secHurt += n; window.__H = '?'; }")
+# hurt causes: Etapa 5 passes the cause as hurt(n, cause); older versions only have the window.__H tags below
+if "function hurt(n, cause){\n  if (P.inv > 0) return;" in s:
+    rep("function hurt(n, cause){\n  if (P.inv > 0) return;", "function hurt(n, cause){\n  if (P.inv > 0) return;\n  { const st = window.__ST, h = cause || window.__H || '?'; st.hurt[h] = (st.hurt[h]||0) + n; st.secHurt += n; window.__H = '?'; }")
+else:
+    rep("function hurt(n){\n  if (P.inv > 0) return;", "function hurt(n){\n  if (P.inv > 0) return;\n  { const st = window.__ST, h = window.__H || '?'; st.hurt[h] = (st.hurt[h]||0) + n; st.secHurt += n; window.__H = '?'; }")
 rep("< 34) hurt(2);", "< 34){ window.__H='bossbody'; hurt(2); }", need=False)
 rep("< 30) hurt(3);", "< 30){ window.__H='dive'; hurt(3); }", need=False)
 rep("if (dist < d.r + 4) hurt(d.dmg);", "if (dist < d.r + 4){ window.__H = (e.guard ? 'guard:' : '') + e.type + (e.elite ? '*' : ''); hurt(d.dmg); }")
-rep("b.dead = true; hurt(b.dmg); }", "b.dead = true; window.__H = b.k; hurt(b.dmg); }")
+rep("b.dead = true; hurt(b.dmg); }", "b.dead = true; window.__H = b.k; hurt(b.dmg); }", need=False)
 rep("P.slow = 2.6; hurt(1);", "P.slow = 2.6; window.__H='curse'; hurt(1);")
 rep("< m.r + 2) hurt(2);", "< m.r + 2){ window.__H='bones'; hurt(2); }", need=False)
 
 HOOK = r"""window.__ST = {raw:{}, eff:{}, boss:{}, guard:{}, hurt:{}, items:{}, spawnN:{}, secDmg:0, secHurt:0, secSpawnHp:0, sealHits:0};
-window.__d = () => ({G, P, W, E, B, EB, ITEMS, CURSES, MARKS, GEMS, state, UPG, ET, lvlOpts, pickOptions, available, enhanceable,
+window.__d = () => ({G, P, W, E, B, EB, ITEMS, CURSES, MARKS, GEMS, state, ZAPS: typeof ZAPS !== 'undefined' ? ZAPS : [], UPG, ET, lvlOpts, pickOptions, available, enhanceable,
   BAL: typeof BAL !== 'undefined' ? BAL : null, BOSSES: typeof BOSSES !== 'undefined' ? BOSSES : null, BOSS_T: typeof BOSS_T !== 'undefined' ? BOSS_T : null});
 window.__u = dt => { if (state === 'play'){ update(dt); if (state === 'play' && G.pending > 0) openLevelUp(); } return state; };
 window.__start = () => { start(); };

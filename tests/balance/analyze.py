@@ -80,6 +80,25 @@ for f in args:
         gk = [r for r in rs if r['ST'].get('items', {}).get('relic')]
         if any('guard' in r['ST'] for r in rs):
             print(f"   relics picked up per run: {sum(r['ST']['items'].get('relic', 0) for r in rs)/len(rs):.2f}")
+        # boss fights (Etapa 5): per boss and policy, how the fight ended, its length and the hurt taken
+        bids = sorted({b for r in rs for b in (r.get('fights') or {})}, key=lambda b: min(r['fights'][b]['t0'] for r in rs if b in (r.get('fights') or {})))
+        for bid in bids:
+            print(f'   boss {bid}:')
+            for p, prs in list(pol.items()) + [('ALL', rs)]:
+                fs = [r['fights'][bid] for r in prs if bid in (r.get('fights') or {})]
+                if not fs: continue
+                kl = [f for f in fs if f['end'] == 'killed']
+                dur = [f['t1'] - f['t0'] for f in kl]
+                cnt = {k: sum(f['end'] == k for f in fs) for k in ('killed', 'died', 'fled', 'alive')}
+                d120 = sum(f['end'] == 'died' and f['t1'] - f['t0'] <= 120 for f in fs)
+                print(f"     {p:9s} reached {len(fs):3d}/{len(prs):3d}  killed {cnt['killed']/len(fs)*100:5.1f}%  died in fight {cnt['died']/len(fs)*100:5.1f}%"
+                      f" (<=120s {d120/len(fs)*100:5.1f}%)  fled {cnt['fled']/len(fs)*100:4.1f}%  ttk p25/med/p75 " + (f"{q(dur,.25):4.0f}/{q(dur,.5):4.0f}/{q(dur,.75):4.0f}s" if dur else '   -   ')
+                      + f"  hurt med {st.median([f['hurt'] for f in fs]):.0f}  lvl med {st.median([f['lvl'] for f in fs]):.0f}")
+                if p == 'ALL' and any('causes' in f for f in fs):
+                    cz = defaultdict(float)
+                    for f in fs:
+                        for k, v in (f.get('causes') or {}).items(): cz[k] += v/len(fs)
+                    print('       hurt in fight by cause (avg): ' + ' '.join(f'{k} {v:.1f}' for k, v in sorted(cz.items(), key=lambda x: -x[1])[:10]))
         if detail:
             for r in rs:
                 print(f"     seed {r['seed']} {r['policy']} end {r['t']:.0f} lvl {r['lvl']} W {{{', '.join(f'{k}:{v}' for k, v in r['W'].items() if v)}}} picks " +

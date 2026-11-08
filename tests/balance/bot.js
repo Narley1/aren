@@ -56,7 +56,7 @@
     const low = P.hp <= P.maxHp*.35;
     let near = null, nd = 1e9, crowd = 0;
     for (const e of d.E){
-      if (e.dead || e.d.boss) continue;
+      if (e.dead || e.d.boss || e.d.mid) continue;
       const dx = P.x - e.x, dy = P.y - e.y, dist = Math.hypot(dx, dy) || 1;
       if (dist < nd){ nd = dist; near = e; }
       if (dist > 110) continue;
@@ -94,6 +94,51 @@
         let best = null, bd = 1e9;
         for (const z of s.seals){ if (z.lit) continue; const dd = Math.hypot(z.x - P.x, z.y - P.y); if (dd < bd){ bd = dd; best = z; } }
         if (best){ const k = bd < 6 ? 0 : 2.5; fx += (best.x - P.x)/(bd||1)*k; fy += (best.y - P.y)/(bd||1)*k; if (bd < 9 && danger < 2){ fx *= .1; fy *= .1; } }
+      }
+    }
+    // mid-bosses (Etapa 5): step out of every telegraph; close-range builds go in during the boss's recovery
+    // (and chase the lich), ranged builds keep 70-130 px
+    for (const z of (d.ZAPS || [])){
+      if (z.t < 0 || z.done) continue;
+      const dx = P.x - z.x, dy = (P.y - z.y)/.75, dist = Math.hypot(dx, dy) || 1;
+      if (dist < z.R + 9){ const w = 5; fx += dx/dist*w; fy += dy/dist*w; danger += w; }
+    }
+    const mb = d.G.guard.find(e => e.m && !e.dead);
+    if (mb){
+      const m = mb.m, B = d.BAL[mb.mb], dx = P.x - mb.x, dy = P.y - mb.y, dist = Math.hypot(dx, dy) || 1;
+      const away = (ox, oy, w) => { const ex = P.x - ox, ey = P.y - oy, l = Math.hypot(ex, ey) || 1; fx += ex/l*w; fy += ey/l*w; danger += w; };
+      const inG = (ox, oy, R) => { const ex = P.x - ox, ey = (P.y - oy)/.75; return ex*ex + ey*ey < R*R; };
+      const W_ = d.W, close = policy === 'melee' || policy === 'sword' || (W_.hammer || 0) + (W_.thorns || 0) + (W_.holy ? 2 : 0) + (W_.sword >= 4 ? 1 : 0) > (W_.boom || 0) + (W_.bow || 0) + (W_.fire || 0) + (W_.storm || 0);
+      let busy = false;
+      if (mb.mb === 'paladin'){
+        if (m.st === 'charge0' || m.st === 'charge'){
+          const ca = Math.cos(m.a), sa = Math.sin(m.a), ox = m.st === 'charge' ? mb.x : m.ox, oy = m.st === 'charge' ? mb.y : m.oy, left = B.charge.len - (m.dd || 0);
+          const al = (P.x - ox)*ca + (P.y - oy)*sa, pp = (P.x - ox)*-sa + (P.y - oy)*ca;
+          if (al > -14 && al < left + 14 && Math.abs(pp) < B.charge.w + 10){ const sg = pp >= 0 ? 1 : -1; fx += -sa*sg*7; fy += ca*sg*7; danger += 7; }
+          busy = true;
+        } else if ((m.st === 'spin0' || m.st === 'spin') && inG(mb.x, mb.y, B.spin.R + 9)){ away(mb.x, mb.y, 7); busy = true; }
+        else if (m.st === 'leap' && inG(m.tx, m.ty, B.leap.R + 10)){ away(m.tx, m.ty, 7); busy = true; }
+        else if (m.st === 'leap0'){ away(mb.x, mb.y, 2); busy = true; }
+        else if (m.st === 'intro' && mb.z > 0 && inG(mb.x, mb.y, B.intro.R + 10)){ away(mb.x, mb.y, 7); busy = true; }
+        if (!busy){
+          const open = m.st === 'recover';
+          if (close && open){ const want = swR + B.r - 6; if (dist > want){ fx -= dx/dist*2; fy -= dy/dist*2; } }
+          else if (dist < (close ? 34 : 50)) away(mb.x, mb.y, close ? 2.5 : 3);
+          else if (!close && dist > 95){ fx -= dx/dist*1.2; fy -= dy/dist*1.2; }
+        }
+      } else {
+        if (m.st === 'chain0'){
+          const gx = mb.x + (mb.fc > 0 ? -14 : 14), gy = mb.y - 60, ca = Math.cos(m.a), sa = Math.sin(m.a);
+          const al = (P.x - gx)*ca + (P.y - 10 - gy)*sa;
+          const forks = m.ph === 2 ? [0, -B.chain.fork, B.chain.fork] : [0];
+          for (const o of forks){ const c2 = Math.cos(m.a + o), s2 = Math.sin(m.a + o), pp = (P.x - gx)*-s2 + (P.y - 10 - gy)*c2, a2 = (P.x - gx)*c2 + (P.y - 10 - gy)*s2;
+            if (a2 > 0 && a2 < B.chain.len && Math.abs(pp) < B.chain.w + 9 && m.t > B.chain.charge*.4){ const sg = pp >= 0 ? 1 : -1; fx += -s2*sg*6; fy += c2*sg*6; danger += 6; busy = true; } }
+          void al;
+        }
+        if (!busy && !mb.untouch){
+          if (close){ const want = Math.max(24, swR*.8 + B.r - 4); if (dist > want){ const w = m.st === 'tired' ? 2.2 : 1.4; fx -= dx/dist*w; fy -= dy/dist*w; } else if (dist < 20 && m.st !== 'tired') away(mb.x, mb.y, 2); }
+          else if (dist < 50) away(mb.x, mb.y, 2); else if (dist > 95){ fx -= dx/dist*1.2; fy -= dy/dist*1.2; }
+        }
       }
     }
     // items (relics and crystals always, hearts when hurt)
