@@ -1271,6 +1271,7 @@ function swayFrames(base, splitY, amp, n){
   return out;
 }
 for (const k in PROP_TYPES){ const t = PROP_TYPES[k]; t.fr = k === 'tree' ? swayFrames(t.img, 26, 1, 6) : k.startsWith('bush') ? swayFrames(t.img, 9, 1, 4) : [t.img]; }
+const PROPS = new Map();   // (cell) -> prop entry, built once
 function propsIn(x0, y0, x1, y1, out){
   const PG = 44;
   for (let by = Math.floor(y0/PG); by <= Math.floor(y1/PG); by++) for (let bx = Math.floor(x0/PG); bx <= Math.floor(x1/PG); bx++){
@@ -1282,7 +1283,10 @@ function propsIn(x0, y0, x1, y1, out){
     let k;
     if (n > DIRT_T - .04){ if (r < .06) k = 'rock'; else continue; }
     else k = r < .13 ? 'tree' : r < .22 ? 'bush' : r < .26 ? 'bushB' : r < .30 ? 'rock' : 'stump';
-    out.push({y, k:'prop', x, t:PROP_TYPES[k], ph:h2(bx + 3, by + 5)*10});
+    const key = bx*100003 + by;
+    let o = PROPS.get(key);
+    if (!o){ if (PROPS.size > 4000) PROPS.clear(); o = {y, k:'prop', x, t:PROP_TYPES[k], ph:h2(bx + 3, by + 5)*10}; PROPS.set(key, o); }
+    out.push(o);
   }
 }
 
@@ -1293,9 +1297,7 @@ function propsIn(x0, y0, x1, y1, out){
 // is quantised to 1/32 px, so integer radii give exactly the old pixels.
 const CIRC = new Map();
 function pixCircle(x, y, r, col){
-  if (ctx === LX){ LX.fillStyle = col; x = Math.round(x); y = Math.round(y);
-    for (let dy=-r; dy<=r; dy++){ const w = Math.floor(Math.sqrt(r*r - dy*dy + .3)); LX.fillRect(x-w, y+dy, w*2+1, 1); }
-    return; }
+  if (ctx === LX){ LX.fillStyle = col; LX.circle(Math.round(x), Math.round(y), r); return; }
   let h = 0, n = 0;
   for (let dy=-r; dy<=r; dy++){ h = (Math.imul(h, 33) + Math.floor(Math.sqrt(r*r - dy*dy + .3)) + 1) | 0; n++; }
   if (!n) return;
@@ -1456,6 +1458,26 @@ const LX = {
       }
     }
     this.dirty(X0, Y0, X1, Y1);
+  },
+  // pixCircle(x, y, r) with the current colour: rows of fillRect(x-w, y+dy, 2w+1, 1), fractional rows
+  // (non-integer r) split over two pixel rows by coverage, exactly like fillRect would
+  circle(x, y, r){
+    if (this.real){ const g = this.pass(); for (let dy=-r; dy<=r; dy++){ const w = Math.floor(Math.sqrt(r*r - dy*dy + .3)); g.fillRect(x-w, y+dy, w*2+1, 1); } return; }
+    const c = this.col, A = this.ga*c[3];
+    if (A <= 0) return;
+    const W = this.W, H = this.H, r0 = this.rx0, r1 = this.rx1, cr = c[0], cg = c[1], cb = c[2];
+    for (let dy=-r; dy<=r; dy++){
+      const w = Math.floor(Math.sqrt(r*r - dy*dy + .3));
+      let X0 = x - w, X1 = x + w; if (X0 < 0) X0 = 0; if (X1 >= W) X1 = W - 1; if (X0 > X1) continue;
+      const yt = y + dy, Y = Math.floor(yt);
+      for (let k = 0; k < 2; k++){
+        const yy = Y + k, cov = Y === yt ? (k ? 0 : 1) : k ? yt - Y : Y + 1 - yt;
+        if (cov <= 0 || yy < 0 || yy >= H) continue;
+        this.span(X0, X1, yy, A*cov, cr, cg, cb);
+        if (yy < this.y0) this.y0 = yy; if (yy > this.y1) this.y1 = yy;
+        if (X0 < r0[yy]) r0[yy] = X0; if (X1 > r1[yy]) r1[yy] = X1;
+      }
+    }
   },
   drawImage(img, x, y, a3, a4, a5, a6, a7, a8){
     if (a3 !== undefined){ this.pass().drawImage(img, x, y, a3, a4, a5, a6, a7, a8); return; }
@@ -1869,13 +1891,18 @@ function reset(){
 }
 
 /* spatial grid */
-const CELL = 32; const grid = new Map();
+// in-place removal (same order as filter(), no new array every frame)
+function dropDead(a){ let j = 0; for (let i = 0; i < a.length; i++){ const x = a[i]; if (!x.dead) a[j++] = x; } a.length = j; }
+function dropExpired(a){ let j = 0; for (let i = 0; i < a.length; i++){ const x = a[i]; if (x.t < x.life) a[j++] = x; } a.length = j; }
+function dropOld(a, life){ let j = 0; for (let i = 0; i < a.length; i++){ const x = a[i]; if (x.t < life) a[j++] = x; } a.length = j; }
+const CELL = 32; const grid = new Map(), gridPool = [];
 function gridBuild(){
+  for (const a of grid.values()){ a.length = 0; gridPool.push(a); }   // cell arrays are reused
   grid.clear();
   for (const e of E){
     if (e.dead) continue;
     const k = Math.floor(e.x/CELL)*65536 + Math.floor(e.y/CELL);
-    let a = grid.get(k); if (!a) grid.set(k, a = []); a.push(e);
+    let a = grid.get(k); if (!a) grid.set(k, a = gridPool.pop() || []); a.push(e);
   }
 }
 function query(x, y, r, fn){
@@ -2377,6 +2404,7 @@ const endJ = e => { if (J && e.pointerId === J.id) J = null; };
 addEventListener('pointerup', endJ); addEventListener('pointercancel', endJ);
 
 /* ---------------- update ---------------- */
+const SWS = {dmg: 0, range: 0, cd: 0, arc: 0, double: false}, WAVE_SETS = [];
 function update(dt){
   G.t += dt;
   if (!G.boss && G.t >= BOSS_T) startBoss();
@@ -2438,7 +2466,8 @@ function update(dt){
   if (G.swing){ G.swing.t += dt; if (G.swing.t >= G.swing.dur) G.swing = null; }
   const l = W.sword;
   const SW = BAL.sword, el = 1 + (l - 1)*SW.lvlStep;
-  const sw = {dmg:SW.dmgBase + el*SW.dmgPerLvl, range:SW.rangeBase + el*SW.rangePerLvl, cd:Math.max(SW.cdMin, SW.cdBase - el*SW.cdPerLvl), arc: l >= 5 ? Math.PI*2 : Math.PI*.8, double: l >= 3 && l < 5};
+  const sw = SWS;  // reused every frame
+  sw.dmg = SW.dmgBase + el*SW.dmgPerLvl; sw.range = SW.rangeBase + el*SW.rangePerLvl; sw.cd = Math.max(SW.cdMin, SW.cdBase - el*SW.cdPerLvl); sw.arc = l >= 5 ? Math.PI*2 : Math.PI*.8; sw.double = l >= 3 && l < 5;
   if (W.holy){ sw.dmg *= 1 + ((1.5 + rl('holy')*.3)*.75 - 1)*f1('holy'); sw.range += 8 + rl('holy')*4; }
   if (G.swCd <= 0){
     const tg = nearest(P.x, P.y, sw.range + 16);
@@ -2449,7 +2478,7 @@ function update(dt){
       G.swing = {t:0, dur:.26, ang, arc:sw.arc, range:sw.range, dirs, holy:W.holy > 0, rev:G.swRev && sw.arc < 6};
       if (W.holy){
         const wd = sw.arc >= 6 ? [0,1,2,3].map(i => ang + i*Math.PI/2) : dirs;
-        for (const a of wd) B.push({k:'wave', x:P.x, y:P.y-10, a, d:0, max:90 + rl('holy')*25, dmg:(8 + rl('holy')*7)*.75*f1('holy'), hit:new Set()});
+        for (const a of wd) B.push({k:'wave', x:P.x, y:P.y-10, a, d:0, max:90 + rl('holy')*25, dmg:(8 + rl('holy')*7)*.75*f1('holy'), hit:WAVE_SETS.pop() || new Set()});
       }
       query(P.x, P.y-9, sw.range + 14, e => {
         const dx = e.x - P.x, dy = (e.y - e.d.h/3) - (P.y-9), dist = Math.hypot(dx, dy);
@@ -2544,14 +2573,14 @@ function update(dt){
   for (const b of B){
     if (b.k === 'boom'){
       b.rot += dt*70;
-      b.tr.unshift([b.x, b.y]); if (b.tr.length > 4) b.tr.pop();
+      const tp = b.tr.length >= 4 ? b.tr.pop() : [0, 0]; tp[0] = b.x; tp[1] = b.y; b.tr.unshift(tp);  // keeps the 4 newest, reusing the oldest pair
       if (b.out){ const v = 105 - (b.d/b.max)*45; b.x += Math.cos(b.a)*v*dt; b.y += Math.sin(b.a)*v*dt; b.d += v*dt; if (b.d >= b.max) b.out = false; }
       else { const dx = P.x - b.x, dy = P.y-10 - b.y, l2 = Math.hypot(dx, dy); if (l2 < 9){ b.dead = true; continue; } b.x += dx/l2*125*dt; b.y += dy/l2*125*dt; }
       const hr = [9, 10, 11][b.tier];
       query(b.x, b.y, hr + 14, e => { if (e.boomCd <= 0 && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < hr + e.d.r){ hit(e, b.dmg); e.boomCd = .35; } });
     } else if (b.k === 'wave'){
       const st = 150*dt; b.x += Math.cos(b.a)*st; b.y += Math.sin(b.a)*st; b.d += st;
-      if (b.d >= b.max){ b.dead = true; continue; }
+      if (b.d >= b.max){ b.dead = true; b.hit.clear(); WAVE_SETS.push(b.hit); continue; }
       const r = 9 + rl('holy')*2;
       query(b.x, b.y, r + 12, e => { if (!b.hit.has(e) && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < r + e.d.r){ b.hit.add(e); hit(e, b.dmg, Math.cos(b.a), Math.sin(b.a), 80); } });
     } else if (b.k === 'meteor'){
@@ -2581,7 +2610,7 @@ function update(dt){
       }
     }
   }
-  B = B.filter(b => !b.dead);
+  dropDead(B);
 
   // enemies
   const farR = Math.max(VW, VH) * .95;
@@ -2638,7 +2667,7 @@ function update(dt){
     if (dist < d.r + 4) hurt(d.dmg);
     if (dist > farR){ e.x = P.x + dx*.85; e.y = P.y + dy*.85; }
   }
-  E = E.filter(e => !e.dead);
+  dropDead(E);
 
   // enemy projectiles
   for (const b of EB){
@@ -2646,7 +2675,7 @@ function update(dt){
     if (b.life <= 0) b.dead = true;
     else if (Math.hypot(b.x - P.x, b.y - (P.y-10)) < (b.k === 'bb' ? b.r + 2 : b.k === 'wfire' ? 6 : b.k === 'arrow' ? 5.5 : 4)){ b.dead = true; hurt(b.dmg); }
   }
-  EB = EB.filter(b => !b.dead);
+  dropDead(EB);
   // succubus curses
   for (const z of CURSES){
     z.t += dt;
@@ -2661,7 +2690,7 @@ function update(dt){
       for (let i=0;i<14;i++){ const a = Math.random()*Math.PI*2, sp = 30 + Math.random()*50; FX.push({k:'p', x:z.x, y:z.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp*.7 - 20, t:0, life:.45, col: i%3 ? '#ff7ae0' : '#ffd0f0', s: i%2 ? 2 : 1}); }
     }
   }
-  CURSES = CURSES.filter(z => !z.dead);
+  dropDead(CURSES);
   // boss bone impacts
   for (const m of MARKS){
     m.t += dt;
@@ -2672,7 +2701,7 @@ function update(dt){
       for (let i=0;i<5;i++){ const a = Math.random()*Math.PI*2, sp = 20 + Math.random()*40; FX.push({k:'p', x:m.x, y:m.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, t:0, life:.35, col:'#d6cdb4', s:1}); }
     }
   }
-  MARKS = MARKS.filter(m => !m.dead);
+  dropDead(MARKS);
 
   // gems
   const mag = 26 + W.magnet*16;
@@ -2682,7 +2711,7 @@ function update(dt){
     if (g.pull){ const s = 120 + (mag - Math.min(d, mag))*3; g.x += dx/(d||1)*s*dt; g.y += dy/(d||1)*s*dt; }
     if (d < 6){ g.dead = true; G.gems += g.v; }
   }
-  GEMS = GEMS.filter(g => !g.dead);
+  dropDead(GEMS);
   // items
   for (const it of ITEMS){
     it.t += dt;
@@ -2691,7 +2720,7 @@ function update(dt){
     if (d < 9){ it.dead = true; applyItem(it.kind); }
     if (it.t > 45) it.dead = true;
   }
-  ITEMS = ITEMS.filter(i => !i.dead);
+  dropDead(ITEMS);
   // fx
   for (const f of FX){ f.t += dt; if (f.t > 0 && (f.k === 'p' || f.k === 'fl' || f.k === 'sm')){ f.x += f.vx*dt; f.y += f.vy*dt; const dmp = f.k === 'sm' ? .97 : .92; f.vx *= dmp; f.vy *= dmp; } if (f.t >= f.life) f.dead = true; }
   for (const d of DECALS) d.t += dt;
@@ -2712,11 +2741,11 @@ function update(dt){
     if (Math.random() < .08*fade){ const a = Math.random()*Math.PI*2, d = Math.random()*z.R*.7;
       FX.push({k:'sm', x:z.x + Math.cos(a)*d, y:z.y + Math.sin(a)*d*.7, vx:(Math.random()-.5)*6, vy:-10 - Math.random()*8, t:0, life:.8, s:2 + Math.random()*1.5}); }
   }
-  BURNS = BURNS.filter(z => z.t < z.life);
-  DECALS = DECALS.filter(d => d.t < d.life);
-  FX = FX.filter(f => !f.dead);
+  dropExpired(BURNS);
+  dropExpired(DECALS);
+  dropDead(FX);
   for (const n of NUMS){ n.t += dt; n.y -= 18*dt; }
-  NUMS = NUMS.filter(n => n.t < .6);
+  dropOld(NUMS, .6);
   if (NUMS.length > 80) NUMS.splice(0, NUMS.length - 80);
 }
 
@@ -2724,6 +2753,10 @@ function update(dt){
 function render(dt){
   try { drawScene(dt); } finally { if (ctx === LX){ LX.flush(); CTX.globalAlpha = 1; ctx = CTX; } }
 }
+// y-sort list, its entries and the props are reused between frames
+const YS = {list: [], pool: [], hero: {y: 0, k: 'p'}}, ysCmp = (a, b) => a.y - b.y;
+const NIGHT = {gr: null, key: ''};
+const FX_DRAW_MAX = 1200;  // safety cap on drawn particles (newest kept); the late game with everything maxed peaks ~750
 function drawScene(dt){
   let sx = 0, sy = 0;
   if (G.shake > 0 && state === 'play'){ sx = (Math.random()-.5)*4; sy = (Math.random()-.5)*4; }
@@ -2790,15 +2823,17 @@ function drawScene(dt){
     ctx.globalAlpha = 1;
   }
   // y-sorted
-  const list = [];
+  const list = YS.list; list.length = 0;
   propsIn(cx - 24, cy - 8, cx + VW + 24, cy + VH + 46, list);
+  let ne = 0;
   for (const e of E){
     const d = e.d;
     if (!d.boss && (e.x + d.w < cx || e.x - d.w > vx1 || e.y + 12 < cy || e.y - d.h - 20 > vy1)) continue;  // off-screen
-    list.push({y:d.boss ? e.y + 400 : d.fly ? e.y + 14 : e.y, k:'e', e});
+    const o = YS.pool[ne] || (YS.pool[ne] = {y: 0, k: 'e', e: null}); ne++;
+    o.y = d.boss ? e.y + 400 : d.fly ? e.y + 14 : e.y; o.e = e; list.push(o);
   }
-  list.push({y:P.y, k:'p'});
-  list.sort((a, b) => a.y - b.y);
+  YS.hero.y = P.y; list.push(YS.hero);
+  list.sort(ysCmp);
   // shadows first
   for (const o of list){
     if (o.k === 'prop') ctx.drawImage(shadow(o.t.sh), Math.round(o.x - o.t.sh/2 - cx), Math.round(o.y - 3 - cy));
@@ -2823,7 +2858,7 @@ function drawScene(dt){
       const fr = (d.dirs.all || d.dirs[e.face || 'down'])[f];
       const lift = d.fly ? 6 + Math.round(Math.sin(e.anim*1.2)*2) : 0;
       const x = Math.round(e.x - d.w/2 - cx), y = Math.round(e.y - d.h - cy - lift + 1);
-      if (e.elite) for (const [ox, oy] of [[-1,0],[1,0],[0,-1],[0,1]]) ctx.drawImage(fr.g, x + ox, y + oy);
+      if (e.elite){ ctx.drawImage(fr.g, x - 1, y); ctx.drawImage(fr.g, x + 1, y); ctx.drawImage(fr.g, x, y - 1); ctx.drawImage(fr.g, x, y + 1); }
       ctx.drawImage(e.flash > 0 ? fr.w : (e.stun > 0 && Math.floor(e.stun*12) % 2) ? fr.b : fr.n, x, y);
       if (e.stun > 0){ const zx = Math.round(e.x - cx) + (Math.floor(e.stun*10) % 2 ? -2 : 2); ctx.fillStyle = '#bff2ff'; ctx.fillRect(zx, y - 3, 1, 1); ctx.fillRect(zx + 1, y - 4, 1, 1); ctx.fillRect(zx, y - 5, 1, 1); }
     } else {
@@ -2837,9 +2872,13 @@ function drawScene(dt){
   // night sky
   if (G.dark > 0){
     const lx = P.x - cx, ly = P.y - 11 - cy;
-    const gr = ctx.createRadialGradient(lx, ly, 18, lx, ly, 150);
-    gr.addColorStop(0, `rgba(14,6,32,${(G.dark*.3).toFixed(3)})`); gr.addColorStop(1, `rgba(14,6,32,${G.dark.toFixed(3)})`);
-    ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
+    const key = lx + ',' + ly + ',' + G.dark.toFixed(3);
+    if (NIGHT.key !== key){
+      const gr = ctx.createRadialGradient(lx, ly, 18, lx, ly, 150);
+      gr.addColorStop(0, `rgba(14,6,32,${(G.dark*.3).toFixed(3)})`); gr.addColorStop(1, `rgba(14,6,32,${G.dark.toFixed(3)})`);
+      NIGHT.gr = gr; NIGHT.key = key;
+    }
+    ctx.fillStyle = NIGHT.gr; ctx.fillRect(0, 0, VW, VH);
   }
   if (G.boss) drawBossLayer(cx, cy);
 
@@ -2939,7 +2978,8 @@ function drawScene(dt){
     }
   }
   // fx
-  for (const f of FX){
+  for (let fi = Math.max(0, FX.length - FX_DRAW_MAX); fi < FX.length; fi++){
+    const f = FX[fi];
     if (f.t < 0) continue;
     const a = 1 - f.t/f.life;
     ctx.globalAlpha = Math.max(0, a);
@@ -3042,10 +3082,10 @@ function ambUpdate(dt){
     b.x += b.vx*dt; b.y += b.vy*dt;
     if (Math.hypot(b.x - P.x, b.y - P.y) > 240 || b.fly !== night) b.dead = true;
   }
-  AMB.bf = AMB.bf.filter(b => !b.dead);
+  dropDead(AMB.bf);
   if (!night && Math.random() < dt*.7) AMB.lv.push({x:P.x + (Math.random() - .5)*VW, y:P.y - VH/2 - 10 + Math.random()*VH*.5, t:0, life:4 + Math.random()*2, ph:Math.random()*6, c:Math.random() < .5 ? '#d89a3a' : '#7cc84e'});
   for (const l of AMB.lv){ l.t += dt; l.x += (8 + Math.sin(l.t*2 + l.ph)*14)*dt; l.y += 12*dt; }
-  AMB.lv = AMB.lv.filter(l => l.t < l.life);
+  dropExpired(AMB.lv);
   if (state === 'play' && P.moving){
     AMB.step -= dt;
     if (AMB.step <= 0){
