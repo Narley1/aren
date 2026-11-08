@@ -100,6 +100,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--display);overflow:h
 #toast .t1{font-size:17px;font-weight:700;color:var(--gold)}
 #toast .t2{font-size:13px;color:var(--mute);margin-top:2px}
 
+/* boss title card (Etapa 5): label, name, one line of lore; slides in (only fades with reduced motion) */
+#bossCard{position:absolute;left:50%;top:18%;transform:translate(-50%,-10px);pointer-events:none;text-align:center;opacity:0;transition:opacity .35s, transform .35s;
+  background:rgba(14,10,22,.86);border:3px solid var(--gold);box-shadow:0 0 0 3px #0b1218, 4px 4px 0 3px rgba(0,0,0,.35);padding:8px 18px 10px;max-width:min(92vw,420px);min-width:min(80vw,260px)}
+#bossCard.show{opacity:1;transform:translate(-50%,0)}
+#bossCard.low{top:auto;bottom:max(118px,20%)}
+#bossCard small{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+#bossCard b{display:block;font-size:clamp(22px,6vw,30px);line-height:1.05;color:var(--gold);text-shadow:3px 3px 0 #0b1218;margin:2px 0 4px}
+#bossCard span{display:block;font-size:13px;color:var(--ink)}
+#bossCard.b-paladin{border-color:#d6a636}#bossCard.b-paladin b{color:#e8eef4}
+#bossCard.b-lich{border-color:#2fa0a0}#bossCard.b-lich b{color:#9ffff0}
+@media (prefers-reduced-motion:reduce){#bossCard,#bossCard.show{transform:translate(-50%,0);transition:opacity .35s}}
+#bossBar[data-b="paladin"] #bossFill{background:#d6a636;box-shadow:inset 0 -3px 0 #8a5e14}
+#bossBar[data-b="lich"] #bossFill{background:#2fb8b0;box-shadow:inset 0 -3px 0 #16706c}
+.bb-track .ph{position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#efe7cf;z-index:1}
 [hidden]{display:none!important}
 .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(9,16,22,.62);
   padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-y:auto}
@@ -170,12 +184,13 @@ body{-webkit-touch-callout:none}
     <div class="hud-bottom">
       <div id="bossBar" hidden>
         <div class="bb-name"><b id="bossName">Dragão Esqueleto</b> <span id="bossInfo"></span></div>
-        <div class="bb-track"><div id="bossFill"></div></div>
+        <div class="bb-track"><div id="bossFill"></div><i class="ph"></i></div>
       </div>
       <div id="gear"></div>
     </div>
   </div>
   <div id="toast"><div class="t1"></div><div class="t2"></div></div>
+  <div id="bossCard" role="status" hidden><small></small><b></b><span></span></div>
 
   <div id="titleScreen">
     <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Aren, o Guardião do Bosque</h1>
@@ -877,6 +892,64 @@ const SPR32 = {
   }
 };
 
+SPR32.skeleton = {
+    outline:'#140c18',
+    pal:{W:'#e8e0c8', w:'#b3a88c', d:'#6a5e50', k:'#1a1020', E:'#7ff0e0', e:'#2fa0a0', t:'#f6f1e3', R:'#45286e', r:'#2e1a4c', y:'#c8962c', S:'#8a96a6', s:'#5c6878'},
+    legs:{xL:5, xR:9, w:2, pr:2, br:1, p:'W', ps:'w', b:'W', bs:'d', xs:7, spread:2},
+    down:{rows:[
+      "................",
+      "......WWWW......",
+      ".....WWWWWWw....",
+      "....WWWWWWWWw...",
+      "....WkEWWkEWw...",
+      "....WkkWWkkWw...",
+      "....wWWWkWWWw...",
+      ".....wtktktw....",
+      "......wwww......",
+      "...WWwWWWWwWW...",
+      "..Ww.WkWWkW.wW..",
+      "..W..wWWWWw..W..",
+      "..w..WkWWkW..w..",
+      "..t...wWWw...t..",
+      ".....RrRRrR.....",
+      ".....RrRRrRr...."]},
+    up:{rows:[
+      "................",
+      "......WWWW......",
+      ".....WWWWWWw....",
+      "....WWWWWWWWw...",
+      "....WWWWWWWWw...",
+      "....wWWWWWWWw...",
+      "....wwWWWWWww...",
+      ".....wwwwwww....",
+      "......wwww......",
+      "...WWwWWWWwWW...",
+      "..Ww.WWkkWW.wW..",
+      "..W..wWkkWw..W..",
+      "..w..WWkkWW..w..",
+      "..t...wWWw...t..",
+      ".....RrRRrR.....",
+      ".....RrRRrRr...."]},
+    side:{rows:[
+      "................",
+      ".....WWWW.......",
+      "....WWWWWWw.....",
+      "...WWWWWWWWw....",
+      "...WWWWWkEWW....",
+      "...wWWWWkkWW....",
+      "...wwWWWWWkW....",
+      "....wwWWtktt....",
+      ".....wwwww......",
+      "......WWWW......",
+      ".....WkWWkW.....",
+      ".....wWWWWw.....",
+      ".....WkWWkW.....",
+      "......wWWw......",
+      ".....RrRRrR.....",
+      ".....RrRRrR....."],
+      arm:{x:8, y:9, rows:["WW...", ".W...", ".wW..", "..WWt"]}}
+};
+
 /* ---------------- balance ----------------
    Every gameplay number that is not already in a data table (ET, SCHED, UPG) lives here.
    Changing a value here changes the game; the owner approves balance changes. */
@@ -917,8 +990,9 @@ const BAL = {
      xpNeed(L) = round(base + lin*(L - 1) + quad*(L - 1)^2). Power choice on the levels in picks, then every pickEvery levels. */
   xp:     {base:8, lin:4.5, quad:.3, picks:[2, 3, 5, 7, 10], pickEvery:3},
   /* spawn interval = max(intervalMin, interval/(1 + t/intervalT)); no spawn while cap enemies are alive;
-     for the first guardCalmT s of a living boss guardian the interval is divided by guardMul and there are no hordes */
-  spawn:  {interval:.95, intervalT:75, intervalMin:.07, cap:230, guardMul:.4, guardCalmT:75},
+     for the first guardCalmT s of a living mid-boss the interval is divided by guardMul and there are no hordes
+     (guardMul .4 -> .25 in Etapa 5: fewer small enemies around the boss fights) */
+  spawn:  {interval:.95, intervalT:75, intervalMin:.07, cap:230, guardMul:.25, guardCalmT:75},
   /* weight of each unlocked type in pickType(); goblin = max(goblinMin, goblin - t/goblinDecayT); types unlocked less than newT s ago get a bonus (newBonusRare for succubus and wyvern) */
   weights:{goblin:6, goblinDecayT:50, goblinMin:1, wyvern:.5, orc:1.6, succubus:.8, other:3, newT:40, newBonus:3, newBonusRare:1},
   /* elite chance = chance + min(1, max(0, t - rampStart)/rampDur)*rampAdd, only after 'after' s; multipliers on hp, speed, knockback divisor, gems */
@@ -930,17 +1004,64 @@ const BAL = {
   /* drop chance per kill: up (crystal) / life (half heart), x 1/(1 + max(0, t - decayAt)/decayT);
      gemCap: above it the oldest gem is merged into its nearest neighbour (values add up, no experience is lost) */
   drops:  {up:.0025, upElite:.12, life:.05, lifeElite:.4, decayAt:240, decayT:160, gemCap:400},
-  /* boss guardians (placeholders for the Paladin and the Lich, see BOSSES): enemy type drawn at 2x, hp = hp*hpScale(), gems dropped */
-  guard:  {paladin:{type:'orc', name:'Paladino Possuído', hp:900, gem:60}, lich:{type:'elf', name:'Lich Ancião', hp:1100, gem:120}},
+  /* auto-aim of shuriken, bow and fire prefers a living mid-boss: it counts as aimBoss x its distance (see nearest) */
+  aimBoss: .6,
+  /* Etapa 5 mid-bosses (see BOSSES). Times in s, distances in px, damage in half hearts. Both bosses: fixed hp (not hpScale),
+     enter = distance from Aren where they appear (kept on screen), r = body radius (weapons reach r further),
+     touch = contact damage (none while recovering: the melee window), phase2 = hp fraction where phase 2 starts (damage in
+     phase 1 cannot go below it, so phase 2 always plays), transT = invulnerable transition, flee = s alive before the boss
+     leaves and its relic is lost (decision of Etapa 5, see CHANGELOG); p2 = phase 2 multipliers.
+     Paladin: walks at speed, between attacks waits gap s; leash = farther than this it leaps or charges at once.
+       charge: lane telegraph tele s (locked direction), then runs len px at speed; hit = dmg + knockback kb; recover s dazed.
+       spin: ring telegraph windup s, then spins dur s; hit inside R (ground ellipse). leap: crouch s, flies air s to the spot
+       Aren stood on at take-off (landing circle shown while airborne), hit inside R; recover s with the sword in the ground.
+       blades: cast s (n blades appear), then fires one every gap s at speed px/s (dmg each). */
+  paladin: {hp:2300, gem:60, enter:92, r:14, touch:1, speed:34, gap:1.6, leash:150, phase2:.5, transT:1.8, flee:240,
+            p2:{speed:1.2, tele:.85, gap:.6, cd:.8},
+            intro:{fall:1.15, R:30, dmg:2, roar:.8},
+            charge:{tele:.85, speed:250, len:175, w:13, dmg:2, kb:160, recover:1.15, minD:46, maxD:200},
+            spin:{windup:.65, dur:.7, R:44, dmg:2, recover:.8, maxD:58},
+            leap:{crouch:.3, air:.95, h:58, R:32, dmg:3, recover:1.25, minD:76},
+            blades:{cast:.7, n:3, n2:5, gap:.28, speed:95, dmg:1, life:3.2, recover:.55}},
+  /* Lich: floats at speed, keeping about keep px from Aren (strafing), waits gap s between spells (p2.cast shortens casts).
+       tele: fades out in s, reappears in s at d[0]..d[1] px from Aren; triggered after Aren stays within near px for nearT s,
+       or every every s. ice: cast s, n orbs in a fan (spread rad) at speed px/s, hit = dmg + frost (Aren x frostMult speed
+       for frost s). rain: cast s, then n strike circles (one on Aren) with warn s of warning each, stagger s apart, hit inside R.
+       chain: charge s with a line that follows Aren, locked for the last lock s, then a bolt len px long (hit within w px);
+       phase 2 forks into 3 (fork rad apart). summon: cast s showing graves, then n skeletons rise in rise s (at most max alive,
+       not again before every s). After each spell: recover s, tired and still (no contact damage). */
+  lich:    {hp:7600, gem:120, enter:96, r:11, touch:2, speed:36, keep:110, gap:1.1, phase2:.5, transT:1.6, flee:240,
+            p2:{speed:1.15, cast:.8, gap:.6, recover:.7},
+            intro:{mist:.9, rise:.9},
+            tele:{out:.45, in:.4, d:[82, 112], near:62, nearT:.6, every:7},
+            ice:{cast:.65, n:3, n2:5, spread:.3, speed:72, dmg:1, frost:1.6, frostMult:.6, life:3.6, recover:.85},
+            rain:{cast:.5, n:5, n2:8, warn:1.05, R:14, dmg:2, stagger:.12, recover:.8},
+            chain:{charge:.95, lock:.3, len:215, w:6, dmg:2, fork:.38, recover:.9},
+            summon:{cast:.8, n:3, n2:5, max:8, rise:.7, every:12, recover:.8}},
   /* dragon: seals first appear after sealFirst s, stay sealWindow s, return after sealAfterHit/sealAfterMiss s;
      a lit seal set removes sealHit of the max hp and stuns for sealStun s: weapons do x stunMul and it sinks (lift sinkLift)
      low enough for the sword, which reaches its chest within sword range + bodyR */
   boss:   {hp:20000, sealFirst:14, sealWindow:22, sealAfterHit:30, sealAfterMiss:24, sealCharge:1.6, sealHit:.07, sealStun:5, stunMul:1.5, sinkLift:-12, bodyR:24}
 };
-/* boss milestones (Etapa 3): at t s the event id starts; relic = the relic its guardian drops.
-   'paladin' and 'lich' are placeholder events (bossEvent: toast + a big elite guardian, see BAL.guard) until their
-   real fights are built (Etapa 5); 'dragon' is the final fight (startBoss). */
+/* boss milestones: at t s the event id starts; relic = the relic the boss drops. 'paladin' and 'lich' are the mid-bosses
+   of Etapa 5 (spawnMidBoss, BAL.paladin / BAL.lich); 'dragon' is the final fight (startBoss). */
 const BOSSES = [{t:300, id:'paladin', relic:'holy'}, {t:600, id:'lich', relic:'storm'}, {t:900, id:'dragon'}];
+/* every visible text of the Etapa 5 bosses, in one place (an English option is planned: translate here) */
+const BOSS_TXT = {
+  card:'Chefe',                     // title card label: "Chefe · 5:00"
+  phase1:'Fase 1', phase2:'Fase 2', ward:'Invulnerável', leaving:'Recuando',
+  summoned:'invocado',              // bestiary: skeletons only come from the lich
+  paladin:{name:'Paladino Possuído', sub:'Uma armadura vazia a serviço do dragão',
+    p2:['O espírito se revela!', 'O Paladino ataca mais rápido e invoca mais lâminas'],
+    down:['O Paladino caiu!', 'O espírito se desfez · pegue a relíquia: '],
+    fled:['O Paladino recuou...', 'A relíquia se perdeu: ']},
+  lich:{name:'Lich Ancião', sub:'Senhor dos mortos e das tempestades',
+    p2:['O Lich desperta seu poder!', 'Feitiços mais rápidos, um atrás do outro'],
+    down:['O Lich virou pó!', 'O cristal se partiu · pegue a relíquia: '],
+    fled:['O Lich desapareceu...', 'A relíquia se perdeu: '],
+    frost:['Congelado!', 'Aren fica mais lento por alguns segundos']},
+  skeleton:'Esqueleto'
+};
 
 const ET = {
   goblin:   {name:'Goblin',    hp:4,  spd:28, dmg:1, r:6,  sc:1, gem:1,  ai:'walk'},
@@ -950,7 +1071,9 @@ const ET = {
   orc:      {name:'Orc',       hp:30, spd:23, dmg:2, r:10,  sc:2, gem:5,  ai:'walk'},
   demon:    {name:'Demônio',   hp:18, spd:50, dmg:2, r:7,  sc:1, gem:3,  ai:'walk'},
   succubus: {name:'Succubus',  hp:22, spd:34, dmg:1, r:7,  sc:1, gem:4,  ai:'caster', fly:true},
-  wyvern:   {name:'Wyvern',    hp:85, spd:30, dmg:2, r:12, sc:2, gem:12, ai:'wyvern', fly:true}
+  wyvern:   {name:'Wyvern',    hp:85, spd:30, dmg:2, r:12, sc:2, gem:12, ai:'wyvern', fly:true},
+  // summoned by the Lich Ancião only (not in SCHED)
+  skeleton: {name:BOSS_TXT.skeleton, hp:9, spd:30, dmg:1, r:6, sc:1, gem:2, ai:'walk'}
 };
 const SCHED = [['goblin',0],['gargoyle',45],['hobgoblin',90],['orc',140],['elf',190],['demon',250],['succubus',360],['wyvern',480]];
 const FLAPS = [1, 0, -1, 0];
@@ -1018,6 +1141,221 @@ const x2 = src => { const c = cnv(src.width*2, src.height*2), g = c.getContext('
 ET.dragon.spr = FLAPS.map(fl => x2(dragonSprite(fl, '#7cf7ff')));
 ET.dragon.sprR = FLAPS.map(fl => x2(dragonSprite(fl, '#ff5a7a')));
 ET.dragon.white = ET.dragon.spr.map(x => tintC(x, '#ffffff'));
+/* ================= Etapa 5 bosses: Paladino Possuído, Lich Ancião ================= */
+/* Possessed paladin: hollow plate armour (tarnished steel, gold trim), tattered crimson cape and plume,
+   kite shield on the image right (flipped to face Aren). Poses: 'walk' (f = 0..3), 'brace' (shield forward,
+   crouched: charge), 'raise' (sword arm up: spin wind-up, blades), 'crouch' (knees bent: before a leap / after
+   landing), 'spin' (arms out). The greatsword is a separate pre-rotated sprite (PAL_SWORD) drawn at PAL_HAND[pose]. */
+const PAL_W = 46, PAL_H = 60;
+const PAL_HAND = {walk:[9, 37], brace:[13, 36], raise:[11, 13], crouch:[12, 41], spin:[6, 32]};
+function paladinBody(pose, f){
+  const c = cnv(PAL_W, PAL_H), p = painter(c);
+  const ST = ['#373c4a', '#5e6676', '#959eae', '#d2d9e3'], TN = '#6a6250', TD = '#4a4438';
+  const GD = ['#5e3e10', '#a07018', '#d6a636', '#f6dc78'], CP = ['#2a0c1a', '#48182c', '#6c2840'];
+  const HOL = '#110916', WIS = '#6a3a9a', LTH = '#3a2416';
+  const walk = pose === 'walk', low = pose === 'brace' ? 3 : pose === 'crouch' ? 4 : 0;
+  const bob = walk && (f === 1 || f === 3) ? 1 : 0, Y = low + bob;   // upper body drop
+  const sway = walk ? [0, 1, 0, -1][f] : pose === 'brace' ? 2 : 0;
+  /* cape (behind): from the shoulders to a ragged hem */
+  const hem = 50 - Math.min(low, 2);
+  p.poly([[13, 21 + Y], [33, 21 + Y], [37 + sway, hem - 4], [9 + sway, hem - 4]], CP[1]);
+  for (let x = 9; x <= 37; x++){
+    const d = Math.round(h2(x*7, 3)*4), yy = hem - 4 + d + (x % 3 === 0 ? 2 : 0);
+    p.rect(x + sway, hem - 4, 1, yy - hem + 5, CP[1]);
+    if (x % 4 === 1) p.rect(x + sway, hem - 7, 1, yy - hem + 6, CP[0]);
+  }
+  p.rect(11, 24 + Y, 3, 18, CP[2]); p.rect(33, 24 + Y, 2, 16, CP[0]);
+  /* legs: greaves, knee cops, sabatons */
+  const legTop = 41 + Y, footY = 55;
+  const lift = walk ? [[0, 0], [2, 0], [0, 0], [0, 2]][f] : [0, 0];
+  const legX = pose === 'crouch' || pose === 'brace' ? [14, 27] : [16, 26];
+  for (let i = 0; i < 2; i++){
+    const x = legX[i], bot = footY - lift[i], top = legTop;
+    p.rect(x, top, 5, bot - top - 2, ST[1]); p.rect(x, top, 2, bot - top - 2, ST[2]); p.rect(x + 4, top, 1, bot - top - 2, ST[0]);
+    p.px(x + 1, top + 1, ST[3]);
+    const ky = top + Math.round((bot - top)*.35);
+    p.sell(x + 2.5, ky, 3.2, 2.2, ST); p.px(x + 2, ky - 1, GD[3]);
+    p.rect(x - (i ? 0 : 1), bot - 2, 6 + 1, 3, ST[1]); p.rect(x - (i ? 0 : 1), bot - 2, 7, 1, ST[2]); p.px(i ? x + 6 : x - 1, bot, ST[0]);
+    p.rect(x + 1, ky + 3, 3, 1, HOL);
+  }
+  /* faulds (plated skirt) with gold hem */
+  p.poly([[14, 35 + Y], [32, 35 + Y], [34, 42 + Y], [12, 42 + Y]], ST[1]);
+  for (const x of [17, 21, 25, 29]) p.rect(x, 36 + Y, 1, 6, ST[0]);
+  p.rect(13, 41 + Y, 20, 1, GD[1]); p.rect(14, 36 + Y, 18, 1, ST[2]);
+  p.rect(14, 34 + Y, 18, 2, LTH); p.rect(22, 34 + Y, 3, 2, GD[2]); p.px(23, 34 + Y, GD[3]);
+  /* breastplate */
+  p.sell(23, 27 + Y, 9.5, 9, ST);
+  p.rect(14, 33 + Y, 18, 2, ST[1]);
+  for (let x = 16; x <= 30; x++){ const yy = 20 + Y + Math.round(Math.abs(x - 23)*.35); p.px(x, yy, GD[2]); }
+  p.rect(23, 23 + Y, 1, 7, GD[1]); p.rect(20, 25 + Y, 7, 1, GD[1]); p.px(23, 25 + Y, GD[3]); p.px(22, 24 + Y, GD[2]);
+  p.px(18, 30 + Y, TN); p.px(27, 22 + Y, TN); p.px(28, 29 + Y, TD); p.px(19, 23 + Y, TN);
+  p.rect(15, 31 + Y, 16, 1, ST[0]);
+  /* hollow joints with a violet glint */
+  p.rect(13, 28 + Y, 2, 4, HOL); p.rect(31, 28 + Y, 2, 4, HOL); p.px(13, 30 + Y, WIS); p.px(32, 29 + Y, WIS);
+  /* sword arm (image left) */
+  const H = PAL_HAND[pose] || PAL_HAND.walk, hx = H[0], hy = H[1] + (pose === 'walk' ? Y : 0);
+  const shx = 12, shy = 24 + Y;
+  const armSeg = (x0, y0, x1, y1) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) | 0;
+    for (let i = 0; i <= n; i++){ const t = n ? i/n : 0, x = Math.round(x0 + (x1 - x0)*t), y = Math.round(y0 + (y1 - y0)*t);
+      p.rect(x - 2, y - 1, 4, 3, ST[1]); p.px(x - 2, y - 1, ST[2]); p.px(x + 1, y + 1, ST[0]); } };
+  const elx = Math.round((shx + hx)/2) - (pose === 'raise' ? 3 : 1), ely = Math.round((shy + hy)/2) + (pose === 'raise' ? 0 : 1);
+  armSeg(shx, shy, elx, ely); armSeg(elx, ely, hx, hy);
+  p.sell(elx, ely, 2, 2, ST);
+  p.rect(hx - 2, hy - 2, 5, 4, ST[1]); p.rect(hx - 2, hy - 2, 5, 1, ST[2]); p.px(hx + 2, hy + 1, ST[0]); p.px(hx - 1, hy, HOL); p.px(hx + 1, hy, HOL);
+  /* pauldrons */
+  for (const [cx, s] of [[13, -1], [33, 1]]){
+    p.sell(cx, 22 + Y, 6.5, 5, ST);
+    p.sell(cx + s, 25 + Y, 5.5, 2.6, ST, -.2);
+    for (let i = -5; i <= 5; i++) p.px(cx + i, 26 + Y + Math.round((i*i)/12) - (Math.abs(i) > 4 ? 1 : 0), GD[i < 0 ? 2 : 1]);
+    p.px(cx - 2*s, 19 + Y, ST[3]); p.px(cx + 3*s, 23 + Y, TN);
+  }
+  /* great helm: rounded top, visor slit (eyes are drawn at run time), breaths, gold crest and band */
+  const hy0 = 5 + Y;
+  p.sell(23, hy0 + 6, 7.5, 7, ST);
+  p.rect(16, hy0 + 6, 15, 8, ST[1]); p.rect(16, hy0 + 6, 3, 8, ST[2]); p.rect(29, hy0 + 6, 2, 8, ST[0]);
+  p.rect(17, hy0 + 14, 13, 2, ST[1]); p.rect(17, hy0 + 15, 13, 1, ST[0]);
+  p.rect(17, hy0 + 7, 13, 2, HOL);
+  p.rect(23, hy0, 1, 15, GD[2]); p.px(23, hy0, GD[3]); p.rect(16, hy0 + 5, 15, 1, GD[1]); p.px(18, hy0 + 5, GD[3]);
+  for (const x of [19, 21, 25, 27]) p.rect(x, hy0 + 11, 1, 2, HOL);
+  p.px(20, hy0 + 3, ST[3]); p.px(19, hy0 + 4, ST[3]); p.px(27, hy0 + 12, TN);
+  /* tattered plume, swept back */
+  const pw = walk ? [0, 1, 0, -1][f] : 0;
+  for (let i = 0; i < 9; i++){ const x = 23 + i, y = hy0 - 2 + Math.round(i*i/14) + (i > 4 ? pw : 0);
+    p.rect(x, y, 1, 3 + (i > 5 ? 1 : 0), i % 3 === 2 ? CP[0] : CP[2]); }
+  p.px(31, hy0 + 5 + pw, CP[1]); p.px(32, hy0 + 6 + pw, CP[0]); p.rect(22, hy0 - 2, 3, 2, CP[2]);
+  /* kite shield (image right; centred and lowered while bracing) */
+  const sx = pose === 'brace' ? -9 : pose === 'spin' ? 4 : 0, sy = (pose === 'brace' ? 1 : 0) + Y;
+  const S = (x, y) => [x + sx, y + sy];
+  p.poly([S(29, 23), S(43, 23), S(43, 36), S(36, 52), S(29, 36)], GD[1]);
+  p.poly([S(31, 25), S(41, 25), S(41, 36), S(36, 49), S(31, 36)], ST[1]);
+  p.poly([S(31, 25), S(36, 25), S(36, 48), S(31, 36)], ST[2]);
+  p.rect(30 + sx, 23 + sy, 13, 1, GD[2]); p.px(29 + sx, 23 + sy, GD[3]); p.px(30 + sx, 24 + sy, GD[3]);
+  p.rect(35 + sx, 27 + sy, 2, 17, GD[1]); p.rect(32 + sx, 31 + sy, 8, 2, GD[1]); p.px(35 + sx, 27 + sy, GD[3]); p.px(32 + sx, 31 + sy, GD[2]);
+  p.px(39 + sx, 28 + sy, TN); p.px(33 + sx, 40 + sy, TD); p.px(38 + sx, 38 + sy, TN); p.px(40 + sx, 34 + sy, TD);
+  p.line(38 + sx, 26 + sy, 40 + sx, 30 + sy, ST[0]);
+  return outlineC(c, '#14101a');
+}
+/* greatsword: pommel, grip, gold crossguard, long tarnished blade with a violet fuller; pivot = grip */
+function greatswordBase(){
+  const c = cnv(36, 11), p = painter(c), Y = 2;
+  p.rect(1, Y + 2, 3, 3, '#d6a636'); p.px(1, Y + 2, '#f6dc78'); p.px(3, Y + 4, '#5e3e10');
+  p.rect(4, Y + 2, 5, 3, '#4a2c18'); p.px(5, Y + 2, '#7a4a26'); p.px(7, Y + 2, '#7a4a26'); p.rect(4, Y + 4, 5, 1, '#2a1a10');
+  p.rect(9, Y - 1, 2, 9, '#a07018'); p.rect(9, Y - 1, 1, 9, '#d6a636'); p.px(9, Y - 1, '#f6dc78'); p.px(10, Y + 3, '#8a4ab8');
+  p.rect(11, Y + 1, 21, 5, '#959eae'); p.rect(11, Y + 1, 21, 1, '#d2d9e3'); p.rect(11, Y + 5, 21, 1, '#5e6676');
+  p.rect(12, Y + 3, 16, 1, '#6a3a9a'); p.px(14, Y + 3, '#b884e8'); p.px(20, Y + 3, '#b884e8');
+  p.rect(32, Y + 2, 2, 3, '#959eae'); p.px(34, Y + 3, '#d2d9e3'); p.px(32, Y + 1, '#d2d9e3');
+  p.px(17, Y + 5, '#6a6250'); p.px(25, Y + 1, '#6a6250');
+  return outlineC(c, '#14101a');
+}
+/* the evil spirit that wears the armour: a hooded wraith with long arms, tail of mist (drawn translucent) */
+function spiritSprite(f){
+  const c = cnv(34, 36), p = painter(c), w = f ? 1 : 0;
+  const V = ['#2a1240', '#4a2070', '#7a3ab0', '#b884e8'];
+  p.poly([[17, 2], [25, 9], [27, 20], [22, 33 + w], [17, 28], [12, 33 - w], [7, 20], [9, 9]], V[1]);
+  p.poly([[17, 2], [25, 9], [24, 18], [17, 14], [10, 18], [9, 9]], V[2]);
+  p.sell(17, 10, 5, 5, [V[0], V[0], V[1], V[2]]);
+  p.rect(14, 10, 2, 1, '#e8ffd0'); p.rect(19, 10, 2, 1, '#e8ffd0'); p.px(14, 11, '#9dff6a'); p.px(20, 11, '#9dff6a');
+  p.rect(15, 13, 4, 1, V[0]); p.px(16, 14, V[0]);
+  for (const s of [-1, 1]){
+    p.line(17 + s*7, 15, 17 + s*13, 20 - w*s, V[2]); p.line(17 + s*13, 20 - w*s, 17 + s*15, 25, V[1]);
+    p.px(17 + s*15, 26, V[3]); p.px(17 + s*16, 25, V[3]); p.px(17 + s*14, 27, V[3]);
+  }
+  p.px(12, 30, V[2]); p.px(22, 30, V[2]); p.px(17, 31 + w, V[1]);
+  return outlineC(c, '#1a0828');
+}
+/* spectral blade (Lâminas fantasmas): pre-rotated like the hero's sword */
+function ghostBladeBase(){
+  const c = cnv(23, 9), p = painter(c);
+  p.rect(1, 3, 3, 3, '#7a3ab0'); p.rect(4, 1, 2, 7, '#b884e8'); p.px(4, 1, '#ffffff');
+  p.rect(6, 3, 13, 3, '#c8b8ff'); p.rect(6, 3, 13, 1, '#ffffff'); p.rect(6, 5, 13, 1, '#7a5ae0'); p.rect(7, 4, 10, 1, '#e8ddff');
+  p.px(19, 4, '#ffffff'); p.px(20, 4, '#e8ddff'); p.px(19, 3, '#e8ddff');
+  return outlineC(c, '#3a1468');
+}
+
+/* Elder lich: skull under a hood and a bone-and-gold crown, deep purple robe with teal runes, tattered hem
+   (no feet: it floats), staff with a teal crystal in a bone claw on the image left. Poses: 'float' (f = 0..3,
+   hem waves), 'cast' (staff raised, free hand forward), 'tired' (hunched, staff low: after a cast). */
+const LICH_W = 42, LICH_H = 60;
+const LICH_GEM = {float:[7, 9], cast:[7, 3], tired:[9, 14]};
+function lichBody(pose, f){
+  const c = cnv(LICH_W, LICH_H), p = painter(c);
+  const RB = ['#1c1030', '#2e1a4c', '#45286e', '#5e3a90'], TL = ['#1a5a5a', '#2fa0a0', '#7ff0e0'];
+  const BN = ['#8a8270', '#c8c0a8', '#efe8d4'], GD = ['#7a5414', '#c8962c', '#f2d070'], HOL = '#0a0612';
+  const cast = pose === 'cast', tired = pose === 'tired', Y = tired ? 3 : 0, wv = pose === 'float' ? f : cast ? 1 : 2;
+  /* robe: wide bell, ragged waving hem */
+  const top = 20 + Y, hemY = 50;
+  p.poly([[16, top], [28, top], [33, 34], [36, hemY - 2], [8, hemY - 2], [11, 34]], RB[1]);
+  p.poly([[16, top], [21, top], [19, hemY - 2], [10, hemY - 2], [12, 34]], RB[2]);
+  p.poly([[25, top + 4], [28, top], [33, 34], [36, hemY - 2], [29, hemY - 2]], RB[0]);
+  for (let x = 8; x <= 36; x++){
+    const ph = Math.sin(x*.9 + wv*1.57)*1.6 + Math.sin(x*2.3 - wv)*.8, len = 2 + Math.round(1.5 + ph + h2(x, 5)*2);
+    p.rect(x, hemY - 2, 1, len, x < 20 ? RB[2] : x < 28 ? RB[1] : RB[0]);
+    if ((x + wv) % 5 === 0) p.px(x, hemY - 2 + len, RB[1]);
+  }
+  /* teal rune trim down the front and along the hem */
+  p.rect(21, top + 6, 2, hemY - top - 7, RB[3]);
+  for (let y = top + 8; y < hemY - 2; y += 4){ p.px(21, y, TL[1]); p.px(22, y + 1, TL[0]); p.px(21, y + 2, TL[1]); }
+  for (let x = 10; x <= 34; x += 3) p.px(x, hemY - 3, (x/3) % 2 ? TL[1] : TL[0]);
+  p.rect(14, 33, 16, 2, RB[0]); p.rect(20, 33, 4, 2, GD[1]); p.px(21, 33, GD[2]);
+  /* sleeves + bony hands */
+  const sleeve = (x0, y0, x1, y1, col) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let i = 0; i <= n; i++){ const t = n ? i/n : 0, w = 2 + Math.round(t*2); p.rect(Math.round(x0 + (x1 - x0)*t) - w, Math.round(y0 + (y1 - y0)*t) - 1, w*2, 3, col); } };
+  // staff hand (image left)
+  const gx = (LICH_GEM[pose] || LICH_GEM.float)[0], gy = (LICH_GEM[pose] || LICH_GEM.float)[1] + Y;
+  const shx = cast ? 9 : 10, shy = cast ? 16 : 31 + Y;
+  sleeve(15, 23 + Y, shx + 1, shy, RB[2]);
+  // free hand (image right): forward and glowing while casting, else folded
+  const fx = cast ? 37 : 30, fy = cast ? 24 : 33 + Y;
+  sleeve(28, 23 + Y, fx - 2, fy, RB[1]);
+  for (const [hx, hy] of [[shx, shy], [fx, fy]]){
+    p.rect(hx - 1, hy - 1, 3, 3, BN[1]); p.px(hx - 1, hy - 1, BN[2]); p.px(hx + 1, hy + 1, BN[0]); p.px(hx + 2, hy - 1, BN[1]); p.px(hx + 2, hy + 1, BN[0]);
+  }
+  /* staff: dark wood wrapped in bone, claw holding the crystal */
+  const sb = Math.min(58, 52 + Y);
+  p.rect(gx, gy + 6, 2, sb - gy - 6, '#3a2418'); p.rect(gx, gy + 6, 1, sb - gy - 6, '#5a3a24');
+  for (let y = gy + 10; y < sb; y += 7){ p.rect(gx - 1, y, 4, 1, BN[1]); p.px(gx + 2, y, BN[0]); }
+  p.px(gx - 2, gy + 5, BN[1]); p.px(gx + 3, gy + 5, BN[1]); p.px(gx - 2, gy + 4, BN[2]); p.px(gx + 3, gy + 4, BN[0]); p.rect(gx - 1, gy + 6, 4, 1, BN[1]);
+  p.poly([[gx + 1, gy - 4], [gx + 4, gy + 1], [gx + 1, gy + 6], [gx - 2, gy + 1]], TL[1]);
+  p.poly([[gx + 1, gy - 4], [gx + 1, gy + 6], [gx - 2, gy + 1]], TL[2]);
+  p.px(gx, gy - 1, '#ffffff'); p.px(gx + 3, gy + 2, TL[0]); p.px(gx + 2, gy + 4, TL[0]);
+  /* high spiked collar */
+  p.poly([[13, 17 + Y], [17, 21 + Y], [27, 21 + Y], [31, 17 + Y], [29, 24 + Y], [15, 24 + Y]], RB[3]);
+  p.px(13, 16 + Y, RB[3]); p.px(31, 16 + Y, RB[2]); p.rect(15, 23 + Y, 14, 1, TL[0]);
+  /* hood + skull */
+  const hx = 22, hy = 11 + Y;
+  p.sell(hx, hy, 7.5, 8, [RB[0], RB[1], RB[2], RB[3]]);
+  p.rect(hx - 7, hy, 3, 9, RB[1]); p.rect(hx + 5, hy, 3, 9, RB[0]);
+  p.sell(hx, hy + 2, 4.6, 5, [HOL, HOL, '#1a1024', '#1a1024']);
+  p.sell(hx, hy + 1, 3.6, 3.6, [BN[0], BN[1], BN[1], BN[2]]);
+  p.rect(hx - 2, hy + 4, 5, 2, BN[1]); p.rect(hx - 2, hy + 5, 5, 1, BN[0]);
+  p.rect(hx - 3, hy, 2, 2, HOL); p.rect(hx + 1, hy, 2, 2, HOL);       // sockets (eyes glow at run time)
+  p.px(hx, hy + 2, HOL); p.px(hx - 1, hy + 6, HOL); p.px(hx + 1, hy + 6, HOL); p.px(hx, hy + 6, BN[1]);
+  /* crown: bone spikes on a gold band with a teal gem */
+  p.rect(hx - 5, hy - 5, 11, 2, GD[1]); p.rect(hx - 5, hy - 5, 11, 1, GD[2]);
+  for (const [dx, h] of [[-5, 3], [-3, 4], [0, 6], [3, 4], [5, 3]]){ p.rect(hx + dx, hy - 5 - h, 1, h, BN[1]); p.px(hx + dx, hy - 5 - h, BN[2]); }
+  p.px(hx, hy - 4, TL[2]); p.px(hx - 1, hy - 4, TL[1]); p.px(hx + 1, hy - 4, TL[1]);
+  return outlineC(c, '#0c0614');
+}
+/* mid-boss art, built on first use (or in idle time, see warmJobs): EFrame pairs [facing right, flipped] with white copies */
+const MB_ART = {};
+const efPair = c => [new EFrame(c), new EFrame(flipC(c))];
+function palArt(){
+  if (MB_ART.pal) return MB_ART.pal;
+  const fr = {};
+  for (let f = 0; f < 4; f++) fr['walk' + f] = efPair(paladinBody('walk', f));
+  for (const p of ['brace', 'raise', 'crouch', 'spin']) fr[p] = efPair(paladinBody(p, 0));
+  return MB_ART.pal = {fr, sword: rotSet(greatswordBase(), 6.5, 5.5), spirit: [0, 1].map(spiritSprite)};
+}
+function lichArt(){
+  if (MB_ART.lich) return MB_ART.lich;
+  const fr = {};
+  for (let f = 0; f < 4; f++) fr['float' + f] = efPair(lichBody('float', f));
+  for (const p of ['cast', 'tired']) fr[p] = efPair(lichBody(p, 0));
+  return MB_ART.lich = {fr};
+}
+const GBLADE = {set: null, get(){ return this.set || (this.set = rotSet(ghostBladeBase(), 4.5, 4.5)); }};
+ET.paladin = {name:BOSS_TXT.paladin.name, hp:BAL.paladin.hp, spd:BAL.paladin.speed, dmg:BAL.paladin.touch, r:BAL.paladin.r, sc:3, gem:BAL.paladin.gem, ai:'paladin', mid:true, w:46, h:54, draw:drawPaladin};
+ET.lich = {name:BOSS_TXT.lich.name, hp:BAL.lich.hp, spd:BAL.lich.speed, dmg:BAL.lich.touch, r:BAL.lich.r, sc:3, gem:BAL.lich.gem, ai:'lich', mid:true, w:42, h:56, draw:drawLich};
 const BONE_SPR = mk([".oo.","owwo",".ow.",".wo.",".ow.",".wo.","owwo",".oo."], {o:'#18121a', w:'#e8e0c8'});
 
 /* hero */
@@ -1081,6 +1419,7 @@ function hammerBase(){
   return outlineC(c, '#1c1622');
 }
 const HAMMER = rotSet(hammerBase(), 2.5, 5.5);
+function drawRotTo(g, set, x, y, a){ const k = ((Math.round(a/(Math.PI*2)*SWORD_N) % SWORD_N) + SWORD_N) % SWORD_N; g.drawImage(set.get(k), Math.round(x - set.R), Math.round(y - set.R)); }
 function drawRot(set, x, y, a){
   const k = ((Math.round(a/(Math.PI*2)*SWORD_N) % SWORD_N) + SWORD_N) % SWORD_N;
   ctx.drawImage(set.get(k), Math.round(x - set.R), Math.round(y - set.R));
@@ -1886,6 +2225,68 @@ const SFX = (() => {
     env(og, t, .002, .3, .14); o.connect(og); route(og, .1); o.start(t); o.stop(t + .16);
   }
 
+  /* ---------- Etapa 5 bosses: armour clanks, ghost shrieks, ice, thunder ---------- */
+  // struck metal: inharmonic partials that ring and decay
+  function metal(t, f, amp, dur, dest){
+    const out = G_(1); if (dest) out.connect(dest); else route(out, .35);
+    [[1, 1], [2.76, .55], [5.4, .3], [8.93, .16]].forEach(([m, a]) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f*m;
+      env(g, t, .002, amp*a, dur/(1 + m*.25)); o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + .05); });
+    const n = noise(t, .03), hp = filt('highpass', 2500), ng = ac.createGain(); env(ng, t, .001, amp*.6, .03); n.connect(hp); hp.connect(ng); ng.connect(out);
+  }
+  function boom(t, f0, f1, amp, len){
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len*.8);
+    env(g, t, .005, amp, len); o.connect(g); route(g, .3); o.start(t); o.stop(t + len + .05);
+    const n = noise(t, len*.6), lp = filt('lowpass', 900), ng = ac.createGain(); env(ng, t, .005, amp*.55, len*.6); n.connect(lp); lp.connect(ng); route(ng, .3);
+  }
+  function sweep(t, len, f0, f1, amp, q = 2.5, wet = .3){
+    const n = noise(t, len), bp = filt('bandpass', f0, q), g = ac.createGain(); bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + len);
+    env(g, t, len*.25, amp, len); n.connect(bp); bp.connect(g); route(g, wet);
+  }
+  function chimes(t, notes, gap, amp, dur = .5){
+    notes.forEach((f, i) => { const tt = t + i*gap, o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f; env(g, tt, .003, amp, dur); o.connect(g); route(g, .8); o.start(tt); o.stop(tt + dur + .05); });
+  }
+  function thunder(t, amp){
+    const n = noise(t, .9), lp = filt('lowpass', 3200, .6), g = ac.createGain(); lp.frequency.setValueAtTime(4200, t); lp.frequency.exponentialRampToValueAtTime(160, t + .7);
+    env(g, t, .002, amp, .85); n.connect(lp); lp.connect(g); route(g, .5);
+    const c = noise(t, .02), hp = filt('highpass', 3000), cg = ac.createGain(); env(cg, t, .001, amp*.9, .02); c.connect(hp); hp.connect(cg); route(cg, .2);
+  }
+  function buzz(t, len, f0, f1, amp){
+    const o = ac.createOscillator(), bp = filt('bandpass', 900, 1.5), g = ac.createGain(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len);
+    env(g, t, len*.7, amp, len); o.connect(bp); bp.connect(g); route(g, .3); o.start(t); o.stop(t + len + .05);
+    for (let i = 0; i < 8; i++){ const tt = t + Math.random()*len, c = noise(tt, .01), ch = filt('highpass', 4000), cg = ac.createGain(); env(cg, tt, .001, amp*1.2, .012); c.connect(ch); ch.connect(cg); route(cg, .2); }
+  }
+  const BOSS_SFX = {
+    palFall: t => { sweep(t, 1.1, 300, 1600, .35); wail(t + .1, 1, 300, .05); },
+    land:    t => { boom(t, 95, 28, .32, .55); metal(t + .01, 210, .1, .7); clatter(t + .06, 6, .3, .14); },
+    roarP:   t => { wail(t, 1.2, 240, .12); metal(t, 150, .12, 1.1); sweep(t, .9, 500, 1400, .18, 1.2, .6); },
+    scrape:  t => { sweep(t, .7, 1800, 3600, .16, 6, .25); metal(t, 320, .08, .4); },
+    charge:  t => { sweep(t, .5, 300, 900, .4, 1.5); boom(t, 70, 40, .25, .3); },
+    bash:    t => { metal(t, 180, .15, .6); boom(t, 120, 40, .22, .25); },
+    windup:  t => { sweep(t, .6, 400, 1200, .14, 3); metal(t + .45, 400, .06, .3); },
+    spin:    t => { for (let i = 0; i < 3; i++) sweep(t + i*.22, .24, 600, 2400, .32, 2); },
+    jump:    t => { sweep(t, .35, 300, 1200, .3); metal(t, 260, .08, .3); },
+    blades:  t => { chimes(t, [1318, 1568, 1976, 2349], .09, .07, .6); sweep(t, .7, 2000, 5000, .1, 4, .7); },
+    bladeGo: t => { sweep(t, .16, 1600, 4800, .35, 2.5, .15); },
+    shriek:  t => { wail(t, 1.6, 560, .12); sweep(t, 1.4, 900, 3000, .14, 1.6, .7); boom(t, 80, 30, .16, .6); },
+    clank:   t => { metal(t, 240 + Math.random()*180, .12, .35); },
+    palDie:  t => { for (let i = 0; i < 9; i++) metal(t + i*.11 + Math.random()*.04, 160 + Math.random()*260, .09*(1 - i/12), .45); wail(t + .2, 1.8, 620, .12); sweep(t + .2, 1.6, 1200, 300, .1, 1.4, .8); },
+    lichIntro: t => { wail(t, 2, 180, .1); wail(t + .3, 1.8, 270, .06); sweep(t, 1.6, 200, 700, .2, 1.2, .8); clatter(t + .9, 8, .5, .2); },
+    lichP2:  t => { wail(t, 1.4, 400, .1); thunder(t + .2, .16); chimes(t, [2093, 1760, 1397, 1175], .07, .06, .5); },
+    tele:    t => { sweep(t, .45, 3000, 600, .26, 3, .6); chimes(t, [1760, 1397], .08, .05, .3); },
+    iceCast: t => { chimes(t, [1568, 1865, 2217, 2637], .1, .06, .5); },
+    iceGo:   t => { sweep(t, .25, 2400, 900, .3, 2, .4); },
+    iceHit:  t => { const n = noise(t, .15), hp = filt('highpass', 2500), g = ac.createGain(); env(g, t, .002, .4, .15); n.connect(hp); hp.connect(g); route(g, .4); chimes(t, [2637, 3136], .03, .07, .4); },
+    zapWarn: t => { buzz(t, .5, 120, 300, .11); },
+    chainCharge: t => { buzz(t, .95, 70, 420, .14); },
+    bolt:    t => { thunder(t, .5); },
+    summon:  t => { clatter(t + .2, 14, .7, .18); boom(t, 60, 35, .12, .9); wail(t, 1, 210, .05); },
+    lichDie: t => { const n = 18; for (let i = 0; i < n; i++){ const tt = t + .25 + Math.random()*.35, o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = 2200 + Math.random()*3000; env(g, tt, .001, .05, .25); o.connect(g); route(g, .7); o.start(tt); o.stop(tt + .3); }
+                   sweep(t, 1.6, 900, 150, .26, .8, .5); wail(t, 1.8, 300, .12); }
+  };
+  const BOSS_CD = {bolt:.08, clank:.06, bladeGo:.05, iceHit:.15};
+  function bossSfx(name){ if (!ready('b_' + name, BOSS_CD[name] || .2)) return; BOSS_SFX[name](ac.currentTime + .01); }
+
   /* ================= MUSIC: ocarina, flute, lute ================= */
   const mtof = m => 440*Math.pow(2, (m - 69)/12);
   const NN = {C:0, 'C#':1, Db:1, D:2, 'D#':3, Eb:3, E:4, F:5, 'F#':6, Gb:6, G:7, 'G#':8, Ab:8, A:9, 'A#':10, Bb:10, B:11};
@@ -1972,6 +2373,9 @@ const SFX = (() => {
   };
   SONGS.boss2 = Object.assign({}, SONGS.boss, {bpm:132, drum:'boss2'});
   SONGS.title = Object.assign({}, SONGS.calm, {bpm:60});
+  // mid-bosses (Etapa 5): the combat tune with the boss drums, no drone (kept for the dragon); faster in phase 2
+  SONGS.bossM = Object.assign({}, SONGS.combat, {bpm:116, drum:'boss'});
+  SONGS.bossM2 = Object.assign({}, SONGS.combat, {bpm:128, drum:'boss2'});
   const DRUMS = {combat:{0:'low', 6:'mid', 8:'low', 12:'mid', 14:'soft'}, boss:{0:'boom', 3:'mid', 6:'mid', 8:'low', 10:'mid', 12:'low', 14:'mid'},
     boss2:{0:'boom', 2:'soft', 3:'mid', 4:'low', 6:'mid', 8:'boom', 10:'mid', 11:'soft', 12:'low', 14:'mid', 15:'soft'}};
   const M = {mood:null, next:0, step:0, bar:0, song:null, fn:null, hold:0};
@@ -2026,7 +2430,7 @@ const SFX = (() => {
   function setMusic(v){ musicOn = v; try { localStorage.setItem('bosque-enxame-musica', v ? '1' : '0'); } catch {} if (musDry){ musDry.gain.value = v ? .34 : 0; musWet.gain.value = v ? .34 : 0; } }
   function pause(p){ if (!ac) return; if (p) ac.suspend().catch(() => {}); else ac.resume().catch(() => {}); }
   function moodFn(fn){ M.fn = fn; }
-  return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, slam, bow: bowShot, setOn, setMusic, pause, moodFn,
+  return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, slam, bow: bowShot, boss: bossSfx, setOn, setMusic, pause, moodFn,
     get on(){ return on; }, get music(){ return musicOn; }};
 })();
 
@@ -2037,10 +2441,10 @@ let overTimer = 0; /* delayed game-over/victory panel; cleared on every new run 
 function reset(){
   clearTimeout(overTimer);
   G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mi:0, guard:[], boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0, hmCd:1.5, slam:null, thT:.5, thPulse:0, bwCd:1};
-  P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
+  P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, frost:0, kx:0, ky:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
   W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, gauntlets:0, grimoire:0, hammer:0, thorns:0, bow:0};
-  E = []; B = []; EB = []; GEMS = []; ITEMS = []; FX = []; NUMS = []; ORBS = []; MARKS = []; CURSES = []; DECALS = []; BURNS = [];
-  renderGear(); lastHearts = '';
+  E = []; B = []; EB = []; GEMS = []; ITEMS = []; FX = []; NUMS = []; ORBS = []; MARKS = []; CURSES = []; DECALS = []; BURNS = []; ZAPS = []; CORPSES = [];
+  hideBossCard(); renderGear(); lastHearts = '';
 }
 
 /* spatial grid */
@@ -2065,9 +2469,11 @@ function query(x, y, r, fn){
     for (const e of a) if (!e.dead) fn(e);
   }
 }
+/* auto-aim: a living mid-boss counts as BAL.aimBoss x nearer (Etapa 5: ranged weapons would otherwise spend the fight on
+   the small fry around it; to be confirmed by the owner) */
 function nearest(x, y, maxD, noBoss){
   let best = null, bd = maxD*maxD;
-  for (const e of E){ if (e.dead || (noBoss && e.d.boss)) continue; const d = (e.x-x)**2 + (e.y-y)**2; if (d < bd){ bd = d; best = e; } }
+  for (const e of E){ if (e.dead || (noBoss && e.d.boss)) continue; let d = (e.x-x)**2 + (e.y-y)**2; if (e.d.mid){ if (d > maxD*maxD) continue; d *= BAL.aimBoss*BAL.aimBoss; } if (d < bd){ bd = d; best = e; } }
   return best;
 }
 
@@ -2106,6 +2512,15 @@ function hit(e, dmg, nx, ny, kb = 70){
     if (e.hp <= 0) bossDie(e);
     return;
   }
+  if (e.d.mid){
+    // mid-boss: no knockback; invulnerable while e.untouch; in phase 1 the hp stops at the phase 2 threshold
+    if (e.untouch) return;
+    e.hp -= dmg; if (e.m.ph === 1) e.hp = Math.max(e.hp, e.max*BAL[e.mb].phase2);
+    if (e.flash < -.2) e.flash = .06;
+    NUMS.push({x:e.x + (Math.random()*16 - 8), y:e.y - e.d.h - 4, v:Math.max(1, Math.round(dmg)), t:0, col: dmg >= 15 ? '#ffd94a' : '#ffffff'});
+    if (e.hp <= 0) kill(e);
+    return;
+  }
   if (nx === undefined){ const dx = e.x-P.x, dy = e.y-P.y, l = Math.hypot(dx,dy)||1; nx = dx/l; ny = dy/l; }
   e.hp -= dmg; e.flash = .09;
   const k = kb / (e.d.sc*e.d.sc) / (e.elite ? BAL.elite.kbDiv : 1);
@@ -2118,7 +2533,7 @@ function kill(e){
   const n = e.d.sc > 1 ? 10 : 6;
   for (let i=0;i<n;i++){ const a = Math.random()*Math.PI*2, s = 20 + Math.random()*40;
     FX.push({k:'p', x:e.x, y:e.y - e.d.h/2, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:.35+Math.random()*.25, col: i%2 ? '#ffffff' : '#d6d0e6', s: Math.random()<.5?1:2}); }
-  // experience drops as gems (ET.gem; elites x BAL.elite.gems; guardians their own amount); it counts when picked up
+  // experience drops as gems (ET.gem; elites x BAL.elite.gems; bosses their own amount); it counts when picked up
   let v = e.guard ? e.d.gem : e.d.gem * (e.elite ? BAL.elite.gems : 1);
   const spread = e.guard ? 28 : 10;
   while (v > 0){
@@ -2291,7 +2706,8 @@ function strike(x, y, R, dmg){
   query(x, y, R + 14, e => { const dx = e.x - x, dy = e.y - e.d.h/3 - y, d = Math.hypot(dx, dy); if (d < R + e.d.r){ hit(e, dmg, dx/(d||1), dy/(d||1), 90); if (!e.d.boss) e.stun = 1; } });
   for (let i=0;i<6;i++){ const a = Math.random()*Math.PI*2, s = 30 + Math.random()*40; FX.push({k:'p', x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:.3, col: i%2 ? '#ffffff' : '#7fd8ff', s:1}); }
 }
-function hurt(n){
+/* cause: what hit Aren (only read by the balance simulator) */
+function hurt(n, cause){
   if (P.inv > 0) return;
   P.hp -= n; P.inv = BAL.hero.invHit; G.shake = reduceMotion ? 0 : .25;
   query(P.x, P.y, 34, e => { const dx = e.x-P.x, dy = e.y-P.y, l = Math.hypot(dx,dy)||1; e.kx += dx/l*120; e.ky += dy/l*120; });
@@ -2305,10 +2721,8 @@ function angDiff(a, b){ return Math.atan2(Math.sin(a - b), Math.cos(a - b)); }
 function toRest(s){ s.st = 'rest'; s.t = 0; }
 /* ---------- boss milestones (BOSSES) ----------
    update() calls bossEvent(m) once when G.t reaches m.t (G.mi = index of the next milestone).
-   'dragon' starts the final fight (startBoss). Any other id runs GUARD_EV[id](m): for now a placeholder that
-   spawns a big elite guardian (BAL.guard[id], an existing enemy drawn at 2x) whose death drops m.relic.
-   To replace a placeholder with a real boss (Etapa 5): point GUARD_EV[id] at its start function and, when it is
-   defeated, call dropRelic(x, y, m.relic). For BAL.spawn.guardCalmT s after a guardian appears (while it lives) spawning slows and hordes wait. */
+   'dragon' starts the final fight (startBoss). Any other id runs GUARD_EV[id](m) (spawnMidBoss: Paladino, Lich), whose
+   death drops m.relic. For BAL.spawn.guardCalmT s after a boss of G.guard appears (while it lives) spawning slows and hordes wait. */
 /* the dragon's body for melee: its chest, lower while it is stunned (it sinks, see bossTick); BZ is reused */
 const BZ = {x:0, y:0, e:null};
 function bossInReach(range){
@@ -2319,38 +2733,644 @@ function bossInReach(range){
 }
 function bossEvent(m){
   if (m.id === 'dragon'){ startBoss(); return; }
-  (GUARD_EV[m.id] || spawnGuardian)(m);
+  GUARD_EV[m.id](m);
 }
-const GUARD_EV = {paladin: spawnGuardian, lich: spawnGuardian};
-/* enemy type for a guardian: a copy of BAL.guard[id].type at 2x (built on first use) */
-function guardType(id){
-  const key = 'guard_' + id;
-  if (ET[key]) return key;
-  const g = BAL.guard[id], b = ET[g.type], dirs = {};
-  for (const dir in b.dirs) dirs[dir] = b.dirs[dir].map(fr => new EFrame(x2(fr.n)));
-  ET[key] = Object.assign({}, b, {name:g.name, gem:g.gem, r:b.r*2, sc:2, spd:b.spd*1.35, dirs, w:b.w*2, h:b.h*2});
-  return key;
+/* ---------- mid-bosses (Etapa 5): Paladino Possuído (5:00) and Lich Ancião (10:00) ----------
+   They are ordinary entries of E (every weapon hits them; ET[id].mid: no knockback, no stun) and of G.guard (spawning stays
+   calm for BAL.spawn.guardCalmT s, the HUD shows their bar). The AI lives in e.m ({st, t, ph, ...}); midTick runs it from
+   the enemy loop. e.untouch = invulnerable (intro, airborne, phase change, teleport, flee). Ground telegraphs are ellipses
+   (height x GSY), the same shape the hit tests use. Death: kill() -> guardDown() -> a CORPSES animation that drops the relic. */
+const GSY = THORN_SY;
+const GUARD_EV = {paladin: spawnMidBoss, lich: spawnMidBoss};
+const inGround = (x, y, ox, oy, R) => { const dx = x - ox, dy = (y - oy)/GSY; return dx*dx + dy*dy < R*R; };
+/* room at the top of the screen for a boss's feet: its height (~56 px) below the HUD (~140 css px) */
+const topRoom = () => 58 + Math.round(140/SCALE);
+/* a point dMin..dMax px from Aren that stays on screen (bosses are tall: more margin at the top) */
+function aroundHero(dMin, dMax){
+  let best = null, bd = -1;
+  for (let i = 0; i < 8; i++){
+    const a = Math.random()*Math.PI*2, d = dMin + Math.random()*(dMax - dMin);
+    const x = Math.max(P.x - VW/2 + 34, Math.min(P.x + VW/2 - 34, P.x + Math.cos(a)*d));
+    const y = Math.max(P.y - VH/2 + topRoom(), Math.min(P.y + VH/2 - 16, P.y + Math.sin(a)*d));
+    const q = Math.hypot(x - P.x, y - P.y);
+    if (q >= dMin*.8) return [x, y];
+    if (q > bd){ bd = q; best = [x, y]; }
+  }
+  return best;
 }
-function spawnGuardian(m){
-  const g = BAL.guard[m.id];
-  spawn(guardType(m.id), Math.random()*Math.PI*2, Math.hypot(VW, VH)/2 + 10, true);
-  const e = E[E.length - 1];
-  e.hp = e.max = g.hp*hpScale(); e.guard = true; e.relic = m.relic; e.born = G.t;
-  G.guard.push(e);
-  G.flash = .6; if (!reduceMotion) G.shake = .3;
-  SFX.roar({len:1.5, pitch:1.3, force:true});
-  toast(`${g.name} surge!`, `Derrote o guardião para ganhar a relíquia ${UPG[m.relic].name}`);
+function keepOnScreen(e){
+  e.x = Math.max(P.x - VW/2 + 22, Math.min(P.x + VW/2 - 22, e.x));
+  e.y = Math.max(P.y - VH/2 + topRoom() - 8, Math.min(P.y + VH/2 - 12, e.y));
 }
+/* boss attack on Aren: damage (cause is read by the balance simulator) and optional knockback */
+function bossHurt(n, cause, nx, ny, kb){
+  if (P.inv > 0) return false;
+  hurt(n, cause);
+  if (kb){ P.kx = nx*kb; P.ky = ny*kb; }
+  return true;
+}
+let ZAPS = [], CORPSES = [];   // lich strike circles; boss death animations
+function spawnMidBoss(m){
+  const id = m.id, B = BAL[id], [x, y] = aroundHero(B.enter, B.enter + 20);
+  const e = {type:id, d:ET[id], x, y, hp:B.hp, max:B.hp, kx:0, ky:0, flash:0, anim:0, elite:false, cd:0, orbCd:0, boomCd:0, dead:false,
+    guard:true, relic:m.relic, born:G.t, mb:id, untouch:true, fc:P.x < x ? -1 : 1, z:id === 'paladin' ? 170 : 0, alpha:id === 'lich' ? 0 : 1,
+    m:{st:'intro', t:0, ph:1, last:'', gap:1, teleT:BAL.lich.tele.every, near:0, sumT:0, side:Math.random() < .5 ? 1 : -1}};
+  E.push(e); G.guard.push(e);
+  bossCard(id, m.t, y < P.y);   // the card goes to the half of the screen the boss is not in
+  SFX.boss(id === 'paladin' ? 'palFall' : 'lichIntro');
+  if (id === 'lich' && !reduceMotion) G.shake = Math.max(G.shake, .2);
+}
+/* title card: "Chefe · 5:00", name, one line of lore */
+let cardTimer = 0;
+function bossCard(id, t, low){
+  const c = $('#bossCard'), T = BOSS_TXT[id];
+  c.querySelector('small').textContent = `${BOSS_TXT.card} · ${fmt(t)}`;
+  c.querySelector('b').textContent = T.name; c.querySelector('span').textContent = T.sub;
+  c.className = 'b-' + id + (low ? ' low' : ''); c.hidden = false; void c.offsetWidth; c.classList.add('show');
+  clearTimeout(cardTimer); cardTimer = setTimeout(() => { c.classList.remove('show'); cardTimer = setTimeout(() => { c.hidden = true; }, 400); }, 2600);
+}
+function hideBossCard(){ clearTimeout(cardTimer); const c = $('#bossCard'); c.classList.remove('show'); c.hidden = true; }
+function midTick(e, dt){
+  const m = e.m, B = BAL[e.mb];
+  m.t += dt;
+  const dx = P.x - e.x, dy = P.y - e.y, dist = Math.hypot(dx, dy) || 1;
+  if (m.st !== 'flee' && m.st !== 'intro' && G.t - e.born > B.flee && !e.untouch){ startFlee(e); return; }
+  if (m.ph === 1 && e.hp <= e.max*B.phase2 && !e.untouch && m.st !== 'charge'){ startPhase2(e); }
+  if (e.mb === 'paladin') palTick(e, dt, dx, dy, dist); else lichTick(e, dt, dx, dy, dist);
+  // wisps leaking from the armour joints / cold mist under the lich (only near the screen)
+  if (Math.abs(dx) < VW && Math.abs(dy) < VH && e.alpha > .5 && Math.random() < (m.ph === 2 ? .45 : .25)){
+    const pal = e.mb === 'paladin', s = pal ? (Math.random() < .5 ? -9 : 9) : (Math.random() - .5)*24;
+    FX.push({k:'p', x:e.x + s, y:e.y - (pal ? 26 + Math.random()*10 : 4 + Math.random()*4) - e.z, vx:(Math.random() - .5)*8, vy:pal ? -16 - Math.random()*12 : -4,
+      t:0, life:.6 + Math.random()*.4, col: pal ? (Math.random() < .6 ? '#6a3a9a' : '#b884e8') : (Math.random() < .6 ? '#2fa0a0' : '#c8f4ff'), s: Math.random() < .3 ? 2 : 1});
+  }
+}
+function setSt(m, st){ m.st = st; m.t = 0; }
+function startPhase2(e){
+  const m = e.m, T = BOSS_TXT[e.mb];
+  m.ph = 2; setSt(m, 'trans'); e.untouch = true; m.bl = null; m.graves = null;
+  if (!reduceMotion){ G.flash = Math.max(G.flash, .45); G.shake = Math.max(G.shake, .3); }
+  for (let i = 0; i < 3; i++) FX.push({k:'ring', x:e.x, y:e.y - 28, r:4, max:34 + i*12, t:-i*.15, life:.5, col: e.mb === 'paladin' ? '#b884e8' : '#7ff0e0'});
+  SFX.boss(e.mb === 'paladin' ? 'shriek' : 'lichP2');
+  toast(T.p2[0], T.p2[1]);
+}
+function startFlee(e){
+  const m = e.m; setSt(m, 'flee'); e.untouch = true; m.bl = null; m.graves = null;
+  SFX.boss(e.mb === 'paladin' ? 'charge' : 'tele');
+  const T = BOSS_TXT[e.mb]; toast(T.fled[0], T.fled[1] + UPG[e.relic].name);
+}
+function bossGone(e){
+  e.dead = true;
+  const i = G.guard.indexOf(e); if (i >= 0) G.guard.splice(i, 1);
+}
+/* kill() -> here, for every boss in G.guard: the death animation drops the relic when it ends */
 function guardDown(e){
   const i = G.guard.indexOf(e); if (i >= 0) G.guard.splice(i, 1);
-  dropRelic(e.x, e.y, e.relic);
-  G.flash = .6; if (!reduceMotion) G.shake = .25;
-  for (let i = 0; i < 3; i++) FX.push({k:'ring', x:e.x, y:e.y - e.d.h/2, r:3, max:30 + i*14, t:-i*.1, life:.45, col:'#ffe27a'});
-  toast(`${e.d.name} caiu!`, `Pegue a relíquia: ${UPG[e.relic].name}`);
+  const pal = e.mb === 'paladin', T = BOSS_TXT[e.mb];
+  CORPSES.push({k:e.mb, x:e.x, y:e.y, fc:e.fc, t:0, relic:e.relic, dropped:false, ph:e.m.ph, parts:pal ? palPieces(e) : null});
+  if (!reduceMotion){ G.flash = Math.max(G.flash, .5); G.shake = Math.max(G.shake, .25); }
+  SFX.boss(pal ? 'palDie' : 'lichDie');
+  toast(T.down[0], T.down[1] + UPG[e.relic].name);
 }
 function dropRelic(x, y, k){ ITEMS.push({x, y, kind:'relic', rk:k, t:0}); }
+function corpseTick(c, dt){
+  c.t += dt;
+  const drop = c.k === 'paladin' ? 1.7 : 1.6;
+  if (!c.dropped && c.t >= drop){
+    c.dropped = true; dropRelic(c.x, c.y, c.relic);
+    for (let i = 0; i < 3; i++) FX.push({k:'ring', x:c.x, y:c.y - 10, r:3, max:28 + i*14, t:-i*.1, life:.45, col:'#ffe27a'});
+  }
+  if (c.parts) for (const p of c.parts){
+    if (p.t0 > c.t) continue;
+    p.vz -= 260*dt; p.z += p.vz*dt; p.x += p.vx*dt; p.y += p.vy*dt;
+    if (p.z <= 0){ p.z = 0; if (p.vz < -40){ p.vz *= -.35; p.vx *= .5; p.vy *= .5; if (c.t < 1.2) SFX.boss('clank'); } else { p.vz = 0; p.vx *= .8; p.vy *= .8; } }
+  }
+  if (c.k === 'lich' && c.t < 1.4 && Math.random() < .9){
+    const cut = c.t/1.4;
+    FX.push({k:'p', x:c.x + (Math.random() - .5)*26, y:c.y - 6 - 52*(1 - cut), vx:(Math.random() - .5)*20, vy:10 + Math.random()*20, t:0, life:.6, col: Math.random() < .5 ? '#8a8270' : '#45286e', s: Math.random() < .4 ? 2 : 1});
+  }
+  if (c.k === 'lich' && !c.shard && c.t >= .25){
+    c.shard = true; const gx = c.x + (c.fc > 0 ? -14 : 14), gy = c.y - 58;
+    for (let i = 0; i < 14; i++){ const a = Math.random()*Math.PI*2, s = 40 + Math.random()*60; FX.push({k:'p', x:gx, y:gy, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:.5 + Math.random()*.3, col: i % 3 ? '#7ff0e0' : '#ffffff', s: i % 4 ? 1 : 2}); }
+  }
+  return c.t < 4.2;
+}
+/* armour pieces for the collapse: crops of the walk frame (legs stay, the rest falls and scatters) */
+function palPieces(e){
+  const src = palArt().fr.walk0[e.fc > 0 ? 0 : 1].n, fl = e.fc < 0, W = PAL_W;
+  const crop = (x, y, w, h) => { const c = cnv(w, h); c.getContext('2d').drawImage(src, fl ? W - x - w : x, y, w, h, 0, 0, w, h); return c; };
+  const R = (a, b) => a + Math.random()*(b - a), s = fl ? -1 : 1;
+  const P_ = (img, ox, oy, vx, vy, vz, t0) => ({img, ox: fl ? W - ox - img.width : ox, oy, x:0, y:0, z:0, vx:vx*s, vy, vz, t0});
+  return [
+    P_(crop(15, 40, 17, 18), 15, 40, 0, 0, 0, 0),                     // legs (stay)
+    P_(crop(12, 18, 22, 25), 12, 18, R(-10, 10), R(4, 10), 30, .15),   // torso drops
+    P_(crop(7, 15, 12, 12), 7, 15, R(-70, -40), R(-10, 10), 90, .05),  // pauldron (sword side)
+    P_(crop(27, 15, 12, 12), 27, 15, R(40, 70), R(-10, 10), 80, .1),   // pauldron (shield side)
+    P_(crop(28, 21, 17, 32), 28, 21, R(30, 50), R(10, 20), 40, .2),    // shield
+    P_(crop(14, 0, 19, 20), 14, 0, R(-30, 30), R(10, 25), 150, 0),     // helmet (bounces)
+  ];
+}
+
+/* ----- Paladino Possuído ----- */
+function palPick(e, dist){
+  const m = e.m, B = BAL.paladin, w = [];
+  if (dist < B.spin.maxD) w.push(['spin', 3]);
+  if (dist >= B.charge.minD && dist < B.charge.maxD) w.push(['charge', 2.2]);
+  if (dist >= B.leap.minD) w.push(['leap', dist > B.leash ? 3 : 1.2]);
+  w.push(['blades', dist > 70 ? 1.6 : .8]);
+  const opts = w.filter(o => o[0] !== m.last), sum = opts.reduce((s, o) => s + o[1], 0);
+  let r = Math.random()*sum, k = opts[0][0];
+  for (const o of opts){ if ((r -= o[1]) <= 0){ k = o[0]; break; } }
+  palStart(e, k);
+}
+function palStart(e, k){
+  const m = e.m; m.last = k; setSt(m, k + '0'); m.hitP = false;
+  const ax = P.x - e.x, ay = P.y - e.y;
+  if (k === 'charge'){ m.a = Math.atan2(ay, ax); m.ox = e.x; m.oy = e.y; e.fc = ax < 0 ? -1 : 1; SFX.boss('scrape'); }
+  else if (k === 'spin') SFX.boss('windup');
+  else if (k === 'blades'){ m.bl = []; SFX.boss('blades'); }
+}
+function palTick(e, dt, dx, dy, dist){
+  const B = BAL.paladin, m = e.m, p2 = m.ph === 2, tm = p2 ? B.p2.tele : 1, ux = dx/dist, uy = dy/dist;
+  let contact = true;
+  switch (m.st){
+    case 'intro': {
+      contact = false;
+      const I = B.intro;
+      if (e.z > 0){ e.z = Math.max(0, 170*(1 - m.t/I.fall)); if (e.z === 0){ palLand(e, e.x, e.y, I.R, I.dmg); m.landT = m.t; } }
+      else if (m.t - m.landT >= I.roar){ e.untouch = false; setSt(m, 'walk'); m.gap = .6; }
+      else if (!m.roared && m.t - m.landT > .15){ m.roared = true; SFX.boss('roarP'); }
+      break;
+    }
+    case 'walk': {
+      e.fc = dx < 0 ? -1 : 1;
+      const sp = B.speed*(p2 ? B.p2.speed : 1);
+      if (dist > B.r + 8){ e.x += ux*sp*dt; e.y += uy*sp*dt; e.anim += dt*4.5; }
+      m.gap -= dt;
+      if (dist > B.leash) palStart(e, Math.random() < .6 ? 'leap' : 'charge');
+      else if (m.gap <= 0) palPick(e, dist);
+      break;
+    }
+    case 'charge0': {
+      const C = B.charge;
+      if (m.t >= C.tele*tm){ setSt(m, 'charge'); m.dd = 0; SFX.boss('charge'); }
+      break;
+    }
+    case 'charge': {
+      const C = B.charge, st = C.speed*dt, ca = Math.cos(m.a), sa = Math.sin(m.a);
+      e.x += ca*st; e.y += sa*st; m.dd += st; e.anim += dt*10;
+      if (!m.hitP && Math.hypot(P.x - e.x, P.y - e.y) < B.r + 9){
+        m.hitP = true;
+        const side = (P.x - e.x)*-sa + (P.y - e.y)*ca >= 0 ? 1 : -1, nx = ca + -sa*side*.8, ny = sa + ca*side*.8, l = Math.hypot(nx, ny);
+        if (bossHurt(C.dmg, 'charge', nx/l, ny/l, C.kb)) SFX.boss('bash');
+      }
+      // tramples the small fry aside
+      query(e.x, e.y, B.r + 10, o => { if (o === e || o.d.mid) return; const s = (o.x - e.x)*-sa + (o.y - e.y)*ca >= 0 ? 1 : -1; o.kx += -sa*s*160; o.ky += ca*s*160; });
+      if (Math.random() < .6) FX.push({k:'p', x:e.x + (Math.random() - .5)*14, y:e.y, vx:-ca*30, vy:-10 - Math.random()*10, t:0, life:.4, col:'#a08860', s:2});
+      if (m.dd >= C.len){ setSt(m, 'recover'); m.rec = C.recover; m.daze = true; SFX.boss('bash'); if (!reduceMotion) G.shake = Math.max(G.shake, .08); }
+      break;
+    }
+    case 'spin0':
+      if (m.t >= B.spin.windup*tm){ setSt(m, 'spin'); m.ang = e.fc > 0 ? Math.PI : 0; SFX.boss('spin'); }
+      break;
+    case 'spin': {
+      const S = B.spin;
+      m.ang += dt*Math.PI*4/S.dur*(e.fc > 0 ? 1 : -1);
+      if (!m.hitP && inGround(P.x, P.y, e.x, e.y, S.R)){ m.hitP = true; const l = dist; bossHurt(S.dmg, 'spin', dx/l, dy/l, 120); }
+      if (m.t >= S.dur){ setSt(m, 'recover'); m.rec = S.recover; m.daze = false; }
+      break;
+    }
+    case 'leap0':
+      contact = false;
+      if (m.t >= B.leap.crouch*tm){
+        setSt(m, 'leap'); m.sx = e.x; m.sy = e.y; m.tx = P.x; m.ty = P.y; e.untouch = true; e.fc = P.x < e.x ? -1 : 1; SFX.boss('jump');
+      }
+      break;
+    case 'leap': {
+      contact = false;
+      const L = B.leap, air = L.air*tm, q = Math.min(1, m.t/air), k = q*q*(3 - 2*q);
+      e.x = m.sx + (m.tx - m.sx)*k; e.y = m.sy + (m.ty - m.sy)*k; e.z = Math.sin(Math.PI*q)*L.h;
+      if (q >= 1){ e.z = 0; e.untouch = false; palLand(e, m.tx, m.ty, L.R, L.dmg); setSt(m, 'recover'); m.rec = L.recover; m.daze = false; m.stuck = true; }
+      break;
+    }
+    case 'blades0': {
+      const BL = B.blades, n = p2 ? BL.n2 : BL.n, cast = BL.cast*tm;
+      while (m.bl.length < n && m.t >= m.bl.length*cast/n*.8) m.bl.push({t:0});
+      for (const b of m.bl) b.t += dt;
+      if (m.t >= cast){ setSt(m, 'blades'); m.k = 0; m.e = 0; }
+      break;
+    }
+    case 'blades': {
+      const BL = B.blades; m.e -= dt;
+      for (const b of m.bl) b.t += dt;
+      if (m.e <= 0 && m.k < m.bl.length){
+        m.e = BL.gap*tm;
+        const [bx, by] = bladeSpot(e, m.k, m.bl.length), a = Math.atan2(P.y - 10 - by, P.x - bx);
+        EB.push({k:'blade', x:bx, y:by, a, vx:Math.cos(a)*BL.speed, vy:Math.sin(a)*BL.speed, life:BL.life, dmg:BL.dmg, hr:5});
+        m.bl[m.k].gone = true; m.k++; SFX.boss('bladeGo');
+      }
+      if (m.k >= m.bl.length && m.e <= 0){ m.bl = null; setSt(m, 'recover'); m.rec = BL.recover; m.daze = false; }
+      break;
+    }
+    case 'recover':
+      contact = false;
+      if (m.t >= m.rec*(p2 ? B.p2.cd : 1)){ m.stuck = false; m.daze = false; setSt(m, 'walk'); m.gap = B.gap*(p2 ? B.p2.gap : 1); }
+      break;
+    case 'trans':
+      contact = false;
+      if (Math.random() < .5) FX.push({k:'p', x:e.x + (Math.random() - .5)*30, y:e.y - 20 - Math.random()*30, vx:0, vy:-30, t:0, life:.5, col: Math.random() < .5 ? '#b884e8' : '#ffffff', s:1});
+      if (m.t >= B.transT){ e.untouch = false; setSt(m, 'walk'); m.gap = .4; }
+      break;
+    case 'flee':
+      contact = false;
+      e.z += dt*(m.t < .3 ? 0 : 260); e.alpha = Math.max(0, 1 - Math.max(0, m.t - .5)/.6);
+      if (m.t >= 1.2) bossGone(e);
+      break;
+  }
+  if (contact && e.z === 0 && dist < B.r + 6) bossHurt(B.touch, 'paladin', ux, uy, 60);
+}
+/* landing (intro and Salto esmagador): hit inside R, shockwave, dust, small fry knocked away */
+function palLand(e, x, y, R, dmg){
+  if (inGround(P.x, P.y, x, y, R)){ const l = Math.hypot(P.x - x, P.y - y) || 1; bossHurt(dmg, 'leap', (P.x - x)/l, (P.y - y)/l, 160); }
+  for (let i = 0; i < 3; i++) FX.push({k:'ring', x, y, r:4, max:R*(1.2 + i*.45), t:-i*.07, life:.4, col: i === 1 ? '#fff6dc' : '#c8a060'});
+  for (let i = 0; i < 12; i++){ const a = Math.random()*Math.PI*2, d = R*(.2 + Math.random()*.5);
+    FX.push({k:'sm', x:x + Math.cos(a)*d, y:y + Math.sin(a)*d*GSY, vx:Math.cos(a)*16, vy:-8 - Math.random()*10, t:-Math.random()*.08, life:.6 + Math.random()*.3, s:2 + Math.random()*1.5}); }
+  for (let i = 0; i < 10; i++){ const a = -Math.PI/2 + (Math.random() - .5)*2.8, sp = 40 + Math.random()*60;
+    FX.push({k:'p', x:x + (Math.random() - .5)*14, y:y - 2, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, t:0, life:.4 + Math.random()*.2, col: i % 2 ? '#a07840' : '#d8c8a0', s: i % 3 ? 1 : 2}); }
+  query(x, y, R + 20, o => { if (o.d.mid) return; const dx = o.x - x, dy = o.y - y, l = Math.hypot(dx, dy) || 1; o.kx += dx/l*180; o.ky += dy/l*180; });
+  if (!reduceMotion) G.shake = Math.max(G.shake, .22);
+  SFX.boss('land');
+}
+/* where hovering blade i of n waits: an arc over the paladin's head */
+function bladeSpot(e, i, n){
+  const a = -Math.PI/2 + (n > 1 ? (i/(n - 1) - .5) : 0)*2.2;
+  return [e.x + Math.cos(a)*24, e.y - 34 + Math.sin(a)*14];
+}
+
+/* ----- Lich Ancião ----- */
+function lichPick(e){
+  const m = e.m, L = BAL.lich, skel = E.reduce((n, o) => n + (o.type === 'skeleton' && !o.dead ? 1 : 0), 0), w = [['ice', 3], ['rain', 3], ['chain', 2.5]];
+  if (skel < L.summon.max - 1 && m.sumT <= 0) w.push(['summon', 2]);
+  const opts = w.filter(o => o[0] !== m.last), sum = opts.reduce((s, o) => s + o[1], 0);
+  let r = Math.random()*sum, k = opts[0][0];
+  for (const o of opts){ if ((r -= o[1]) <= 0){ k = o[0]; break; } }
+  lichStart(e, k);
+}
+function lichStart(e, k){
+  const m = e.m, L = BAL.lich; m.last = k; setSt(m, k + '0'); e.fc = P.x < e.x ? -1 : 1;
+  if (k === 'ice') SFX.boss('iceCast');
+  else if (k === 'rain') SFX.boss('zapWarn');
+  else if (k === 'chain'){ m.a = Math.atan2(P.y - 10 - (e.y - 58), P.x - lichGemX(e)); SFX.boss('chainCharge'); }
+  else if (k === 'summon'){
+    const n = m.ph === 2 ? L.summon.n2 : L.summon.n; m.graves = [];
+    for (let i = 0; i < n; i++){ const [x, y] = aroundHero(44, 78); m.graves.push({x, y}); }
+    m.sumT = L.summon.every; SFX.boss('summon');
+  }
+}
+const lichGemX = e => e.x + (e.fc > 0 ? -14 : 14);
+const lichGemY = e => e.y - 60;   // the crystal of the raised staff (cast pose)
+function lichTick(e, dt, dx, dy, dist){
+  const L = BAL.lich, m = e.m, p2 = m.ph === 2, ct = p2 ? L.p2.cast : 1, ux = dx/dist, uy = dy/dist;
+  let contact = !e.untouch;
+  m.sumT -= dt;
+  e.anim += dt*5;
+  switch (m.st){
+    case 'intro': {
+      contact = false;
+      const I = L.intro;
+      e.alpha = Math.max(0, Math.min(1, (m.t - I.mist)/I.rise));
+      if (m.t >= I.mist + I.rise){ e.untouch = false; setSt(m, 'float'); m.gap = .6; }
+      break;
+    }
+    case 'float': {
+      e.fc = dx < 0 ? -1 : 1;
+      const sp = L.speed*(p2 ? L.p2.speed : 1);
+      let mx, my;
+      if (dist < L.keep - 15){ mx = -ux; my = -uy; }
+      else if (dist > L.keep + 30){ mx = ux; my = uy; }
+      else { mx = -uy*m.side; my = ux*m.side; if (Math.random() < dt*.25) m.side = -m.side; }
+      e.x += mx*sp*dt; e.y += my*sp*dt; keepOnScreen(e);
+      m.near = dist < L.tele.near ? m.near + dt : Math.max(0, m.near - dt*.5);
+      m.teleT -= dt; m.gap -= dt;
+      if (m.near >= L.tele.nearT || m.teleT <= 0 || dist > Math.max(VW, VH)*.9){ setSt(m, 'tele'); e.untouch = true; m.near = 0; m.teleT = L.tele.every; puff(e.x, e.y - 30); SFX.boss('tele'); }
+      else if (m.gap <= 0) lichPick(e);
+      break;
+    }
+    case 'tele': {
+      contact = false;
+      const T = L.tele;
+      if (m.t < T.out) e.alpha = 1 - m.t/T.out;
+      else if (!m.moved){ m.moved = true; const [x, y] = aroundHero(T.d[0], T.d[1]); e.x = x; e.y = y; e.alpha = 0; puff(e.x, e.y - 30); }
+      else e.alpha = Math.min(1, (m.t - T.out)/T.in);
+      if (m.t >= T.out + T.in){ m.moved = false; e.alpha = 1; e.untouch = false; setSt(m, 'float'); m.gap = Math.min(m.gap, .5); }
+      break;
+    }
+    case 'ice0':
+      if (m.t >= L.ice.cast*ct){
+        const I = L.ice, n = p2 ? I.n2 : I.n, gx = lichGemX(e), gy = lichGemY(e), a0 = Math.atan2(P.y - 10 - gy, P.x - gx);
+        for (let i = 0; i < n; i++){ const a = a0 + (i - (n - 1)/2)*I.spread; EB.push({k:'ice', x:gx, y:gy, vx:Math.cos(a)*I.speed, vy:Math.sin(a)*I.speed, life:I.life, dmg:I.dmg, hr:5, frost:I.frost, sp:Math.random()*6}); }
+        SFX.boss('iceGo'); lichRecover(e, L.ice.recover);
+      }
+      break;
+    case 'rain0':
+      if (m.t >= L.rain.cast*ct){
+        const R = L.rain, n = p2 ? R.n2 : R.n;
+        for (let i = 0; i < n; i++){ const [x, y] = i ? aroundHero(22, 82) : [P.x, P.y]; ZAPS.push({x, y, t:-i*R.stagger, warn:R.warn, R:R.R, dmg:R.dmg}); }
+        // phase 2: the next spell follows at once (the circles are still counting down)
+        if (p2 && Math.random() < .6){ lichStart(e, 'ice'); m.last = 'rain'; } else lichRecover(e, R.recover);
+      }
+      break;
+    case 'chain0': {
+      const C = L.chain, ch = C.charge*ct, gx = lichGemX(e), gy = lichGemY(e);
+      if (m.t < ch - C.lock) m.a = Math.atan2(P.y - 10 - gy, P.x - gx);
+      if (m.t >= ch){
+        const fork = p2 ? [0, -C.fork, C.fork] : [0];
+        let hitA = false;
+        for (const o of fork){
+          const a = m.a + o, ex = gx + Math.cos(a)*C.len, ey = gy + Math.sin(a)*C.len;
+          FX.push({k:'bolt', pts:jag(gx, gy, ex, ey, 12), t:0, life:.28});
+          if (!hitA && segDist(P.x, P.y - 10, gx, gy, ex, ey) < C.w){ hitA = true; bossHurt(C.dmg, 'chain', Math.cos(a), Math.sin(a), 90); }
+        }
+        if (!reduceMotion) G.flash = Math.max(G.flash, .15);
+        SFX.boss('bolt'); lichRecover(e, C.recover);
+      }
+      break;
+    }
+    case 'summon0': {
+      const S = L.summon;
+      if (m.t >= S.cast*ct){
+        for (const g of m.graves){
+          spawn('skeleton', 0, 0); const s = E[E.length - 1]; s.x = g.x; s.y = g.y; s.rise = S.rise; s.riseMax = S.rise;
+          for (let i = 0; i < 5; i++) FX.push({k:'p', x:g.x + (Math.random() - .5)*10, y:g.y, vx:(Math.random() - .5)*30, vy:-20 - Math.random()*20, t:0, life:.4, col:'#5a4632', s:2});
+        }
+        m.graves = null; lichRecover(e, S.recover);
+      }
+      break;
+    }
+    case 'tired':
+      contact = false;
+      if (m.t >= m.rec){ setSt(m, 'float'); m.gap = L.gap*(p2 ? L.p2.gap : 1); }
+      break;
+    case 'trans':
+      contact = false;
+      if (Math.random() < .5) FX.push({k:'p', x:e.x + (Math.random() - .5)*34, y:e.y - Math.random()*50, vx:0, vy:-26, t:0, life:.5, col: Math.random() < .5 ? '#7ff0e0' : '#ffffff', s:1});
+      if (m.t >= L.transT){ e.untouch = false; setSt(m, 'float'); m.gap = .3; }
+      break;
+    case 'flee':
+      contact = false;
+      e.alpha = Math.max(0, 1 - m.t/.6);
+      if (m.t >= .7){ puff(e.x, e.y - 30); bossGone(e); }
+      break;
+  }
+  if (contact && dist < L.r + 7) bossHurt(L.touch, 'lich', ux, uy, 60);
+}
+function lichRecover(e, rec){ const m = e.m; setSt(m, 'tired'); m.rec = rec*(m.ph === 2 ? BAL.lich.p2.recover : 1); }
+function puff(x, y){
+  for (let i = 0; i < 16; i++){ const a = Math.random()*Math.PI*2, s = 20 + Math.random()*40; FX.push({k:'p', x:x + Math.cos(a)*6, y:y + Math.sin(a)*10, vx:Math.cos(a)*s, vy:Math.sin(a)*s*.7 - 10, t:0, life:.5 + Math.random()*.3, col: i % 3 ? '#45286e' : '#7ff0e0', s: i % 2 ? 2 : 1}); }
+}
+function segDist(px, py, ax, ay, bx, by){
+  const vx = bx - ax, vy = by - ay, l2 = vx*vx + vy*vy || 1, t = Math.max(0, Math.min(1, ((px - ax)*vx + (py - ay)*vy)/l2));
+  return Math.hypot(px - ax - vx*t, py - ay - vy*t);
+}
+/* lightning strike circles of the Chuva de relâmpagos */
+function zapTick(z, dt){
+  z.t += dt;
+  if (z.t >= z.warn && !z.done){
+    z.done = true;
+    FX.push({k:'bolt', pts:jag(z.x + (Math.random() - .5)*20, z.y - 170, z.x, z.y, 9), t:0, life:.22});
+    FX.push({k:'ring', x:z.x, y:z.y, r:2, max:z.R + 4, t:0, life:.3, col:'#bff2ff'});
+    for (let i = 0; i < 6; i++){ const a = Math.random()*Math.PI*2, s = 30 + Math.random()*40; FX.push({k:'p', x:z.x, y:z.y, vx:Math.cos(a)*s, vy:Math.sin(a)*s*.7, t:0, life:.3, col: i % 2 ? '#ffffff' : '#7fd8ff', s:1}); }
+    if (inGround(P.x, P.y, z.x, z.y, z.R + 3)) bossHurt(z.dmg, 'rain');
+    SFX.boss('bolt');
+  }
+  return z.t < z.warn + .15;
+}
+
+/* ----- drawing ----- */
+function palPose(e){
+  const m = e.m;
+  switch (m.st){
+    case 'charge0': case 'charge': return 'brace';
+    case 'spin0': case 'blades0': case 'blades': case 'trans': return 'raise';
+    case 'spin': return 'spin';
+    case 'leap0': case 'leap': return 'crouch';
+    case 'intro': return e.z > 0 ? 'crouch' : 'raise';
+    case 'recover': return m.stuck ? 'crouch' : 'walk0';
+    case 'flee': return 'crouch';
+  }
+  return 'walk' + (Math.abs(Math.floor(e.anim)) % 4);
+}
+function drawPaladin(e, cx, cy){
+  const A = palArt(), m = e.m, pose = palPose(e), fl = e.fc < 0 ? 1 : 0, fr = A.fr[pose][fl];
+  const shake = m.st === 'trans' || (m.st === 'charge0' && m.t > .4) ? (Math.floor(m.t*30) % 2 ? 1 : -1) : 0;
+  const ax = fl ? PAL_W - 1 - 23 : 23, x = Math.round(e.x - ax - cx) + shake, y = Math.round(e.y - 56 - cy - e.z);
+  if (e.alpha <= 0) return;
+  ctx.globalAlpha = e.alpha;
+  const walkBob = pose.startsWith('walk') && (pose === 'walk1' || pose === 'walk3') ? 1 : 0;
+  const hk = pose.startsWith('walk') ? 'walk' : pose, H = PAL_HAND[hk];
+  let sa = {walk:1.9, brace:2.6, raise:-2.2, crouch:1.57, spin:0}[hk];
+  if (m.st === 'leap' || m.st === 'leap0' || (m.st === 'intro' && e.z > 0)) sa = -2.4;
+  let hx = H[0], hy = H[1] + walkBob;
+  if (pose === 'spin'){ const a = m.ang; hx = 23 + Math.cos(a)*9; hy = 34 + Math.sin(a)*9*GSY; sa = a; }
+  if (fl){ hx = PAL_W - 1 - hx; sa = Math.PI - sa; }
+  const behind = pose === 'spin' && Math.sin(m.ang) < 0;
+  if (behind) drawRot(A.sword, x + hx, y + hy, sa);
+  ctx.drawImage(fr.n, x, y);
+  if (e.flash > 0){ ctx.globalAlpha = e.alpha*.4; ctx.drawImage(fr.w, x, y); ctx.globalAlpha = e.alpha; }
+  if (!behind) drawRot(A.sword, x + hx, y + hy, sa);
+  // eyes in the visor: green, violet-white once the spirit shows itself
+  const low = pose === 'brace' ? 3 : pose === 'crouch' ? 4 : 0, ey = y + 12 + low + walkBob, ex1 = x + (fl ? PAL_W - 1 - 21 : 20), ex2 = x + (fl ? PAL_W - 1 - 26 : 25);
+  const ec = m.ph === 2 ? '#f0d8ff' : '#c8ff9a', eh = m.ph === 2 ? '#b884e8' : '#6ad04a';
+  ctx.globalAlpha = e.alpha*(.35 + .15*Math.sin(G.t*6)); ctx.fillStyle = eh; ctx.fillRect(ex1 - 1, ey - 1, 4, 3); ctx.fillRect(ex2 - 1, ey - 1, 4, 3);
+  ctx.globalAlpha = e.alpha; ctx.fillStyle = ec; ctx.fillRect(ex1, ey, 2, 1); ctx.fillRect(ex2, ey, 2, 1);
+  // dazed after a charge: stars circling the helm
+  if (m.st === 'recover' && m.daze){ for (let i = 0; i < 3; i++){ const a = G.t*5 + i*2.09; ctx.fillStyle = i % 2 ? '#ffffff' : '#ffe27a'; ctx.fillRect(Math.round(x + 23 + Math.cos(a)*10) - 1, Math.round(y + 4 + low + Math.sin(a)*3) - 1, 3, 3); } }
+  ctx.globalAlpha = 1;
+}
+function drawLich(e, cx, cy){
+  const A = lichArt(), m = e.m, st = m.st;
+  const pose = st === 'tired' ? 'tired' : st.endsWith('0') || st === 'trans' ? 'cast' : 'float' + (Math.abs(Math.floor(e.anim*.6)) % 4);
+  const fl = e.fc < 0 ? 1 : 0, fr = A.fr[pose][fl], bob = Math.round(Math.sin(e.anim*.5)*2);
+  const ax = fl ? LICH_W - 1 - 22 : 22, x = Math.round(e.x - ax - cx), y = Math.round(e.y - 58 - 6 + bob - cy);
+  let a = e.alpha;
+  if (st === 'intro'){ const I = BAL.lich.intro, q = Math.max(0, Math.min(1, (m.t - I.mist)/I.rise)); a = q; }
+  if (a <= 0) return;
+  ctx.globalAlpha = a;
+  if (st === 'intro' && a < 1){
+    // rising out of the ground: only the part above the soil line shows
+    const h = Math.round(LICH_H*a); ctx.drawImage(fr.n, 0, 0, LICH_W, h, x, y + LICH_H - h + 6, LICH_W, h);
+  } else { ctx.drawImage(fr.n, x, y); if (e.flash > 0){ ctx.globalAlpha = a*.4; ctx.drawImage(fr.w, x, y); ctx.globalAlpha = a; } }
+  if (!(st === 'intro' && a < 1)){
+    const hy = y + 11 + (pose === 'tired' ? 3 : 0), ex = [x + (fl ? LICH_W - 1 - 20 : 19), x + (fl ? LICH_W - 1 - 24 : 23)];
+    const ec = m.ph === 2 ? '#ffffff' : '#9ffff0', eh = m.ph === 2 ? '#ff7ae0' : '#2fa0a0';
+    ctx.globalAlpha = a*(.4 + .2*Math.sin(G.t*5)); ctx.fillStyle = eh; for (const q of ex) ctx.fillRect(q - 1, hy - 1, 4, 4);
+    ctx.globalAlpha = a; ctx.fillStyle = ec; for (const q of ex) ctx.fillRect(q, hy, 2, 2);
+    // staff crystal glow, brighter while casting
+    const g = LICH_GEM[pose.startsWith('float') ? 'float' : pose], gx = x + (fl ? LICH_W - 1 - g[0] - 1 : g[0]) + 1, gy = y + g[1] + (pose === 'tired' ? 3 : 0) + 1;
+    const cast = st.endsWith('0'), pr = cast ? Math.min(1, m.t/.6) : 0;
+    ctx.globalAlpha = a*(.18 + .25*pr + .06*Math.sin(G.t*7)); pixCircle(gx, gy, 5 + Math.round(pr*4), st === 'chain0' || st === 'rain0' ? '#bff2ff' : '#7ff0e0');
+    ctx.globalAlpha = a*(.5 + .4*pr); pixCircle(gx, gy, 2 + Math.round(pr*2), '#e8ffff');
+  }
+  ctx.globalAlpha = 1;
+}
+/* ground layer (under the creatures): telegraphs, strike circles, graves, intro mist, corpses */
+function dashRing(x, y, R, col, a, rot, dash){
+  ctx.globalAlpha = a; ctx.fillStyle = col; const n = Math.max(16, Math.round(R*6)), c = LX.col, put = ctx === LX;
+  for (let i = 0; i < n; i++){
+    if (dash && ((i + rot) % dash) >= dash*.6) continue;
+    const t = i/n*Math.PI*2, px = Math.round(x + Math.cos(t)*R), py = Math.round(y + Math.sin(t)*R*GSY);
+    if (put) LX.px(px, py, c, LX.ga); else ctx.fillRect(px, py, 1, 1);
+  }
+}
+/* outlined ground ring: dark rim outside, bright dashed line (rot/dash animate it) */
+function boldRing(x, y, R, col, a, rot, dash){ dashRing(x, y, R + 1, '#3a0808', a*.6, 0, 0); dashRing(x, y, R, col, a, rot, dash); dashRing(x, y, R - 1, col, a*.8, rot, dash); }
+function fillEllipse(x, y, R, col, a){
+  ctx.globalAlpha = a; ctx.fillStyle = col; const X = Math.round(x), Y = Math.round(y), H = Math.round(R*GSY);
+  for (let oy = -H; oy <= H; oy++){ const w = Math.round(R*Math.sqrt(Math.max(0, 1 - (oy/(R*GSY))**2))); if (w > 0) ctx.fillRect(X - w, Y + oy, w*2 + 1, 1); }
+}
+function drawMidGround(cx, cy){
+  const tt = G.t;
+  for (const c of CORPSES) drawCorpse(c, cx, cy, false);
+  for (const z of ZAPS){
+    if (z.t < 0) continue;
+    const x = z.x - cx, y = z.y - cy, q = Math.min(1, z.t/z.warn);
+    if (z.done){ fillEllipse(x, y, z.R, '#ffffff', .5*(1 - (z.t - z.warn)/.15)); continue; }
+    fillEllipse(x, y, z.R, '#3a8ad8', .2 + .2*q);
+    dashRing(x, y, z.R + 1, '#0a1a3a', .6, 0, 0); dashRing(x, y, z.R, '#e8ffff', .95, 0, 0);
+    dashRing(x, y, z.R + (1 - q)*16, '#9fe6ff', .45 + .5*q, 0, 0);     // closing ring = time left
+    // lightning glyph in the middle, blinking faster at the end
+    if (q < .7 || Math.floor(tt*(q > .85 ? 20 : 10)) % 2){ ctx.globalAlpha = .95; ctx.fillStyle = '#ffffff';
+      const X = Math.round(x), Y = Math.round(y);
+      ctx.fillRect(X, Y - 5, 2, 1); ctx.fillRect(X - 1, Y - 4, 2, 1); ctx.fillRect(X - 2, Y - 3, 2, 1); ctx.fillRect(X - 2, Y - 2, 4, 1); ctx.fillRect(X, Y - 1, 2, 1); ctx.fillRect(X - 1, Y, 2, 1); ctx.fillRect(X - 2, Y + 1, 2, 1); }
+  }
+  for (const e of G.guard){
+    if (!e.m) continue;
+    const m = e.m, B = BAL[e.mb], x = e.x - cx, y = e.y - cy;
+    if (e.mb === 'paladin'){
+      const tm = m.ph === 2 ? B.p2.tele : 1;
+      if (m.st === 'intro' && e.z > 0){ const q = 1 - e.z/170; landMark(x, y, B.intro.R, q, tt); }
+      else if (m.st === 'leap'){ const q = Math.min(1, m.t/(B.leap.air*tm)); landMark(m.tx - cx, m.ty - cy, B.leap.R, q, tt); }
+      else if (m.st === 'leap0') landMark(P.x - cx, P.y - cy, B.leap.R, 0, tt);
+      else if (m.st === 'spin0' || m.st === 'spin'){
+        const q = m.st === 'spin' ? 1 : Math.min(1, m.t/(B.spin.windup*tm));
+        fillEllipse(x, y, B.spin.R, '#ff6a3a', .14);
+        fillEllipse(x, y, B.spin.R*q, '#ff3a1a', m.st === 'spin' ? .34 : .16 + .14*q);   // grows to the rim = time left
+        boldRing(x, y, B.spin.R, '#fff0d8', .95, Math.floor(tt*14), 7);
+      } else if (m.st === 'charge0') laneMark(e.x - cx, e.y - cy, m.a, B.charge.len, B.charge.w, Math.min(1, m.t/(B.charge.tele*tm)), tt);
+    } else {
+      if (m.st === 'intro'){ const q = Math.min(1, m.t/B.intro.mist); fillEllipse(x, y, 4 + q*16, '#45286e', .35); dashRing(x, y, 4 + q*18, '#7ff0e0', .6, Math.floor(tt*10), 5); }
+      if (m.graves){
+        const q = Math.min(1, m.t/(B.summon.cast*(m.ph === 2 ? B.p2.cast : 1)));
+        for (const g of m.graves){
+          const gx = Math.round(g.x - cx), gy = Math.round(g.y - cy);
+          fillEllipse(gx, gy, 7, '#2a1838', .55); fillEllipse(gx, gy, 3 + q*4, '#8a4ab8', .25 + .3*q);
+          ctx.globalAlpha = .9; ctx.fillStyle = '#1a1020';
+          ctx.fillRect(gx - 5, gy, 4, 1); ctx.fillRect(gx + 2, gy - 1, 4, 1); ctx.fillRect(gx - 1, gy - 3, 1, 3); ctx.fillRect(gx, gy + 1, 1, 2);
+          if (q > .4){ ctx.fillStyle = '#e8e0c8'; const h = Math.round((q - .4)/.6*4); ctx.fillRect(gx - 3, gy - h, 1, h); ctx.fillRect(gx - 4, gy - h, 1, 1); ctx.fillRect(gx - 2, gy - h, 1, 1); }
+        }
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+/* landing circle: fill + crosshair; the outer ring closes in as the landing nears */
+function landMark(x, y, R, q, tt){
+  fillEllipse(x, y, R, '#ff3a1a', .16 + .2*q);
+  boldRing(x, y, R, '#fff0d8', .95, 0, 0);
+  boldRing(x, y, R + (1 - q)*R, '#ff8a5a', .5 + .45*q, Math.floor(tt*10), 5);
+  ctx.globalAlpha = q > .8 && Math.floor(tt*20) % 2 ? .4 : .9; ctx.fillStyle = '#ffe0c0';
+  const X = Math.round(x), Y = Math.round(y), h = Math.round(R*.4);
+  ctx.fillRect(X - h, Y, h*2 + 1, 1); ctx.fillRect(X, Y - Math.round(h*GSY), 1, Math.round(h*GSY)*2 + 1);
+}
+/* charge lane: a filled band with outlined borders and bold chevrons marching toward the end; it fills up and blinks
+   as the charge nears (shape and motion, not only colour) */
+function laneMark(x, y, a, L, w, q, tt){
+  const ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca, put = ctx === LX;
+  const P1 = (d, o, col, A) => { const px = Math.round(x + ca*d + nx*o), py = Math.round(y + sa*d + ny*o); if (put) LX.px(px, py, lxParse(col), A); else { ctx.globalAlpha = A; ctx.fillStyle = col; ctx.fillRect(px, py, 1, 1); } };
+  const fillA = .16 + .16*q;
+  for (let d = 2; d < L; d++) for (let o = -w + 1; o <= w - 1; o++) P1(d, o, d < L*q ? '#ff3a1a' : '#ff6a3a', d < L*q ? fillA + .1 : fillA);
+  const off = Math.floor(tt*40) % 8;
+  for (let d = 0; d < L; d++){
+    for (const sg of [-1, 1]){ P1(d, sg*(w + 1), '#3a0808', .55); P1(d, sg*w, (d + 80 - off) % 8 < 5 ? '#fff0d8' : '#ff8a5a', .95); }
+  }
+  for (let o = -w; o <= w; o++){ P1(L, o, '#3a0808', .6); P1(L - 1, o, '#fff0d8', .9); }
+  const step = 18, sh = (tt*70) % step, blink = q > .75 && Math.floor(tt*16) % 2;
+  for (let d = 12 + sh; d < L - 6; d += step) for (let k = 0; k < 7; k++) for (const sg of [-1, 1]){
+    P1(d - k + 1, sg*k + 1, '#3a0808', .5);
+    P1(d - k, sg*k, '#ffffff', blink ? .55 : 1); P1(d - k - 1, sg*k, '#ffffff', blink ? .55 : 1);
+  }
+  ctx.globalAlpha = 1;
+}
+/* above the creatures: hovering blades, chain lightning aim, the spirit, ward bubble */
+function drawMidAbove(cx, cy){
+  for (const c of CORPSES) drawCorpse(c, cx, cy, true);
+  for (const e of G.guard){
+    if (!e.m) continue;
+    const m = e.m;
+    if (e.mb === 'paladin'){
+      const A = palArt();
+      if (m.ph === 2 || m.st === 'trans'){
+        const q = m.st === 'trans' ? Math.min(1, m.t/BAL.paladin.transT) : 1, sp = A.spirit[Math.floor(G.t*4) % 2];
+        const sx = Math.round(e.x - 17 - cx), sy = Math.round(e.y - 56 - 26*q - cy - e.z + Math.sin(G.t*2.5)*2);
+        ctx.globalAlpha = .22*q*e.alpha; pixCircle(sx + 17, sy + 16, 17, '#8a4ab8');
+        ctx.globalAlpha = (.62 + .18*Math.sin(G.t*5))*q*e.alpha;
+        ctx.drawImage(sp, sx, sy);
+      }
+      if (m.st === 'trans'){ ctx.globalAlpha = .5 + .3*Math.sin(m.t*20); pixRing(e.x - cx, e.y - 30 - cy, 30, '#e0c8ff', 1); }
+      if (m.bl){ const set = GBLADE.get();
+        for (let i = 0; i < m.bl.length; i++){ const b = m.bl[i]; if (b.gone) continue;
+          const [bx, by] = bladeSpot(e, i, m.bl.length), a = Math.atan2(P.y - 10 - by, P.x - bx), X = bx - cx, Y = by - cy + Math.round(Math.sin(G.t*6 + i)*1.5);
+          ctx.globalAlpha = Math.min(1, b.t/.2)*.35; ctx.fillStyle = '#c8b8ff';
+          for (let d = 12; d < 60; d += 4) ctx.fillRect(Math.round(X + Math.cos(a)*d), Math.round(Y + Math.sin(a)*d), 1, 1);
+          ctx.globalAlpha = Math.min(1, b.t/.2)*.9; drawRot(set, X, Y, a); }
+      }
+    } else {
+      if (m.st === 'chain0'){
+        // aim: a dashed beam that follows Aren; locked (last C.lock s): a thick solid beam, blinking
+        const C = BAL.lich.chain, ch = C.charge*(m.ph === 2 ? BAL.lich.p2.cast : 1), lock = m.t >= ch - C.lock, gx = lichGemX(e) - cx, gy = lichGemY(e) - cy;
+        const forks = m.ph === 2 ? [0, -C.fork, C.fork] : [0], put = ctx === LX, dark = lxParse('#0a1a3a'), lit = lxParse(lock ? '#ffffff' : '#9fe6ff'), mid = lxParse('#4fb8ff');
+        const A_ = lock ? (Math.floor(G.t*20) % 2 ? 1 : .55) : .55 + .35*Math.min(1, m.t/ch), off = Math.floor(G.t*30) % 6;
+        const px = (x, y, c, a) => { if (put) LX.px(x, y, c, a); else { ctx.globalAlpha = a; ctx.fillStyle = c === dark ? '#0a1a3a' : c === mid ? '#4fb8ff' : lock ? '#ffffff' : '#9fe6ff'; ctx.fillRect(x, y, 1, 1); } };
+        for (const o of forks){ const a = m.a + o, ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca;
+          for (let d = 6; d < C.len; d++){
+            if (!lock && (d + off) % 6 >= 4) continue;
+            const x = gx + ca*d, y = gy + sa*d, hw = lock ? 2 : 1;
+            for (let k = -hw - 1; k <= hw + 1; k++){ const edge = Math.abs(k) === hw + 1;
+              px(Math.round(x + nx*k), Math.round(y + ny*k), edge ? dark : Math.abs(k) === hw && lock ? mid : lit, edge ? A_*.5 : A_); }
+          } }
+        // sparks crackling round the crystal
+        ctx.globalAlpha = 1; ctx.fillStyle = '#e8ffff';
+        for (let i = 0; i < 4; i++){ const a = G.t*13 + i*1.6, r = 5 + (i % 2)*3; ctx.fillRect(Math.round(gx + Math.cos(a)*r), Math.round(gy + Math.sin(a)*r), 1, 1); }
+      }
+      if (m.st === 'trans'){ ctx.globalAlpha = .5 + .3*Math.sin(m.t*20); pixRing(e.x - cx, e.y - 34 - cy, 30, '#bff2ff', 1); }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+function drawCorpse(c, cx, cy, above){
+  const t = c.t;
+  if (c.k === 'paladin'){
+    if (!above){
+      const fade = t < 3 ? 1 : Math.max(0, 1 - (t - 3)/1.2), y0 = c.y - 56 - cy, x0 = c.x - 23 - cx;
+      ctx.globalAlpha = fade;
+      for (const p of c.parts){ if (p.t0 > t){ continue; } ctx.drawImage(p.img, Math.round(x0 + p.ox + p.x), Math.round(y0 + p.oy + p.y - p.z + (p === c.parts[0] ? Math.min(6, t*8) : 0))); }
+      ctx.globalAlpha = 1;
+    } else if (t < 1.6){
+      // the spirit tears free, rises and dissipates
+      const sp = palArt().spirit[Math.floor(t*10) % 2], q = t/1.6;
+      ctx.globalAlpha = .7*(1 - q); ctx.drawImage(sp, Math.round(c.x - 17 - cx + Math.sin(t*20)*2*(1 - q)), Math.round(c.y - 60 - cy - q*40));
+      ctx.globalAlpha = 1;
+    }
+  } else if (!above && t < 1.4){
+    const fr = lichArt().fr.tired[c.fc < 0 ? 1 : 0].n, cut = Math.round(LICH_H*t/1.4), x = Math.round(c.x - (c.fc < 0 ? LICH_W - 1 - 22 : 22) - cx), y = Math.round(c.y - 64 - cy);
+    if (LICH_H - cut > 0) ctx.drawImage(fr, 0, cut, LICH_W, LICH_H - cut, x, y + cut + Math.round(t*6), LICH_W, LICH_H - cut);
+  } else if (!above && t < 3){ ctx.globalAlpha = Math.max(0, .5 - (t - 1.4)/3.2); fillEllipse(c.x - cx, c.y - cy, 12, '#8a8270', 1); ctx.globalAlpha = 1; }
+}
+/* hero frost tint (Orbes de gelo) */
+const ICE_TINT = new Map();
+function iceOf(img){ let c = ICE_TINT.get(img); if (!c){ c = tintC(img, '#bff2ff'); ICE_TINT.set(img, c); } return c; }
 function startBoss(){
-  G.boss = {phase:'intro', t:0, e:null}; G.guard.length = 0;
+  // a mid-boss still alive here leaves without its relic (it normally flees before: BAL.paladin/lich.flee)
+  G.boss = {phase:'intro', t:0, e:null}; G.guard.length = 0; ZAPS = []; hideBossCard();
   for (const e of E){
     if (e.dead) continue;
     e.dead = true;
@@ -2703,8 +3723,14 @@ function update(dt){
     P.slow -= dt;
     if (Math.random() < .35) FX.push({k:'p', x:P.x + (Math.random() - .5)*12, y:P.y - Math.random()*16, vx:0, vy:-18, t:0, life:.5, col: Math.random() < .5 ? '#c04ad8' : '#ff8ad8', s:1});
   }
-  const spd = (BAL.hero.speed + W.boots*BAL.hero.bootsSpeed) * (P.slow > 0 ? BAL.hero.slowMult : 1);
+  if (P.frost > 0){
+    P.frost -= dt;
+    if (Math.random() < .3) FX.push({k:'p', x:P.x + (Math.random() - .5)*12, y:P.y - Math.random()*18, vx:0, vy:10, t:0, life:.5, col: Math.random() < .5 ? '#bff2ff' : '#ffffff', s:1});
+  }
+  const spd = (BAL.hero.speed + W.boots*BAL.hero.bootsSpeed) * Math.min(P.slow > 0 ? BAL.hero.slowMult : 1, P.frost > 0 ? BAL.lich.ice.frostMult : 1);
   P.x += ix*spd*dt; P.y += iy*spd*dt;
+  // knockback from a boss hit (shield charge, landing)
+  if (P.kx || P.ky){ P.x += P.kx*dt; P.y += P.ky*dt; const kd = Math.max(0, 1 - dt*8); P.kx *= kd; P.ky *= kd; if (Math.abs(P.kx) + Math.abs(P.ky) < 2) P.kx = P.ky = 0; }
   if (P.moving){
     P.anim += dt*9; P.faceA = Math.atan2(iy, ix);
     if (Math.abs(ix) > Math.abs(iy)) P.dir = ix < 0 ? 'left' : 'side'; else P.dir = iy < 0 ? 'up' : 'down';
@@ -2790,8 +3816,9 @@ function update(dt){
     G.frCd -= dt;
     if (G.frCd <= 0){
       const n = Math.ceil(W.fire/2), cands = E.filter(e => !e.dead && Math.hypot(e.x-P.x, e.y-P.y) < 150);
+      const mb = cands.findIndex(e => e.d.mid);   // a mid-boss in range takes the first fireball (Etapa 5, see nearest)
       for (let i=0;i<n && cands.length;i++){
-        const e = cands.splice((Math.random()*cands.length)|0, 1)[0];
+        const e = cands.splice(i === 0 && mb >= 0 ? mb : (Math.random()*cands.length)|0, 1)[0];
         const a = Math.atan2(e.y - P.y, e.x - P.x);
         B.push({k:'fire', x:P.x, y:P.y-11, vx:Math.cos(a)*130, vy:Math.sin(a)*130, life:1.3, dmg:(5 + W.fire*3)*f1('fire')*sDmg('fire'), rad:16 + W.fire*3});
       }
@@ -2954,6 +3981,8 @@ function update(dt){
     const d = e.d;
     e.orbCd -= dt; e.boomCd -= dt; e.flash -= dt;
     if (d.boss){ bossTick(e, dt); continue; }
+    if (d.mid){ midTick(e, dt); continue; }
+    if (e.rise > 0){ e.rise -= dt; continue; }   // skeleton still climbing out of its grave
     if (e.stun > 0){
       e.stun -= dt; e.x += e.kx*dt; e.y += e.ky*dt;
       const dmp = Math.max(0, 1 - dt*9); e.kx *= dmp; e.ky *= dmp;
@@ -2972,8 +4001,7 @@ function update(dt){
       if (dist < 62){ mx = -ux; my = -uy; } else if (dist < 100){ mx = -uy*e.side; my = ux*e.side; sp *= .7; }
       e.cd -= dt;
       if (e.cd <= 0 && dist < 150){
-        if (e.guard){ const a = Math.atan2(uy, ux); for (const o of [-.5, -.25, 0, .25, .5]) EB.push({k:'arrow', x:e.x, y:e.y - 24, vx:Math.cos(a + o)*75, vy:Math.sin(a + o)*75, life:2.8, dmg:2}); e.cd = 1.8 + Math.random()*.6; }
-        else { EB.push({k:'arrow', x:e.x, y:e.y - 12, vx:ux*75, vy:uy*75, life:2.8, dmg:2}); e.cd = 2.4 + Math.random(); }
+        EB.push({k:'arrow', x:e.x, y:e.y - 12, vx:ux*75, vy:uy*75, life:2.8, dmg:2}); e.cd = 2.4 + Math.random();
       }
     } else if (d.ai === 'caster'){
       if (dist < 70){ mx = -ux; my = -uy; } else if (dist < 105){ mx = -uy*e.side; my = ux*e.side; sp *= .6; }
@@ -3012,7 +4040,11 @@ function update(dt){
   for (const b of EB){
     b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
     if (b.life <= 0) b.dead = true;
-    else if (Math.hypot(b.x - P.x, b.y - (P.y-10)) < (b.k === 'bb' ? b.r + 2 : b.k === 'wfire' ? 6 : b.k === 'arrow' ? 5.5 : 4)){ b.dead = true; hurt(b.dmg); }
+    else if (Math.hypot(b.x - P.x, b.y - (P.y-10)) < (b.hr || (b.k === 'bb' ? b.r + 2 : b.k === 'wfire' ? 6 : b.k === 'arrow' ? 5.5 : 4))){
+      b.dead = true;
+      if (b.frost && P.inv <= 0){ if (P.frost <= 0) toast(BOSS_TXT.lich.frost[0], BOSS_TXT.lich.frost[1]); P.frost = b.frost; SFX.boss('iceHit'); }
+      hurt(b.dmg, b.k);
+    }
   }
   dropDead(EB);
   // succubus curses
@@ -3041,6 +4073,9 @@ function update(dt){
     }
   }
   dropDead(MARKS);
+  // lich strike circles, boss death animations
+  { let j = 0; for (const z of ZAPS) if (zapTick(z, dt)) ZAPS[j++] = z; ZAPS.length = j; }
+  { let j = 0; for (const c of CORPSES) if (corpseTick(c, dt)) CORPSES[j++] = c; CORPSES.length = j; }
 
   // gems
   const mag = 26 + W.magnet*16;
@@ -3175,6 +4210,8 @@ function drawScene(dt){
   // ground powers: thorn aura and hammer shockwaves (under the creatures)
   if (W.thorns) drawThorns(P.x - cx, P.y - cy, thornR());
   for (const b of B) if (b.k === 'hammer' && b.t >= 0) drawQuake(b, cx, cy);
+  // mid-boss telegraphs, strike circles, graves, corpses (under the creatures)
+  drawMidGround(cx, cy);
   // y-sorted
   const list = YS.list; list.length = 0;
   propsIn(cx - 24, cy - 8, cx + VW + 24, cy + VH + 46, list);
@@ -3206,11 +4243,16 @@ function drawScene(dt){
       ctx.drawImage(t.fr[Math.floor(tt*2.2 + o.ph) % t.fr.length], x, y); ctx.globalAlpha = 1;
     }
     else if (o.k === 'e' && o.e.d.boss) drawBoss(o.e, cx, cy);
+    else if (o.k === 'e' && o.e.d.draw) o.e.d.draw(o.e, cx, cy);
     else if (o.k === 'e'){
       const e = o.e, d = e.d, f = e.stun > 0 && !d.fly ? 0 : Math.abs(Math.floor(e.anim)) % 4;
       const fr = (d.dirs.all || d.dirs[e.face || 'down'])[f];
       const lift = d.fly ? 6 + Math.round(Math.sin(e.anim*1.2)*2) : 0;
       const x = Math.round(e.x - d.w/2 - cx), y = Math.round(e.y - d.h - cy - lift + 1);
+      if (e.rise > 0){   // climbing out of the ground: only the part above the soil shows
+        const h = Math.max(1, Math.round(d.h*(1 - e.rise/e.riseMax))); ctx.drawImage(fr.n, 0, 0, d.w, h, x, y + d.h - h, d.w, h);
+        ctx.fillStyle = '#4a3828'; ctx.fillRect(x + 2, y + d.h - 1, d.w - 4, 2); continue;
+      }
       if (e.elite){ ctx.drawImage(fr.g, x - 1, y); ctx.drawImage(fr.g, x + 1, y); ctx.drawImage(fr.g, x, y - 1); ctx.drawImage(fr.g, x, y + 1); }
       ctx.drawImage(e.flash > 0 ? fr.w : (e.stun > 0 && Math.floor(e.stun*12) % 2) ? fr.b : fr.n, x, y);
       if (e.stun > 0){ const zx = Math.round(e.x - cx) + (Math.floor(e.stun*10) % 2 ? -2 : 2); ctx.fillStyle = '#bff2ff'; ctx.fillRect(zx, y - 3, 1, 1); ctx.fillRect(zx + 1, y - 4, 1, 1); ctx.fillRect(zx, y - 5, 1, 1); }
@@ -3218,6 +4260,7 @@ function drawScene(dt){
       if (P.inv > 0 && Math.floor(P.inv*14)%2) continue;
       const set = HERO[P.dir], f = P.moving ? Math.abs(Math.floor(P.anim)) % 4 : 0;
       ctx.drawImage(set[f], Math.round(P.x - set[f].width/2 - cx), Math.round(P.y - set[f].height + 1 - cy));
+      if (P.frost > 0){ ctx.globalAlpha = .45 + .1*Math.sin(G.t*8); ctx.drawImage(iceOf(set[f]), Math.round(P.x - set[f].width/2 - cx), Math.round(P.y - set[f].height + 1 - cy)); ctx.globalAlpha = 1; }
     }
   }
 
@@ -3234,6 +4277,7 @@ function drawScene(dt){
     ctx.fillStyle = NIGHT.gr; ctx.fillRect(0, 0, VW, VH);
   }
   if (G.boss) drawBossLayer(cx, cy);
+  drawMidAbove(cx, cy);
 
   // sword swing
   if (G.swing){
@@ -3335,6 +4379,15 @@ function drawScene(dt){
       for (let k = 0; k < 10; k++) pp(k, 0, k < 3 ? '#efeaff' : k > 7 ? '#ff5ad1' : '#5a3a2a');
       for (const o of [-1, 1]){ pp(2, o, '#b8b0e0'); pp(3, o*1.6, '#8a84b0'); pp(8, o, '#ff5ad1'); pp(9, o*1.5, '#c03a9a'); }
       pp(-1, 0, '#ffffff');
+    } else if (b.k === 'blade'){
+      const X = b.x - cx, Y = b.y - cy, ux = Math.cos(b.a), uy = Math.sin(b.a);
+      ctx.fillStyle = '#b884e8'; for (let k = 1; k <= 4; k++){ ctx.globalAlpha = .5 - k*.1; ctx.fillRect(Math.round(X - ux*(8 + k*3)), Math.round(Y - uy*(8 + k*3)), 2, 2); }
+      ctx.globalAlpha = .92; drawRot(GBLADE.get(), X, Y, b.a); ctx.globalAlpha = 1;
+    } else if (b.k === 'ice'){
+      const X = b.x - cx, Y = b.y - cy; b.sp += .3;
+      ctx.globalAlpha = .3; pixCircle(X, Y, 6, '#7fd8ff'); ctx.globalAlpha = 1;
+      pixCircle(X, Y, 4, '#1a5a8a'); pixCircle(X, Y, 3, '#9fe6ff'); pixCircle(X - .5, Y - .5, 1.4, '#ffffff');
+      ctx.fillStyle = '#e8ffff'; for (let k = 0; k < 4; k++){ const a = b.sp + k*Math.PI/2; ctx.fillRect(Math.round(X + Math.cos(a)*6), Math.round(Y + Math.sin(a)*6), 1, 1); }
     } else {
       pixCircle(b.x - cx, b.y - cy, 4, '#7a1f5c'); pixCircle(b.x - cx, b.y - cy, 3, '#f2622e'); pixCircle(b.x - cx, b.y - cy, 1, '#ffe066');
     }
@@ -3551,8 +4604,9 @@ function hud(){
   if (be && !be.dead && be.hp > 0){
     if (bar.hidden) bar.hidden = false;
     $('#bossFill').style.width = (Math.max(0, be.hp)/(be.max || be.d.hp)*100).toFixed(1) + '%';
-    const s = be.bs;
-    const info = !s ? 'Guardião' : s.seals ? `Selos ${s.seals.filter(z => z.lit).length}/3 · ${Math.max(0, Math.ceil(s.sealWin))}s` : s.stun > 0 ? 'Atordoado' : s.enraged ? 'Enfurecido' : '';
+    const s = be.bs, mm = be.m;
+    if (bar.dataset.b !== (be.mb || 'dragon')) bar.dataset.b = be.mb || 'dragon';
+    const info = mm ? (mm.st === 'flee' ? BOSS_TXT.leaving : be.untouch && mm.st === 'trans' ? BOSS_TXT.ward : mm.ph === 2 ? BOSS_TXT.phase2 : BOSS_TXT.phase1) : s.seals ? `Selos ${s.seals.filter(z => z.lit).length}/3 · ${Math.max(0, Math.ceil(s.sealWin))}s` : s.stun > 0 ? 'Atordoado' : s.enraged ? 'Enfurecido' : '';
     const el = $('#bossInfo'); if (el.textContent !== info) el.textContent = info;
     const nm = $('#bossName'); if (nm.textContent !== be.d.name) nm.textContent = be.d.name;
   } else if (!bar.hidden) bar.hidden = true;
@@ -3600,7 +4654,7 @@ function gameOver(){
 $('#startBtn').onclick = start; $('#againBtn').onclick = start;
 function showBest(){ const b = store.get(); $('#bestTitle').textContent = b ? `Recorde: ${fmt(b)}` : ''; $('#bestStart').textContent = b ? `Seu recorde: ${fmt(b)}` : ''; }
 function goTitle(){
-  state = 'menu'; clearInput(); clearTimeout(overTimer); $('#hud').inert = false; audioSync();
+  state = 'menu'; clearInput(); clearTimeout(overTimer); hideBossCard(); $('#hud').inert = false; audioSync();
   for (const id of ['#overScreen', '#pauseScreen', '#levelScreen', '#startScreen', '#hud']) $(id).hidden = true;
   $('#titleScreen').hidden = false; showBest();
 }
@@ -3625,6 +4679,8 @@ SFX.moodFn(() => {
     return G.boss.e && G.boss.e.bs.enraged ? 'boss2' : 'boss';
   }
   if (state === 'over') return 'silent';
+  const mb = G.guard.find(e => e.m);
+  if (mb) return mb.m.st === 'intro' ? 'silent' : mb.m.ph === 2 ? 'bossM2' : 'bossM';
   let near = 0; for (const e of E) if (Math.abs(e.x - P.x) < 130 && Math.abs(e.y - P.y) < 130) near++;
   return (near >= 16 || G.t > 210) ? 'combat' : 'calm';
 }); $('#resumeBtn').onclick = togglePause;
@@ -3693,21 +4749,26 @@ async function keepAwake(on){
     el.insertAdjacentHTML('beforeend', `<span>${d.name}</span><small>${fmt(t)}</small>`);
     box.appendChild(el);
   }
-  // bosses, in BOSSES order: guardians (placeholders) show their base enemy with the elite gold outline
+  // bosses, in BOSSES order, then the lich's skeletons
+  const beast = (c, name, info) => { const el = document.createElement('div'); el.className = 'beast boss'; el.appendChild(c);
+    el.insertAdjacentHTML('beforeend', `<span>${name}</span><small>${info}</small>`); box.appendChild(el); };
   for (const m of BOSSES){
     const c = document.createElement('canvas'), g = c.getContext('2d');
-    let name;
-    if (m.id === 'dragon'){ c.width = 48; c.height = 40; g.imageSmoothingEnabled = false; g.drawImage(ET.dragon.spr[0], 0, 0, 48, 40); c.style.height = '36px'; name = ET.dragon.name; }
+    if (m.id === 'dragon'){ c.width = 48; c.height = 40; g.imageSmoothingEnabled = false; g.drawImage(ET.dragon.spr[0], 0, 0, 48, 40); }
     else {
-      const b = ET[BAL.guard[m.id].type], fr = (b.dirs.down || b.dirs.all)[0];
-      c.width = fr.n.width + 2; c.height = fr.n.height + 2;
-      for (const [ox, oy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) g.drawImage(fr.g, ox, oy);
-      g.drawImage(fr.n, 1, 1); c.style.height = Math.min(44, c.height*1.5) + 'px'; name = BAL.guard[m.id].name;
+      c.width = m.id === 'paladin' ? PAL_W : LICH_W; c.height = m.id === 'paladin' ? PAL_H : LICH_H;
+      // drawn when "Como jogar" first opens, so the boss sprites are not built at boot
+      $('#howBtn').addEventListener('click', () => {
+        const src = m.id === 'paladin' ? palArt().fr.walk0[0].n : lichArt().fr.float0[0].n;
+        g.drawImage(src, 0, 0);
+        if (m.id === 'paladin') drawRotTo(g, palArt().sword, PAL_HAND.walk[0], PAL_HAND.walk[1], 1.9);
+      }, {once:true});
     }
-    const el = document.createElement('div'); el.className = 'beast boss'; el.appendChild(c);
-    el.insertAdjacentHTML('beforeend', `<span>${name}</span><small>${fmt(m.t)} · chefe</small>`);
-    box.appendChild(el);
+    c.style.height = '40px';
+    beast(c, ET[m.id].name, `${fmt(m.t)} · ${BOSS_TXT.card.toLowerCase()}`);
   }
+  { const src = ET.skeleton.dirs.down[0].n, c = document.createElement('canvas'); c.width = src.width; c.height = src.height; c.getContext('2d').drawImage(src, 0, 0);
+    c.style.height = Math.min(44, src.height*1.5) + 'px'; beast(c, ET.skeleton.name, `${fmt(BOSSES[1].t)} · ${BOSS_TXT.summoned}`); }
   const b = store.get(); $('#bestStart').textContent = b ? `Seu recorde: ${fmt(b)}` : '';
 })();
 
@@ -4059,6 +5120,8 @@ ric(idleGround);
 // non-critical sprites, built a little at a time once the title is up
 const warmJobs = [() => { CLOUD = CLOUD || buildCloud(); }, ...[0, 1].map(h => () => { const set = h ? SWORDS.h : SWORDS.n; for (let k = 0; k < SWORD_N; k++) set.get(k); })];
 for (const t in ET) if (ET[t].dirs) for (const dir in ET[t].dirs) for (const fr of ET[t].dirs[dir]) warmJobs.push(() => { void fr.w; void fr.g; void fr.b; });
+// mid-boss frames (and their white copies) before 5:00
+warmJobs.push(() => palArt(), () => lichArt(), () => { for (const A of [palArt(), lichArt()]) for (const k in A.fr) for (const p of A.fr[k]) void p.w; }, () => GBLADE.get());
 function warmIdle(dl){
   const t0 = performance.now();
   while (warmJobs.length && (dl && !dl.didTimeout ? dl.timeRemaining() > 2 : performance.now() - t0 < 4)) warmJobs.shift()();
