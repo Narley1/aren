@@ -68,7 +68,7 @@ rep("< m.r + 2) hurt(2);", "< m.r + 2){ window.__H='bones'; hurt(2); }", need=Fa
 
 HOOK = r"""window.__ST = {raw:{}, eff:{}, boss:{}, guard:{}, hurt:{}, items:{}, spawnN:{}, secDmg:0, secHurt:0, secSpawnHp:0, sealHits:0};
 window.__d = () => ({G, P, W, E, B, EB, ITEMS, CURSES, MARKS, GEMS, state, UPG, ET, lvlOpts, pickOptions, available, enhanceable,
-  BOSSES: typeof BOSSES !== 'undefined' ? BOSSES : null, BOSS_T: typeof BOSS_T !== 'undefined' ? BOSS_T : null});
+  BAL: typeof BAL !== 'undefined' ? BAL : null, BOSSES: typeof BOSSES !== 'undefined' ? BOSSES : null, BOSS_T: typeof BOSS_T !== 'undefined' ? BOSS_T : null});
 window.__u = dt => { if (state === 'play'){ update(dt); if (state === 'play' && G.pending > 0) openLevelUp(); } return state; };
 window.__start = () => { start(); };
 window.__mv = (ix, iy) => { J = (ix || iy) ? {id:-1, ox:0, oy:0, x:ix*40, y:iy*40} : null; };

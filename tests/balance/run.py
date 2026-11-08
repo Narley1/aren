@@ -45,7 +45,7 @@ CHUNK = """(args) => {
 FINAL = """() => { const d = __d(), G = d.G; return {state:d.state, t:G.t, lvl:G.lvl, kills:G.kills, ups:G.ups, gems:G.gems, W:d.W,
   boss: G.boss ? {phase:G.boss.phase, t:G.boss.t, hp: G.boss.e ? G.boss.e.hp : null, max: G.boss.e ? G.boss.e.d.hp : null} : null,
   ST: {raw:__ST.raw, eff:__ST.eff, boss:__ST.boss, guard:__ST.guard, hurt:__ST.hurt, items:__ST.items, spawnN:__ST.spawnN, sealHits:__ST.sealHits},
-  picks: __BOT.picks, title: document.querySelector('#overTitle').textContent}; }"""
+  picks: __BOT.picks, off: __BOT.off, title: document.querySelector('#overTitle').textContent}; }"""
 
 async def one(b, sim, seed, policy, mode, dt, maxT):
     pg = await b.new_page(viewport={'width': 420, 'height': 800})

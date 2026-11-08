@@ -1,13 +1,22 @@
 // Injected before the page scripts: seeded Math.random + bot (pick policy + movement).
-// URL params: seed, policy (prio|sword|orb|defense|balanced|random), mode (agg|kite)
+// URL params: seed, policy (prio|sword|orb|defense|balanced|random|melee|ranged|hybrid), mode (agg|kite)
 (() => {
   const Q = new URLSearchParams(location.search);
   const seed = (window.__SEED = Number(Q.get('seed') || 1));
   let s = seed * 2654435761 % 4294967296 || 1;
   Math.random = () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
   const policy = Q.get('policy') || 'prio', mode = Q.get('mode') || 'agg';
+  // Style policies (Etapa 4): 'melee' takes only melee weapons, the Manoplas and defensive passives, 'ranged' only
+  // ranged weapons, the Grimório and defensive passives; when none of the 3 options fits, they fall back to the
+  // tail of the list (counted in __BOT.off). Names a version does not have are simply never offered.
+  const STYLE = {
+    melee:  {ok:['hammer','thorns','sword','gauntlets','holy','heart','boots','magnet'], tail:['orb','grimoire','storm','fire','boom','bow']},
+    ranged: {ok:['bow','fire','boom','grimoire','storm','heart','boots','magnet'], tail:['orb','gauntlets','holy','sword','thorns','hammer']},
+    hybrid: {ok:['orb','bow','thorns','gauntlets','grimoire','fire','hammer','boom','holy','storm','sword','heart','boots','magnet'], tail:[]},
+  };
   const PRIO = {
-    prio:     ['fire','boom','orb','holy','storm','meteor','sword','heart','boots','magnet'],
+    melee: STYLE.melee.ok.concat(STYLE.melee.tail), ranged: STYLE.ranged.ok.concat(STYLE.ranged.tail), hybrid: STYLE.hybrid.ok,
+    prio:     ['fire','boom','orb','bow','hammer','thorns','holy','storm','meteor','sword','grimoire','gauntlets','heart','boots','magnet'],
     sword:    ['sword','holy','heart','boots','orb','boom','fire','storm','meteor','magnet'],
     orb:      ['orb','boom','sword','holy','storm','meteor','fire','heart','boots','magnet'],
     defense:  ['heart','boots','sword','orb','boom','fire','holy','storm','meteor','magnet'],
@@ -17,7 +26,8 @@
   // the bot's own RNG for random picks, so pick choices do not shift the game's random stream differently per policy
   let r2 = seed * 7919 + 13;
   const rnd = () => { r2 = (r2 * 1103515245 + 12345) % 2147483648; return r2 / 2147483648; };
-  window.__BOT = {policy, mode, picks:[], circA: rnd()*6.28};
+  window.__BOT = {policy, mode, picks:[], off:0, circA: rnd()*6.28};
+  const rank = (pr, k) => { const i = pr.indexOf(k); return i < 0 ? 999 : i; };
   window.__botPick = () => {
     const d = __d(); const o = d.lvlOpts; if (!o.length) return;
     let i = 0;
@@ -27,8 +37,9 @@
       for (let j = 1; j < o.length; j++) if (sc(o[j]) < sc(o[i])) i = j;
     } else {
       const pr = PRIO[policy];
-      for (let j = 1; j < o.length; j++) if (pr.indexOf(o[j]) < pr.indexOf(o[i])) i = j;
+      for (let j = 1; j < o.length; j++) if (rank(pr, o[j]) < rank(pr, o[i])) i = j;
     }
+    if (STYLE[policy] && STYLE[policy].tail.includes(o[i])) __BOT.off++;
     __BOT.picks.push({t:+d.G.t.toFixed(1), lvl:d.G.lvl, opts:o.slice(), took:o[i]});
     __pick(i);
   };
@@ -36,7 +47,11 @@
     const d = __d(), P = d.P, bot = __BOT, kite = mode === 'kite';
     let fx = 0, fy = 0, danger = 0;
     const boss = d.G.boss && d.G.boss.e;
-    const lw = d.W.sword, el = 1 + (lw - 1)*1.75, swR = 17 + el*2.3 + (d.W.holy ? 8 : 0);
+    const lw = d.W.sword, el = 1 + (lw - 1)*1.75, B = d.BAL || {}, ga = 1 + (d.W.gauntlets || 0)*((B.gauntlets || {}).area || 0);
+    // melee reach for the 'agg' (close-range) mode: sword, or most of the thorn aura / hammer ring when owned (Etapa 4)
+    let swR = (17 + el*2.3 + (d.W.holy ? 8 : 0))*ga;
+    if (d.W.thorns && B.thorns) swR = Math.max(swR, (B.thorns.rBase + d.W.thorns*B.thorns.rPerLvl)*ga*.85);
+    if (d.W.hammer && B.hammer) swR = Math.max(swR, (B.hammer.rBase + d.W.hammer*B.hammer.rPerLvl)*ga*.6);
     const low = P.hp <= P.maxHp*.35;
     let near = null, nd = 1e9, crowd = 0;
     for (const e of d.E){
