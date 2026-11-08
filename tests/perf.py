@@ -14,7 +14,8 @@ invulnerable hero and a fixed power schedule, and measures:
 at CPU throttle 1x and 4x (Chrome DevTools CPU throttling via CDP).
 
 Scenarios: early (30 s), mid (300 s), late (840 s, all powers maxed incl.
-relics and the Etapa 4 powers), boss (dragon fight, ~912 s). (Before Etapa 3 late was 540 s and the boss
+relics and the Etapa 4 powers), boss (dragon fight, ~912 s), paladin (5:12) and
+lich (10:15) (Etapa 5 mid-boss fights, boss held in phase 2). (Before Etapa 3 late was 540 s and the boss
 came at 600 s; numbers in CHANGELOG for Etapa 2 use those times.)
 
 Usage:
@@ -57,7 +58,9 @@ window.__u = update; window.__r = render; window.__amb = ambUpdate; window.__sta
 '''
 
 HELPERS = r'''
-window.__keepAlive = () => { const d = __d(); d.P.hp = d.P.maxHp; d.G.need = 1e12; d.G.pending = 0; };
+// Etapa 5: a living mid-boss is held in phase 2 (spirit, faster attacks) and never dies, so its effects stay on screen
+window.__keepAlive = () => { const d = __d(); d.P.hp = d.P.maxHp; d.G.need = 1e12; d.G.pending = 0;
+  for (const e of (d.G.guard || [])) if (e.m && e.m.st !== 'intro' && e.hp > e.max*.45 || e.m && e.hp < e.max*.3) e.hp = e.max*.45; };
 window.__steer = i => { const k = __d().keys; for (const q of ['w','a','s','d']) k[q] = false;
   const m = [['d'],['d','s'],['s'],['s','a'],['a'],['a','w'],['w'],['w','d']][Math.floor(i/150) % 8]; for (const q of m) k[q] = true; };
 window.__ff = (T, sched) => { let i = 0, maxE = 0;
@@ -101,7 +104,9 @@ SCHED_MID = SCHED_EARLY + [(120, {'sword': 3, 'boom': 2, 'orb': 2, 'fire': 2}), 
 # Etapa 4: the new powers are maxed too (older versions just ignore the extra W keys), more than the 5-weapon cap allows: worst case
 SCHED_LATE = SCHED_MID + [(300, {'holy': 1}), (450, {'holy': 3, 'boom': 5, 'orb': 5, 'fire': 5, 'boots': 5, 'magnet': 5,
                                                    'hammer': 5, 'thorns': 5, 'bow': 5, 'gauntlets': 5, 'grimoire': 5}), (600, {'storm': 2}), (700, {'storm': 3})]
-SCEN = {'early': (30, SCHED_EARLY), 'mid': (300, SCHED_MID), 'late': (840, SCHED_LATE), 'boss': (912, SCHED_LATE)}
+SCEN = {'early': (30, SCHED_EARLY), 'mid': (300, SCHED_MID), 'late': (840, SCHED_LATE), 'boss': (912, SCHED_LATE),
+        # Etapa 5 mid-bosses (fight in phase 2): Paladino at 5:12 with the mid build, Lich at 10:15 with the late build
+        'paladin': (312, SCHED_MID), 'lich': (615, SCHED_LATE)}
 
 
 def build(src, outdir):
@@ -209,7 +214,7 @@ async def main(a):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('scenarios', nargs='*', default=['early', 'mid', 'late', 'boss'])
+    ap.add_argument('scenarios', nargs='*', default=['early', 'mid', 'late', 'boss', 'paladin', 'lich'])
     ap.add_argument('--src', default=DEFAULT_SRC)
     ap.add_argument('--throttle', type=int, nargs='+', default=[1, 4])
     ap.add_argument('-n', type=int, default=600, help='bench frames')

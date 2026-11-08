@@ -10,8 +10,10 @@ Runs:
              maxed (relics given at 300/600 s), guardians at 5:00 and 10:00, dragon
              intro/fight at 15:00, forced victory, back to title, then 3 restart
              cycles (play 30 s, die, game-over screen, title).
-  milestones -- guardian spawns at its time, slows spawning, drops its relic;
-             the relic is not offered before it is picked up, and is after.
+  milestones -- Paladino (5:00) and Lich (10:00): spawn at their time with bar and
+             title card, phase 2 at 50%, death drops the relic after the collapse
+             (not offered before pickup, offered after), lich skeletons and strike
+             circles, a boss left alive flees and its relic is lost.
   normal  -- 120 s with a simple kiting bot (hero can die).
   races   -- die / win and restart immediately: the stale game-over screen must
              not pop over the new run; keys are cleared on blur.
@@ -49,7 +51,11 @@ window.__t = {
   get lvlOpts(){ return lvlOpts; },
   // Etapa 4
   get BAL(){ return typeof BAL !== 'undefined' ? BAL : null; },
-  get UPG(){ return typeof UPG !== 'undefined' ? UPG : null; }
+  get UPG(){ return typeof UPG !== 'undefined' ? UPG : null; },
+  // Etapa 5
+  get ZAPS(){ return typeof ZAPS !== 'undefined' ? ZAPS : null; },
+  get CORPSES(){ return typeof CORPSES !== 'undefined' ? CORPSES : null; },
+  get lichStart(){ return typeof lichStart === 'function' ? lichStart : null; }
 };
 '''
 
@@ -155,29 +161,67 @@ MILESTONES = r'''
   T.start();
   if (!T.BOSSES) return {skipped: true};
   T.P.inv = 1e9;
+  const step = (n, f) => { for (let i = 0; i < n; i++){ T.update(1/30); if (T.G.pending) T.G.pending = 0; if (T.state !== 'play') T.state = 'play'; if (f && f()) return true; } return false; };
   r.holyBefore = T.avail().includes('holy');
   T.G.t = 299.5;
-  for (let i = 0; i < 30; i++){ T.update(1/30); if (T.G.pending) T.G.pending = 0; }
+  step(30);
   const g = T.G.guard[0];
-  r.guard = g ? {type: g.type, hp: Math.round(g.hp), elite: g.elite, relic: g.relic} : null;
+  r.guard = g ? {type: g.type, mb: g.mb, hp: Math.round(g.hp), relic: g.relic, t: +T.G.t.toFixed(2), born: +g.born.toFixed(2)} : null;
   r.barShown = (T.hud(), !document.querySelector('#bossBar').hidden);
   r.barName = document.querySelector('#bossName').textContent;
-  // spawning while the guardian lives: count spawns over 20 s vs 20 s after it dies
-  const n0 = T.E.length; let spawnedCalm = 0;
-  for (let i = 0; i < 20*30; i++){ const n = T.E.length; T.update(1/30); spawnedCalm += Math.max(0, T.E.length - n); if (T.G.pending) T.G.pending = 0; T.P.x = 0; T.P.y = 0; }
-  if (!g) return r;
-  g.hp = 1; g.x = T.P.x + 300; g.y = T.P.y; T.update(1/30);
-  // kill it with a direct hit via the hero's sword range: move it next to the hero
-  for (let i = 0; i < 90 && !g.dead; i++){ for (const e of T.E) if (e !== g) e.dead = true; g.x = T.P.x + 14; g.y = T.P.y; T.update(1/30); }
+  r.card = document.querySelector('#bossCard').hidden ? null : document.querySelector('#bossCard b').textContent;
+  // spawning while the boss lives: count spawns over 20 s
+  let spawnedCalm = 0;
+  for (let i = 0; i < 20*30; i++){ const n = T.E.length; T.update(1/30); spawnedCalm += Math.max(0, T.E.length - n); if (T.G.pending) T.G.pending = 0; }
+  r.spawnedCalm = spawnedCalm;
+  if (!g || !g.m) return r;
+  // phase 2: damage stops at the threshold, the transition is invulnerable, then phase 2
+  step(30*6, () => g.m.st === 'walk' || g.m.st === 'recover');
+  g.hp = g.max*.5;
+  step(3, () => g.m.st === 'trans');
+  r.p2 = {ph: g.m.ph, st: g.m.st, untouch: g.untouch, info: (T.hud(), document.querySelector('#bossInfo').textContent)};
+  step(30*3, () => g.m.st !== 'trans');
+  r.p2after = {st: g.m.st, untouch: g.untouch};
+  // death: the relic drops when the collapse ends, not before
+  g.hp = 1;
+  for (let i = 0; i < 90 && !g.dead; i++){ for (const e of T.E) if (e !== g) e.dead = true; g.x = T.P.x + 14; g.y = T.P.y; g.untouch = false; g.m.st = 'recover'; T.update(1/30); }
   r.guardDead = g.dead; r.guardsLeft = T.G.guard.length;
+  r.corpse = T.CORPSES.length; r.relicAtDeath = T.ITEMS.some(it => it.kind === 'relic');
+  T.P.x += 200;   // stay away so the relic is not picked up yet
+  step(30*2.2);
   const rel = T.ITEMS.find(it => it.kind === 'relic');
   r.relicDropped = rel ? rel.rk : null;
   r.holyAfterDropNotPicked = T.avail().includes('holy');
-  if (rel){ rel.x = T.P.x; rel.y = T.P.y; T.update(1/30); }
+  if (rel){ T.P.x = rel.x; T.P.y = rel.y; T.update(1/30); }
   r.holyLevel = T.W.holy;
   r.holyAvailAfter = T.avail().includes('holy');
   r.relicGone = !T.ITEMS.some(it => it.kind === 'relic');
-  r.spawnedCalm = spawnedCalm;
+  // the lich at 10:00: spawns, summons skeletons that climb out of the ground, phase 2, death drops the storm relic
+  T.G.t = 599.5; step(30);
+  const l = T.G.guard[0];
+  r.lich = l ? {mb: l.mb, relic: l.relic, name: (T.hud(), document.querySelector('#bossName').textContent)} : null;
+  if (l){
+    step(30*6, () => l.m.st === 'float');
+    T.lichStart(l, 'summon');
+    step(30*2, () => T.E.some(e => e.type === 'skeleton'));
+    const sk = T.E.filter(e => e.type === 'skeleton');
+    r.skeletons = {n: sk.length, rising: sk.some(e => e.rise > 0)};
+    step(30*2);
+    r.skeletonsWalk = T.E.filter(e => e.type === 'skeleton' && e.rise <= 0).length;
+    T.lichStart(l, 'rain'); step(30*1);
+    r.zaps = T.ZAPS.length;
+    l.hp = l.max*.5; step(30*4, () => l.m.ph === 2 && l.m.st === 'trans');
+    r.lichP2 = l.m.ph;
+    step(30*3, () => l.m.st !== 'trans');
+    l.hp = 1;
+    for (let i = 0; i < 90 && !l.dead; i++){ for (const e of T.E) if (e !== l) e.dead = true; l.x = T.P.x + 14; l.y = T.P.y; l.untouch = false; l.m.st = 'tired'; l.m.t = 0; l.alpha = 1; T.update(1/30); }
+    T.P.x += 200; step(30*2.2);
+    r.lichRelic = (T.ITEMS.find(it => it.kind === 'relic') || {}).rk || null;
+  }
+  // a boss left alive flees after BAL.<id>.flee s and its relic is lost
+  T.start(); T.P.inv = 1e9; T.G.t = 299.5; step(30*4);
+  const f = T.G.guard[0];
+  if (f){ f.born = T.G.t - T.BAL.paladin.flee - 1; step(30*3, () => f.dead); r.fled = {dead: f.dead, guards: T.G.guard.length, relic: T.ITEMS.some(it => it.kind === 'relic')}; }
   T.goTitle();
   return r;
 }
@@ -367,11 +411,14 @@ def checks(r):
     ok('stress: entity counts sane', s['max']['E'] <= 300 and s['max']['GEMS'] <= 450 and s['max']['NUMS'] <= 80 and s['max']['FX'] < 20000, json.dumps(s['max']))
     m = r.get('milestones') or {}
     if not m.get('skipped'):
-        ok('milestones: guardian spawns at 5:00 as elite with relic holy', m.get('guard') and m['guard']['elite'] and m['guard']['relic'] == 'holy', json.dumps(m.get('guard')))
-        ok('milestones: boss bar shows the guardian', m.get('barShown') and m.get('barName') == 'Paladino Possuído', m.get('barName', ''))
-        ok('milestones: guardian death drops the relic; relic not offered before pickup', m.get('guardDead') and m.get('relicDropped') == 'holy' and not m.get('holyBefore') and not m.get('holyAfterDropNotPicked'), json.dumps(m))
+        g = m.get('guard') or {}
+        ok('paladin: spawns at 5:00 (relic holy), boss bar + title card with its name', g.get('mb') == 'paladin' and g.get('relic') == 'holy' and abs(g.get('born', 0) - 300) < .1 and m.get('barShown') and m.get('barName') == 'Paladino Possuído' and m.get('card') == 'Paladino Possuído', json.dumps({k: m.get(k) for k in ('guard', 'barName', 'card')}))
+        ok('paladin: phase 2 at 50% (invulnerable transition, HUD says it, then vulnerable again)', (m.get('p2') or {}).get('ph') == 2 and m['p2']['untouch'] and m['p2']['info'] == 'Invulnerável' and m.get('p2after', {}).get('untouch') is False, json.dumps({k: m.get(k) for k in ('p2', 'p2after')}))
+        ok('paladin: death -> collapse, relic drops after it; not offered before pickup', m.get('guardDead') and m.get('corpse') == 1 and not m.get('relicAtDeath') and m.get('relicDropped') == 'holy' and not m.get('holyBefore') and not m.get('holyAfterDropNotPicked'), json.dumps({k: m.get(k) for k in ('guardDead', 'corpse', 'relicAtDeath', 'relicDropped')}))
         ok('milestones: picking the relic grants level 1 and opens it to picks', m.get('holyLevel') == 1 and m.get('holyAvailAfter') and m.get('relicGone'), json.dumps(m))
-        ok('stress: both guardians spawned (mi reached 3)', s.get('mi') == 3, f"mi={s.get('mi')} guards={s.get('guards')}")
+        ok('lich: spawns at 10:00 with the bar, summons rising skeletons, strike circles, phase 2, drops the storm relic', (m.get('lich') or {}).get('name') == 'Lich Ancião' and (m.get('skeletons') or {}).get('n', 0) >= 3 and m['skeletons']['rising'] and m.get('skeletonsWalk', 0) >= 3 and m.get('zaps', 0) >= 5 and m.get('lichP2') == 2 and m.get('lichRelic') == 'storm', json.dumps({k: m.get(k) for k in ('lich', 'skeletons', 'skeletonsWalk', 'zaps', 'lichP2', 'lichRelic')}))
+        ok('boss left alive flees after BAL.flee s and the relic is lost', (m.get('fled') or {}).get('dead') and m['fled']['guards'] == 0 and not m['fled']['relic'], json.dumps(m.get('fled')))
+        ok('stress: both mid-bosses spawned (mi reached 3)', s.get('mi') == 3, f"mi={s.get('mi')} guards={s.get('guards')}")
     pw = r.get('powers') or {}
     if not pw.get('skipped'):
         kl = pw['kills']
