@@ -12,6 +12,8 @@ Runs:
   normal  -- 120 s with a simple kiting bot (hero can die).
   races   -- die / win and restart immediately: the stale game-over screen must
              not pop over the new run; keys are cleared on blur.
+  ux      -- AZERTY (e.code), audio suspended when the tab is hidden, wake-lock
+             race, pause dialog (role, focus trap, inert HUD), HUD button focus.
 
 Usage:
   python3 tests/smoke.py                    # run everything, exit 1 on failure
@@ -52,7 +54,8 @@ def build_hooked(src, outdir, audio=True):
         # Math.random, so audio must be off for a reproducible seeded run.
         j = s.find('<script>')
         s = s[:j] + '<script>window.AudioContext = undefined; window.webkitAudioContext = undefined;</script>\n' + s[j:]
-    s = '<meta charset="utf-8">\n' + s  # the source has no charset; the build adds it
+    # the source is a fragment: the build (and the artifact shell) add the charset and this rule
+    s = '<meta charset="utf-8">\n<style>[hidden]{display:none!important}</style>\n' + s
     path = os.path.join(outdir, 'hooked-audio.html' if audio else 'hooked-noaudio.html')
     open(path, 'w', encoding='utf-8').write(s)
     fdir = os.path.join(os.path.dirname(src), 'font')
@@ -172,6 +175,44 @@ async () => {
 }
 '''
 
+UX = r'''
+async () => {
+  const T = window.__t, r = {}, $ = q => document.querySelector(q), wait = ms => new Promise(res => setTimeout(res, ms));
+  // AZERTY: physical W (key 'z') moves up
+  T.start();
+  dispatchEvent(new KeyboardEvent('keydown', {key: 'z', code: 'KeyW'}));
+  r.azertyDown = !!T.keys.w;
+  dispatchEvent(new KeyboardEvent('keyup', {key: 'z', code: 'KeyW'}));
+  r.azertyUp = !T.keys.w;
+  // audio: suspended whenever the tab is hidden, in any state
+  const calls = [];
+  const sus = AudioContext.prototype.suspend, res = AudioContext.prototype.resume;
+  AudioContext.prototype.suspend = function(){ calls.push('suspend'); return sus.call(this); };
+  AudioContext.prototype.resume = function(){ calls.push('resume'); return res.call(this); };
+  T.goTitle(); calls.length = 0;
+  Object.defineProperty(document, 'hidden', {configurable: true, get: () => true});
+  document.dispatchEvent(new Event('visibilitychange'));
+  r.menuHiddenSuspends = calls.at(-1) === 'suspend';
+  Object.defineProperty(document, 'hidden', {configurable: true, get: () => false});
+  document.dispatchEvent(new Event('visibilitychange'));
+  r.menuVisibleResumes = calls.at(-1) === 'resume';
+  AudioContext.prototype.suspend = sus; AudioContext.prototype.resume = res;
+  // wake lock granted after the run was paused must be released
+  const lock = {released: false, release(){ this.released = true; return Promise.resolve(); }, addEventListener(){}};
+  Object.defineProperty(navigator, 'wakeLock', {configurable: true, value: {request: () => new Promise(ok => setTimeout(() => ok(lock), 100))}});
+  T.start(); T.togglePause();
+  await wait(250);
+  r.wakeLockReleased = lock.released;
+  T.togglePause();
+  // pause dialog: semantics, HUD inert
+  T.togglePause();
+  const pnl = $('#pauseScreen .panel');
+  r.pauseDialog = pnl.getAttribute('role') === 'dialog' && pnl.getAttribute('aria-modal') === 'true';
+  r.hudInert = $('#hud').inert === true;
+  return r;
+}
+'''
+
 async def run(src, seed):
     from playwright.async_api import async_playwright
     tmp = tempfile.mkdtemp(prefix='aren-smoke-')
@@ -197,6 +238,23 @@ async def run(src, seed):
             await pg.evaluate('() => window.dispatchEvent(new Event("blur"))')
             res['blur'] = await pg.evaluate('() => ({w: !!window.__t.keys.w, state: window.__t.state})')
             await pg.keyboard.up('w')
+            await pg.evaluate('() => window.__t.goTitle()')
+            ux = await pg.evaluate(UX)
+            # focus trap: Tab never leaves the pause panel
+            inside = []
+            for _ in range(5):
+                await pg.keyboard.press('Tab')
+                inside.append(await pg.evaluate('() => !!document.activeElement.closest("#pauseScreen")'))
+            ux['tabTrapped'] = all(inside)
+            await pg.keyboard.press('Escape')
+            # HUD button clicked with the mouse loses focus; Enter afterwards must not toggle it again
+            await pg.click('#musicBtn')
+            m1 = await pg.evaluate('() => document.querySelector("#musicBtn").getAttribute("aria-pressed")')
+            ux['hudBlurred'] = await pg.evaluate('() => document.activeElement !== document.querySelector("#musicBtn")')
+            await pg.keyboard.press('Enter')
+            ux['enterNoToggle'] = m1 == await pg.evaluate('() => document.querySelector("#musicBtn").getAttribute("aria-pressed")')
+            await pg.click('#musicBtn')
+            res['ux'] = ux
             # determinism pass: fresh page, audio off, same seeds
             pg2 = await b.new_page(viewport={'width': 900, 'height': 700})
             pg2.on('pageerror', lambda e: errs.append('pageerror (det): ' + str(e)))
@@ -234,6 +292,13 @@ def checks(r):
     ok('race: death then restart keeps panel hidden', rc['deathRace']['state'] == 'play' and not rc['deathRace']['overVisible'], json.dumps(rc['deathRace']))
     ok('race: victory then title keeps panel hidden', rc['victoryRace']['state'] == 'menu' and not rc['victoryRace']['overVisible'], json.dumps(rc['victoryRace']))
     ok('blur: keys released and game paused', not r['blur']['w'] and r['blur']['state'] == 'pause', json.dumps(r['blur']))
+    u = r['ux']
+    ok('AZERTY: KeyW code moves up', u['azertyDown'] and u['azertyUp'])
+    ok('audio suspended when hidden in menu, resumed when visible', u['menuHiddenSuspends'] and u['menuVisibleResumes'])
+    ok('wake lock granted after pause is released', u['wakeLockReleased'])
+    ok('pause panel is a modal dialog, HUD inert', u['pauseDialog'] and u['hudInert'])
+    ok('Tab stays inside the pause panel', u['tabTrapped'])
+    ok('mouse-clicked HUD button loses focus, Enter does not re-toggle', u['hudBlurred'] and u['enterNoToggle'])
     return c
 
 def main():

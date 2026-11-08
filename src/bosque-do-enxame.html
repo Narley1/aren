@@ -195,8 +195,8 @@ body{-webkit-touch-callout:none}
   </div>
 
   <div class="overlay" id="pauseScreen" hidden>
-    <div class="panel">
-      <h2>Pausado</h2>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+      <h2 id="pauseTitle">Pausado</h2>
       <p id="pauseInfo"></p>
       <div class="row">
         <button class="btn" id="resumeBtn" type="button">Continuar</button>
@@ -1622,7 +1622,9 @@ const SFX = (() => {
 /* ---------------- state ---------------- */
 let G, P, W, E, B, EB, GEMS, ITEMS, FX, NUMS, ORBS, MARKS, CURSES, DECALS, BURNS;
 let state = 'menu';
+let overTimer = 0; /* delayed game-over/victory panel; cleared on every new run or title */
 function reset(){
+  clearTimeout(overTimer);
   G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mtCd:2, lateSeen:new Set(), boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0};
   P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
   W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, meteor:0};
@@ -1757,7 +1759,7 @@ function openLevelUp(){
   G.pending--;
   lvlOpts = pickOptions(2);
   if (!lvlOpts.length){ P.hp = Math.min(P.maxHp, P.hp + 2); toast(`Nível ${G.lvl}!`, 'Todos os poderes no máximo: recupera 1 coração'); return; }
-  state = 'levelup'; J = null; for (const k in keys) keys[k] = false;
+  state = 'levelup'; clearInput();
   SFX.levelup();
   $('#lvlTitle').textContent = `Nível ${G.lvl}!`;
   const box = $('#choices'); box.innerHTML = '';
@@ -2089,29 +2091,43 @@ function drawBossLayer(cx, cy){
   }
 }
 function victory(){
-  state = 'over'; J = null; SFX.stinger('win'); keepAwake(false);
+  state = 'over'; clearInput(); SFX.stinger('win'); keepAwake(false);
   const best = store.get(), nb = G.t > best;
   if (nb) store.set(G.t);
   $('#rTime').textContent = fmt(G.t); $('#rKills').textContent = G.kills; $('#rGems').textContent = G.gems; $('#rUp').textContent = G.ups;
   $('#overTitle').textContent = 'Vitória!';
   $('#overMsg').hidden = false; $('#overMsg').textContent = 'Aren derrotou o Dragão Esqueleto e salvou o bosque.';
   $('#bestOver').textContent = nb ? 'Novo recorde de tempo!' : `Recorde: ${fmt(best)}`;
-  setTimeout(() => { $('#overScreen').hidden = false; $('#againBtn').focus(); }, 900);
+  clearTimeout(overTimer); overTimer = setTimeout(() => { $('#overScreen').hidden = false; $('#againBtn').focus(); }, 900);
 }
 
 /* ---------------- input ---------------- */
 const keys = {};
+/* WASD by physical position too (AZERTY: ZQSD), arrows and letters by key */
+const CODE_KEYS = {KeyW:'w', KeyA:'a', KeyS:'s', KeyD:'d'};
+/* release every held key and the touch joystick: on blur, tab hidden, pause and any overlay */
+function clearInput(){ for (const k in keys) keys[k] = false; J = null; }
+const HUD_BTNS = ['#musicBtn', '#soundBtn', '#pauseBtn'];
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
-  keys[k] = true;
+  keys[k] = true; if (CODE_KEYS[e.code]) keys[CODE_KEYS[e.code]] = true;
+  if (k === 'tab' && state === 'pause'){ trapFocus(e, $('#pauseScreen')); return; }
   if (state === 'levelup'){ if (k === '1' || k === '2') chooseLevel(+k - 1); else if (k === 'arrowleft' || k === 'arrowup') $('#choice0')?.focus(); else if ((k === 'arrowright' || k === 'arrowdown') && $('#choice1')) $('#choice1').focus(); return; }
   if ((k === 'p' || k === 'escape') && (state === 'play' || state === 'pause')) togglePause();
   if (k === 'escape' && state === 'menu' && !$('#startScreen').hidden){ $('#startScreen').hidden = true; return; }
   if (k === 'enter' && state === 'menu' && !e.target.closest?.('button')) start();
   if (k === 'f' && !e.repeat) toggleFs();
 });
-addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; if (CODE_KEYS[e.code]) keys[CODE_KEYS[e.code]] = false; });
+function trapFocus(e, root){
+  const f = [...root.querySelectorAll('button')].filter(b => !b.hidden && b.offsetParent !== null);
+  if (!f.length) return;
+  e.preventDefault();
+  const i = f.indexOf(document.activeElement), n = i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length;
+  f[n].focus();
+}
+addEventListener('blur', () => { clearInput(); if (state === 'play') togglePause(); });
 let J = null;
 app.addEventListener('pointerdown', e => {
   if (state !== 'play' || e.target.closest('button')) return;
@@ -2860,28 +2876,30 @@ function toast(a, b){
 
 /* ---------------- flow ---------------- */
 function start(){
-  SFX.init(); keepAwake(true);
-  reset(); state = 'play';
+  SFX.init(); clearInput();
+  reset(); state = 'play'; keepAwake(true); audioSync(); $('#hud').inert = false;
   $('#titleScreen').hidden = true; $('#startScreen').hidden = true; $('#overScreen').hidden = true; $('#pauseScreen').hidden = true; $('#levelScreen').hidden = true; lastXp = ''; $('#hud').hidden = false; $('#bossBar').hidden = true;
   toast('Sobreviva, Aren!', 'A espada ataca sozinha quando há inimigos perto');
 }
 function togglePause(){
-  if (state === 'play'){ state = 'pause'; J = null; SFX.pause(true); keepAwake(false); $('#pauseInfo').textContent = `${fmt(G.t)} sobrevividos · ${G.kills} abates`; $('#pauseScreen').hidden = false; $('#resumeBtn').focus(); }
-  else if (state === 'pause'){ state = 'play'; $('#pauseScreen').hidden = true; SFX.pause(false); keepAwake(true); }
+  if (state === 'play'){ state = 'pause'; clearInput(); audioSync(); keepAwake(false); $('#hud').inert = true; $('#pauseInfo').textContent = `${fmt(G.t)} sobrevividos · ${G.kills} abates`; $('#pauseScreen').hidden = false; $('#resumeBtn').focus(); }
+  else if (state === 'pause'){ state = 'play'; $('#pauseScreen').hidden = true; $('#hud').inert = false; audioSync(); keepAwake(true); }
 }
+/* the AudioContext runs only while the tab is visible, the game is not paused and some sound is on */
+function audioSync(){ SFX.pause(document.hidden || state === 'pause' || (!SFX.on && !SFX.music)); }
 function gameOver(){
-  state = 'over'; J = null; SFX.stinger('lose'); keepAwake(false);
+  state = 'over'; clearInput(); SFX.stinger('lose'); keepAwake(false);
   const best = store.get(), nb = G.t > best;
   if (nb) store.set(G.t);
   $('#rTime').textContent = fmt(G.t); $('#rKills').textContent = G.kills; $('#rGems').textContent = G.gems; $('#rUp').textContent = G.ups;
   $('#overTitle').textContent = 'Aren caiu'; $('#overMsg').hidden = true;
   $('#bestOver').textContent = nb ? 'Novo recorde de tempo!' : `Recorde: ${fmt(best)}`;
-  setTimeout(() => { $('#overScreen').hidden = false; $('#againBtn').focus(); }, 500);
+  clearTimeout(overTimer); overTimer = setTimeout(() => { $('#overScreen').hidden = false; $('#againBtn').focus(); }, 500);
 }
 $('#startBtn').onclick = start; $('#againBtn').onclick = start;
 function showBest(){ const b = store.get(); $('#bestTitle').textContent = b ? `Recorde: ${fmt(b)}` : ''; $('#bestStart').textContent = b ? `Seu recorde: ${fmt(b)}` : ''; }
 function goTitle(){
-  state = 'menu'; J = null;
+  state = 'menu'; clearInput(); clearTimeout(overTimer); $('#hud').inert = false; audioSync();
   for (const id of ['#overScreen', '#pauseScreen', '#levelScreen', '#startScreen', '#hud']) $(id).hidden = true;
   $('#titleScreen').hidden = false; showBest();
 }
@@ -2892,9 +2910,11 @@ $('#howBtn').onclick = () => { $('#startScreen').hidden = false; $('#startBtn').
 $('#backBtn').onclick = () => { $('#startScreen').hidden = true; };
 $('#installBtn2').onclick = () => $('#installBtn').click();
 $('#pauseBtn').onclick = togglePause;
+/* a mouse/touch click must not leave focus on a HUD button (Enter/Space would toggle it later); keyboard clicks keep focus */
+for (const id of HUD_BTNS) $(id).addEventListener('click', e => { if (e.detail > 0) e.currentTarget.blur(); });
 const soundLabel = () => { $('#soundBtn').setAttribute('aria-pressed', String(SFX.on)); $('#musicBtn').setAttribute('aria-pressed', String(SFX.music)); };
-$('#soundBtn').onclick = () => { SFX.init(); SFX.setOn(!SFX.on); soundLabel(); };
-$('#musicBtn').onclick = () => { SFX.init(); SFX.setMusic(!SFX.music); soundLabel(); };
+$('#soundBtn').onclick = () => { SFX.init(); SFX.setOn(!SFX.on); soundLabel(); audioSync(); };
+$('#musicBtn').onclick = () => { SFX.init(); SFX.setMusic(!SFX.music); soundLabel(); audioSync(); };
 soundLabel();
 SFX.moodFn(() => {
   if (state === 'menu') return 'title';
@@ -2908,7 +2928,10 @@ SFX.moodFn(() => {
   return (near >= 16 || G.t > 210) ? 'combat' : 'calm';
 }); $('#resumeBtn').onclick = togglePause;
 $('#restartBtn').onclick = start;
-document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') togglePause(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ clearInput(); if (state === 'play') togglePause(); }
+  audioSync();
+});
 
 /* ---------------- browser extras: fullscreen, install, screen awake ---------------- */
 const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
@@ -2939,7 +2962,12 @@ $('#installBtn').onclick = async () => {
 let wakeLock = null;
 async function keepAwake(on){
   try {
-    if (on && !wakeLock && 'wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    if (on && !wakeLock && 'wakeLock' in navigator){
+      const w = await navigator.wakeLock.request('screen');
+      /* the run may have been paused or ended while the request was pending */
+      if (state !== 'play' || wakeLock){ w.release().catch(() => {}); return; }
+      wakeLock = w; w.addEventListener('release', () => { if (wakeLock === w) wakeLock = null; });
+    }
     else if (!on && wakeLock){ const w = wakeLock; wakeLock = null; await w.release(); }
   } catch { wakeLock = null; }
 }
