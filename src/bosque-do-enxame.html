@@ -1110,20 +1110,54 @@ const STAMPS = {
   })
 };
 const GCH = 128, gCache = new Map();
-function pregenGround(cx, cy){
-  const i0 = Math.floor(cx/GCH) - 1, i1 = Math.floor((cx + VW)/GCH) + 1, j0 = Math.floor(cy/GCH) - 1, j1 = Math.floor((cy + VH)/GCH) + 1;
-  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){
-    if (j > j0 && j < j1 && i > i0 && i < i1) continue;
-    if (!gCache.has(i*100003 + j)){ groundChunk(i, j); return; }
+/* Ground chunks are generated a few rows at a time ahead of need (pregenGround from render with a
+   small time budget, plus idle callbacks), nearest to where the view is heading first, so drawing a
+   chunk that just came into view almost never has to build it from scratch. */
+let gJob = null, gView = null;
+const gPrev = {cx: 0, cy: 0, vx: 0, vy: 0};
+function chunkStart(i, j){ return {key: i*100003 + j, i, j, id: new ImageData(GCH, GCH), y: 0}; }
+function pregenGround(cx, cy, budget){
+  if (cx !== undefined){
+    // view motion (px/frame, smoothed) to look ahead
+    gPrev.vx = gPrev.vx*.9 + (cx - gPrev.cx)*.1; gPrev.vy = gPrev.vy*.9 + (cy - gPrev.cy)*.1; gPrev.cx = cx; gPrev.cy = cy;
+    gView = {cx, cy};
   }
+  if (!gView) return;
+  const t0 = performance.now();
+  for (;;){
+    if (!gJob){
+      const {cx, cy} = gView, sx = Math.abs(gPrev.vx) > .05 ? Math.sign(gPrev.vx) : 0, sy = Math.abs(gPrev.vy) > .05 ? Math.sign(gPrev.vy) : 0;
+      const pcx = cx + VW/2 + gPrev.vx*60, pcy = cy + VH/2 + gPrev.vy*60;
+      let best = null, bd = 1e18;
+      const i0 = Math.floor(cx/GCH) - 1 - (sx < 0), i1 = Math.floor((cx + VW)/GCH) + 1 + (sx > 0), j0 = Math.floor(cy/GCH) - 1 - (sy < 0), j1 = Math.floor((cy + VH)/GCH) + 1 + (sy > 0);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){
+        if (gCache.has(i*100003 + j)) continue;
+        const dx = (i + .5)*GCH - pcx, dy = (j + .5)*GCH - pcy, d = dx*dx + dy*dy;
+        if (d < bd){ bd = d; best = [i, j]; }
+      }
+      if (!best) return;
+      gJob = chunkStart(best[0], best[1]);
+    }
+    while (gJob.y < GCH){ chunkRows(gJob, 8); if (performance.now() - t0 > budget) return; }
+    chunkFinish(gJob); gJob = null;
+    if (performance.now() - t0 > budget) return;
+  }
+}
+const ric = window.requestIdleCallback ? (f => requestIdleCallback(f, {timeout: 200})) : (f => setTimeout(() => f(null), 60));
+function idleGround(dl){   // started by the main loop
+  if (state === 'play') pregenGround(undefined, undefined, dl && !dl.didTimeout ? Math.max(0, dl.timeRemaining() - 1) : 2);
+  ric(idleGround);
 }
 function groundChunk(i, j){
   const key = i*100003 + j;
   let c = gCache.get(key);
   if (c){ gCache.delete(key); gCache.set(key, c); return c; }
-  c = cnv(GCH, GCH); const g = c.getContext('2d'), id = g.createImageData(GCH, GCH), a = id.data;
-  const ox = i*GCH, oy = j*GCH;
-  for (let y = 0; y < GCH; y++) for (let x = 0; x < GCH; x++){
+  if (gJob && gJob.key === key){ c = chunkFinish(gJob); gJob = null; return c; }
+  return chunkFinish(chunkStart(i, j));
+}
+function chunkRows(job, nRows){
+  const a = job.id.data, ox = job.i*GCH, oy = job.j*GCH, yEnd = Math.min(GCH, job.y + nRows);
+  for (let y = job.y; y < yEnd; y++) for (let x = 0; x < GCH; x++){
     const wx = ox + x, wy = oy + y, n = dirtN(wx, wy), h = h2(wx*3 + 11, wy*7 + 5);
     let col;
     if (n > DIRT_T){
@@ -1149,6 +1183,11 @@ function groundChunk(i, j){
     }
     const k = (y*GCH + x)*4; a[k] = col[0]; a[k + 1] = col[1]; a[k + 2] = col[2]; a[k + 3] = 255;
   }
+  job.y = yEnd;
+}
+function chunkFinish(job){
+  chunkRows(job, GCH);
+  const c = cnv(GCH, GCH), g = c.getContext('2d'), id = job.id, ox = job.i*GCH, oy = job.j*GCH, key = job.key;
   g.putImageData(id, 0, 0);
   const SG = 8;
   for (let gy = Math.floor((oy - 8)/SG); gy <= Math.floor((oy + GCH)/SG); gy++) for (let gx = Math.floor((ox - 8)/SG); gx <= Math.floor((ox + GCH)/SG); gx++){
@@ -2692,7 +2731,7 @@ function drawScene(dt){
   // ground
   for (let j = Math.floor(cy/GCH); j <= Math.floor((cy + VH)/GCH); j++)
     for (let i = Math.floor(cx/GCH); i <= Math.floor((cx + VW)/GCH); i++) ctx.drawImage(groundChunk(i, j), i*GCH - cx, j*GCH - cy);
-  pregenGround(cx, cy);
+  pregenGround(cx, cy, 1.5);
   LX.begin(); ctx = LX;
 
   // gems & items
@@ -3552,6 +3591,7 @@ addEventListener('resize', placeLogo);
 
 /* ---------------- loop ---------------- */
 resize(); reset(); initLogo(); showBest();
+ric(idleGround);
 let last = performance.now();
 function frame(now){
   const dt = Math.max(0, Math.min(.05, (now - last)/1000)); last = now;
