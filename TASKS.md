@@ -79,7 +79,7 @@
 - [x] Limite de armas: o Narley escolheu **5** (08/11/2026). Com 5 o bot espalhava mais as builds na medição da Etapa 4 (ver `CHANGELOG.md`); remedir na Etapa 5
 - [x] Pesos novos das escolhas confirmados pelo Narley (08/11/2026)
 - [x] Nome "Fogo-fátuo" confirmado pelo Narley (08/11/2026); no futuro haverá opção de jogar em inglês
-- [ ] Grimório Arcano mais forte que o planejado (+10% de dano e −7% de recarga por nível): aguardando o Narley depois de relembrar o que é
+- [x] Grimório Arcano reduzido pelo Narley (08/11/2026): +8% de dano e −5% de recarga por nível (era +10% e −7%); nível 5: +40% de dano, −25% de recarga; híbrido continua com metade
 - [ ] Jogar uma build de cada estilo: o corpo a corpo parece arriscado mas recompensador? A aura dá para ler sem poluir?
 - [ ] O Fogo-fátuo (único híbrido) continua a arma mais fraca (67 de dano/s aos 10:00 no nível 5 contra 217 da Espada e 370–680 das outras); não foi mexido porque é número de poder existente
 - [ ] O bot com movimento de perto (`agg`) sobrevive menos que o cauteloso mesmo com corpo a corpo; um humano pode render bem diferente

@@ -895,7 +895,7 @@ const BAL = {
   /* style passives (Etapa 4), per level: Manoplas give melee powers +dmg and +area (sword range, radius of the
      hammer and the aura, width of the holy waves); Grimório gives ranged powers +dmg and -cooldown.
      Hybrid powers (Fogo-fátuo) get half of each (sDmg/sArea/sCd) */
-  gauntlets: {dmg:.1, area:.06}, grimoire: {dmg:.1, cd:.07},
+  gauntlets: {dmg:.1, area:.06}, grimoire: {dmg:.08, cd:.05},   // grimoire reduced from {dmg:.1, cd:.07} (Narley, 2026-11-08)
   /* Etapa 4 weapons, level l = 1..5 (the first level also x firstLvl.power).
      hammer: every max(cdMin, cdBase - l*cdPerLvl) s (only with an enemy in reach) Aren slams the ground after windup s:
      a shockwave ring grows to R = rBase + l*rPerLvl px in grow s and hits each enemy it reaches once for dmgBase + l*dmgPerLvl

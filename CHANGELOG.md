@@ -4,7 +4,7 @@
 
 - Limite de armas passa de 4 para **5** (`BAL.pick.maxWeapons`).
 - Confirmados: pesos novos das escolhas, nome "Fogo-fátuo" (haverá opção em inglês no futuro), menos corações e cristais depois dos 4:00, serpe-dragão mais rara ao aparecer.
-- Grimório Arcano: aguardando decisão.
+- Grimório Arcano mais fraco: +8% de dano e recarga 5% menor por nível (era +10% e 7%); no nível 5, +40% de dano e −25% de recarga. O Fogo-fátuo (híbrido) continua recebendo metade.
 
 ## Etapa 4 — novos poderes por estilo (novembro de 2026, branch `dev`, não publicado)
 
