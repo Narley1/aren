@@ -1,7 +1,20 @@
-import re, json, hashlib, os, zipfile, datetime
-SRC='bosque-do-enxame.html'; D='dist'
+"""Gera dist/ (PWA para o GitHub Pages) e aren-github-pages.zip a partir do fonte.
+
+Uso:  python3 tools/build_web.py [--src caminho/bosque-do-enxame.html] [--out pasta/dist] [--zip arquivo.zip]
+Sem --src: usa ./bosque-do-enxame.html se existir na pasta atual, senão src/bosque-do-enxame.html do repositório.
+--out e --zip são relativos à pasta atual (padrão: dist/ e aren-github-pages.zip).
+Ícones e og-image vêm de tools/gen_assets.py (gravados em dist/icons e dist/og-image.png).
+"""
+import re, json, hashlib, os, zipfile, shutil, argparse
+HERE = os.path.dirname(os.path.abspath(__file__))
+_ap = argparse.ArgumentParser()
+_ap.add_argument('--src'); _ap.add_argument('--out', default='dist'); _ap.add_argument('--zip', default='aren-github-pages.zip')
+_args = _ap.parse_args()
+SRC = _args.src or ('bosque-do-enxame.html' if os.path.exists('bosque-do-enxame.html') else os.path.join(HERE, '..', 'src', 'bosque-do-enxame.html'))
+D = _args.out
+os.makedirs(os.path.join(D, 'icons'), exist_ok=True)
 SITE='https://narley1.github.io/aren/'
-s=open(SRC).read()
+s=open(SRC, encoding='utf-8').read()
 title=re.search(r'<title>(.*?)</title>',s).group(1)
 body=s.replace(re.search(r'<title>.*?</title>\n',s).group(0),'',1)
 DESC='Aren, aprendiz de guardião, enfrenta hordas de goblins, demônios e um Dragão Esqueleto. Sobrevivência em pixel art 32 bits, direto no navegador.'
@@ -52,7 +65,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 </html>
 '''
 index=head+body+tail
-open(os.path.join(D,'index.html'),'w').write(index)
+open(os.path.join(D,'index.html'),'w',encoding='utf-8').write(index)
 ver=hashlib.sha1(index.encode()).hexdigest()[:10]
 manifest={
   "id":"./","name":title,"short_name":"Aren","description":DESC,"lang":"pt-BR",
@@ -64,12 +77,13 @@ manifest={
     {"src":"icons/maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
   ]
 }
-open(os.path.join(D,'manifest.webmanifest'),'w').write(json.dumps(manifest,ensure_ascii=False,indent=2))
+open(os.path.join(D,'manifest.webmanifest'),'w',encoding='utf-8').write(json.dumps(manifest,ensure_ascii=False,indent=2))
 sw=f'''/* Aren, o Guardião do Bosque — cache para jogar offline. Versão {ver} */
 const CACHE = 'aren-{ver}';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
 self.addEventListener('install', e => {{
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  /* cache:'reload' skips the HTTP cache so a new version never precaches stale files */
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS.map(u => new Request(u, {{cache: 'reload'}})))).then(() => self.skipWaiting()));
 }});
 self.addEventListener('activate', e => {{
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('aren-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -77,16 +91,24 @@ self.addEventListener('activate', e => {{
 self.addEventListener('fetch', e => {{
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (req.mode === 'navigate') {{
+    /* the page: network first (new versions show on the next load), cache when offline */
+    e.respondWith(caches.open(CACHE).then(cache => fetch(req).then(res => {{
+      if (res && res.ok) {{ const u = new URL(req.url); e.waitUntil(cache.put(u.origin + u.pathname, res.clone())); }}
+      return res;
+    }}).catch(async () => (await cache.match(req, {{ignoreSearch: true}})) || (await cache.match('./index.html')) || Response.error())));
+    return;
+  }}
+  /* other files: stale-while-revalidate */
   e.respondWith(caches.open(CACHE).then(async cache => {{
     const hit = await cache.match(req, {{ignoreSearch: true}});
     const net = fetch(req).then(res => {{ if (res && res.ok) cache.put(req, res.clone()); return res; }}).catch(() => null);
     if (hit) {{ e.waitUntil(net); return hit; }}
-    const res = await net;
-    return res || (req.mode === 'navigate' ? cache.match('./index.html') : Response.error());
+    return (await net) || Response.error();
   }}));
 }});
 '''
-open(os.path.join(D,'sw.js'),'w').write(sw)
+open(os.path.join(D,'sw.js'),'w',encoding='utf-8').write(sw)
 readme_gh=f"""# Aren, o Guardião do Bosque
 
 ![Aren cercado pela horda no bosque](og-image.png)
@@ -120,10 +142,14 @@ Tudo roda num único `index.html` em HTML5 Canvas e JavaScript puro, sem bibliot
 
 Fonte: [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans), licença SIL Open Font License 1.1 (veja `OFL.txt`).
 """
-open(os.path.join(D,'README.md'),'w').write(readme_gh)
+open(os.path.join(D,'README.md'),'w',encoding='utf-8').write(readme_gh)
+ofl = os.path.join(os.path.dirname(os.path.abspath(SRC)), 'font', 'OFL.txt')
+if os.path.exists(ofl): shutil.copyfile(ofl, os.path.join(D, 'OFL.txt'))
+for f in ['icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png', 'og-image.png']:
+    if not os.path.exists(os.path.join(D, f)): print('AVISO: falta', f, '- rode tools/gen_assets.py')
 open(os.path.join(D,'.nojekyll'),'w').write('')
 if os.path.exists(os.path.join(D,'LEIA-ME.md')): os.remove(os.path.join(D,'LEIA-ME.md'))
-zp='aren-github-pages.zip'
+zp=_args.zip
 if os.path.exists(zp): os.remove(zp)
 with zipfile.ZipFile(zp,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
     for root,_,files in os.walk(D):
