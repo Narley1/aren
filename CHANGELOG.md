@@ -1,5 +1,38 @@
 # Changelog
 
+## Etapa 2 — desempenho (novembro de 2026, branch `dev`, não publicado)
+
+Medido com o novo `tests/perf.py` (Chromium headless, viewport de celular 390×844, simulação semeada; "4x" = CPU 4× mais lenta via DevTools). FPS = laço real de `requestAnimationFrame`; render = média (p95) de 600 quadros síncronos.
+
+| cenário | antes 1x | depois 1x | antes 4x | depois 4x |
+|---|---|---|---|---|
+| early (30 s) | 60 fps · render 0,5 (2,5) ms | 60 fps · 0,9 (2,4) ms | 60 fps · 2,2 (10,3) ms | 60 fps · 4,5 (6,8) ms |
+| mid (300 s) | 60 fps · 3,6 (8,6) ms | 60 fps · 2,4 (4,1) ms | 39 fps · 15,3 (37,3) ms | 60 fps · 9,0 (12,9) ms |
+| late (540 s, tudo no máximo) | 60 fps · 5,9 (12,0) ms | 60 fps · 2,9 (5,4) ms | 39 fps · 23,4 (46,8) ms | 60 fps · 11,8 (16,1) ms |
+| boss | 60 fps · 1,7 (8,9) ms | 60 fps · 1,6 (2,9) ms | 59 fps · 8,3 (40,0) ms | 60 fps · 6,5 (8,0) ms |
+
+Inicialização (script): 136 → 108 ms (1x), 552 → 416 ms (4x). Pausado no fim de partida: ~10 ms → ~0,14 ms de JS por quadro (4x). Em `early` a média do render subiu (custo fixo da camada + geração do chão à frente), mas o p95 caiu e continua em 60 fps.
+
+### Desempenho
+- **Camada de software (`LX`)**: durante o `render`, pixels de efeitos, sprites pequenos, joias, inimigos e números são misturados num buffer em JS e vão ao canvas com um `putImageData` por descarga, em vez de milhares de `fillRect`/`drawImage` (no Chromium cada chamada tem custo fixo alto). Arco da espada, ondas sagradas, anéis e círculos de maldição sem troca de `fillStyle`/`globalAlpha` por pixel.
+- Chão gerado em fatias, à frente do movimento (orçamento de 1,5 ms por quadro + tempo ocioso): sem picos de ~2–9 ms ao entrar em área nova.
+- Joias, itens e inimigos fora da tela não são desenhados; `pixCircle` e números de dano com sprites em cache fora da camada.
+- Menos lixo por quadro: listas compactadas no lugar (sem `filter`), grade espacial, lista ordenada por y, props, rastro do shuriken, objeto da espada e Sets das ondas reaproveitados; gradiente da noite/chefe em cache.
+- Pausa/escolha de poder/fim: a cena é desenhada uma vez e fica congelada (árvores, itens e wisps param de balançar atrás do painel).
+- Inicialização: cópias tingidas dos inimigos, rotações da espada e nuvem feitas no primeiro uso ou em tempo ocioso.
+- Limite de segurança de 1200 partículas desenhadas (o pico medido é ~610; não corta nada hoje).
+
+### Jogabilidade (aprovado pelo Narley)
+- Shurikens voltam a `max(125, velocidade do herói × 1,6)` px/s e somem após 6 s (`BAL.boom`). Com Botas no máximo eles não ficam mais perseguindo o herói: ~39 → ~12 vivos no fim da partida.
+
+### Verificação
+- Imagem: 24 quadros × 5 cenários renderizados com a mesma semente antes e depois (até o commit do shuriken): diferença máxima de 13/255 por canal (arredondamento de alfa), nenhuma diferença visível lado a lado.
+- `smoke.py --compare`: IDENTICAL em todos os commits da etapa antes do shuriken; o commit do shuriken muda a simulação (esperado). `smoke.py`: 24/24.
+- Só medido em Chromium headless num desktop (CPU limitada por emulação); não testado em celular real.
+
+### Testes
+- `tests/perf.py`: benchmark por cenário (`--calls` conta chamadas de canvas, `--boot` mede a inicialização, `--pause` mede o quadro pausado, `--json` guarda os números).
+
 ## Etapa 1 — correções, limpeza e documentação (novembro de 2026, branch `dev`, não publicado)
 
 ### Corrigido

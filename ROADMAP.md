@@ -6,13 +6,11 @@ Cada etapa é desenvolvida no `dev`, testada com `tests/smoke.py` e só vai para
 
 Concluída (novembro de 2026). Correções de entrada, áudio, timeouts, wake lock e foco; código morto removido; constantes de balanceamento centralizadas em `BAL` sem mudar valores; build e service worker revistos; `tests/smoke.py` com teste de determinismo; documentação (`CLAUDE.md`, `ARCHITECTURE.md`, este arquivo, `CHANGELOG.md`, `TASKS.md`). Detalhes no `CHANGELOG.md`.
 
-## Etapa 2 — Desempenho
+## Etapa 2 — Desempenho ✔
 
-- Medir antes (perfil do fim de partida com muitos inimigos, efeitos e o chefe; celulares fracos).
-- Reduzir alocação por quadro: `filter()` de listas a cada quadro, objetos de partículas, `Set` por projétil; usar pools e remoção in-place.
-- Diminuir `fillRect` de 1 px em efeitos (anéis, selos, sopro do chefe) com sprites pré-renderizados.
-- Limitar partículas por tipo; grade espacial reaproveitando arrays.
-- Meta: 60 fps estáveis no fim da partida em celular intermediário. Comportamento idêntico (teste de determinismo).
+Concluída (novembro de 2026). Camada de software para os efeitos (`LX`), chão gerado aos poucos à frente do movimento, culling, menos alocação por quadro, cena congelada na pausa, inicialização mais leve, `tests/perf.py`. No fim de partida com tudo no máximo (CPU 4x, Chromium headless): 39 → 60 fps, render 23 → 12 ms. Mudança de jogo aprovada: shurikens voltam mais rápido. Detalhes no `CHANGELOG.md`.
+
+Falta: medir num celular intermediário real (a meta de 60 fps estáveis foi verificada só em emulação).
 
 ## Etapa 3 — Balanceamento e estrutura de 15 minutos
 

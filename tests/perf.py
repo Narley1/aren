@@ -21,7 +21,8 @@ Usage:
   python3 tests/perf.py late mid --throttle 4 # subset
   python3 tests/perf.py --json out.json       # raw numbers
   python3 tests/perf.py --calls               # also count fillRect/drawImage/...
-  python3 tests/perf.py --boot                # boot time (script start -> title)
+  python3 tests/perf.py --boot                # boot time (script start -> end of script)
+  python3 tests/perf.py late --pause          # also JS per frame while paused
 
 Numbers from headless Chromium on a desktop CPU are only a proxy for a phone;
 use them to compare versions on the same machine, not as absolute targets.
@@ -114,7 +115,7 @@ def build(src, outdir):
     return path
 
 
-async def scenario(p, url, name, throttles, N, rafsec, seed, calls):
+async def scenario(p, url, name, throttles, N, rafsec, seed, calls, pause=False):
     b = await p.chromium.launch()
     ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=3, is_mobile=True, has_touch=True)
     pg = await ctx.new_page()
@@ -149,6 +150,12 @@ async def scenario(p, url, name, throttles, N, rafsec, seed, calls):
         if raf['state'] != 'play':
             await pg.evaluate("__set('play')")
         out['res'][str(thr)] = {'bench': bench, 'raf': raf}
+    if pause:
+        # paused: JS per rAF frame with the game frozen behind the pause panel
+        await pg.evaluate("__set('pause'); window.__fr = []; __halt = false;")
+        await pg.wait_for_timeout(2000)
+        out['pause_js'] = await pg.evaluate("() => { __halt = true; const f = __fr; window.__fr = null; return +(f.reduce((a, b) => a + b, 0)/f.length).toFixed(3); }")
+        print(f"{name:6s} paused: {out['pause_js']} ms JS per frame (CPU {throttles[-1]}x)")
     out['errs'] = errs[:5]
     await b.close()
     return out
@@ -183,7 +190,7 @@ async def main(a):
             out['boot_ms'] = await boot(p, url)
             print('boot (script start -> end of script), median of 3:', out['boot_ms'])
         for n in a.scenarios:
-            r = await scenario(p, url, n, a.throttle, a.n, a.raf, a.seed, a.calls)
+            r = await scenario(p, url, n, a.throttle, a.n, a.raf, a.seed, a.calls, a.pause)
             out['scen'].append(r)
             for thr, x in r['res'].items():
                 bb, rf = x['bench'], x['raf']
@@ -207,6 +214,7 @@ if __name__ == '__main__':
     ap.add_argument('--seed', type=int, default=777)
     ap.add_argument('--calls', action='store_true')
     ap.add_argument('--boot', action='store_true')
+    ap.add_argument('--pause', action='store_true', help='also measure JS per frame while paused')
     ap.add_argument('--json')
     a = ap.parse_args()
     for s in a.scenarios:
