@@ -18,11 +18,11 @@ Concluída no `dev` (novembro de 2026), aguardando o Narley jogar. Marcos de che
 
 Falta: testes do Narley (ver `TASKS.md`).
 
-## Etapa 4 — Novos poderes por estilo
+## Etapa 4 — Novos poderes por estilo ✔
 
-- Corpo a corpo: **Martelo Sísmico**, **Aura de Espinhos**.
-- À distância: **Arco Élfico**.
-- Passivos: **Manoplas do Guerreiro** (reforça corpo a corpo), **Grimório Arcano** (reforça à distância).
+Concluída no `dev` (novembro de 2026), aguardando o Narley jogar. Todo poder tem um estilo (Corpo a corpo, A distância, Híbrido) mostrado nas cartas, no HUD e em "Como jogar". Novas armas: **Martelo Sísmico** e **Aura de Espinhos** (corpo a corpo), **Arco Élfico** (a distância); novos passivos: **Manoplas do Guerreiro** e **Grimório Arcano**. Escolhas favorecem poderes que Aren já tem e há limite de 4 armas (decisão a confirmar). Bot por estilo: corpo a corpo, a distância e híbrido sobrevivem parecido. Detalhes no `CHANGELOG.md`.
+
+Falta: testes do Narley e decisões listadas em `TASKS.md`.
 
 ## Etapa 5 — Chefes
 

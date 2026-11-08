@@ -1,5 +1,56 @@
 # Changelog
 
+## Etapa 4 — novos poderes por estilo (novembro de 2026, branch `dev`, não publicado)
+
+Pedido do Narley: poderes para montar um arsenal corpo a corpo, a distância ou híbrido, à escolha do jogador. Medido com `tests/balance/` (bot, Chromium headless, `dt` = 1/30 s, **48 sementes** por política; movimento cauteloso `kite` para todos e, para corpo a corpo, também o de perto `agg`). O bot não é um humano: os números servem para comparar versões e estilos. Como a sobrevivência é bimodal (o bot morre perto das 7:00–9:00 ou vence), a média e as vitórias dizem mais que a mediana.
+
+| bot, 48 partidas por linha | antes: média · p25/mediana/p75 · vitória | depois: média · p25/mediana/p75 · vitória |
+|---|---|---|
+| corpo a corpo (`melee`, cauteloso) | 447 s · 426/446/467 · 0% | 601 s · 411/429/973 · 33% |
+| corpo a corpo (`melee`, de perto `agg`) | 446 s · 429/448/466 · 0% | 529 s · 403/438/528 · 21% |
+| a distância (`ranged`) | 535 s · 289/515/563 · 17% | 595 s · 482/516/940 · 31% |
+| híbrido (`hybrid`) | 507 s · 267/403/577 · 21% | 578 s · 401/512/937 · 29% |
+| prioridade (`prio`) | 667 s · 498/523/1024 · 38% | 714 s · 417/937/941 · 56% |
+| aleatório (`random`) | 474 s · 236/403/527 · 19% | 468 s · 325/408/449 · 17% |
+| maior fatia de dano de um poder (prio + aleatório, mediana / máx.) | 47% / 77% | 46% / 72% |
+
+"Antes" = Etapa 3 com as mesmas políticas (lá o corpo a corpo só tinha a Espada, a Espada Sagrada e o Fogo-fátuo de reserva). Os três estilos ficaram a menos de 5% um do outro na média (cauteloso); o corpo a corpo de perto sobrevive ~12% menos, como esperado de um estilo arriscado.
+
+Dano por segundo no nível 5 aos 10:00 (bot cauteloso invulnerável, 3 sementes, `--t 600`): Martelo 681, Shuriken 566, Fogo 497, Arco 381, Aura 369 (297 de perto), Espada 217, Fogo-fátuo 67. Aos 7:30, 5 níveis de Manoplas levam Espada+Martelo+Aura nível 4 de 233 para 404/s; 5 de Grimório levam Shuriken+Fogo+Arco nível 4 de 432 para 523/s (a build a distância já mata quase tudo que aparece, então o ganho aparece menos nesse teste).
+
+### Estilos
+- Todo poder tem estilo: **Corpo a corpo** (Espada, Martelo Sísmico, Aura de Espinhos, Espada Sagrada), **A distância** (Shuriken Gigante, Arco Élfico, Magia de Fogo, Cajado da Tempestade), **Híbrido** (Fogo-fátuo). Botas, Ímã e Coração são "Passivo"; Manoplas e Grimório são passivos que reforçam um estilo.
+- Mostrado por insígnia em pixel + cor + texto (nunca só cor): punho laranja, alvo azul, losango meio a meio. Nas cartas de nível (pílula ao lado dos níveis), nos chips do HUD (insígnia + borda; no celular o chip fica só com ícone, insígnia e nível) e na nova lista "Poderes · monte seu estilo" de "Como jogar", que também ganhou um parágrafo sobre estilos e o limite de armas.
+- "Will-o'-Wisp" passou a se chamar **Fogo-fátuo** (a interface é em PT-BR).
+
+### Armas novas (5 níveis; o 1º nível bate × 0,75 como as outras)
+- **Martelo Sísmico** (corpo a corpo): com inimigo perto, Aren ergue o martelo e golpeia o chão; um anel de choque cresce em 0,3 s e acerta cada inimigo uma vez, empurrando forte. Dano 20 + 10·nível (30–70), raio 36 + 5·nível (41–61 px), recarga 3 − 0,3·nível (2,7–1,5 s). Nível 5: tremor secundário 0,35 s depois, raio × 1,5 e dano × 0,6. Tremor de tela leve (desligado com movimento reduzido), poeira, lascas, rachaduras no chão.
+- **Aura de Espinhos** (corpo a corpo): elipse de espinhos em volta de Aren, raio 26 + 4·nível (30–46 px); a cada max(0,3; 0,6 − 0,06·nível) s acerta todos dentro com 7 + 5·nível (12–32) e empurra de leve; do nível 3 em diante quem está dentro anda 12/18/24% mais devagar. Números de dano verdes; os espinhos brilham a cada tique.
+- **Arco Élfico** (a distância): rajada em leque no inimigo mais próximo (ou para onde Aren olha). Flechas por rajada 1/2/2/3/3, atravessam 1/1/2/3/4 inimigos, dano 11 + 4·nível (15–31), recarga 1,3 − 0,14·nível (1,16–0,6 s).
+
+### Passivos novos (5 níveis)
+- **Manoplas do Guerreiro**: poderes corpo a corpo +10% de dano e +6% de alcance por nível (alcance da espada, raio do martelo e da aura, largura das ondas sagradas).
+- **Grimório Arcano**: poderes a distância +10% de dano e recarga 7% menor por nível (inclui o Cajado da Tempestade).
+- O Fogo-fátuo (híbrido) recebe metade de cada um (dano, raio da órbita, intervalo entre acertos).
+
+### Escolhas
+- Arma ainda não tida ganha +1,4 de peso só enquanto Aren tem menos de 3 armas (antes valia sempre, para Shuriken/Fogo/Fogo-fátuo); poder já tido vale × 2. Sem isso, com 14 poderes, as ofertas espalhavam a build em várias armas de nível 1 e o bot morria perto dos 4:00.
+- **Limite de 4 armas** (a espada conta; relíquias e passivos não): com 4, armas novas deixam de aparecer. **Decisão a confirmar pelo Narley.** Com 5 o bot (24 sementes) ficou bem pior nas builds que espalham: aleatório 346 → 418 s de mediana, a distância 367 → 540, híbrido 341 → 456 com o limite de 4.
+- Nas partidas do bot, 94–95% das ofertas têm ao menos uma opção do estilo da build e ~70% uma arma ou passivo do estilo.
+
+### Som
+- Martelo: baque grave + terra + pedrinhas; o tremor secundário é mais baixo. Arco: "fiu" curto + corda. Aura: sem som (é contínua). Volumes medidos no mixer (OfflineAudioContext): golpe do martelo pico −18,5 dBFS (explosão do fogo −19,1), tremor −23,0, arco −23,7 (dispara com frequência, por isso abaixo).
+
+### Testes e ferramentas
+- `tests/smoke.py`: as armas novas entram na partida de estresse; 5 verificações novas (cada arma nova sozinha mata mais que só a espada e o efeito aparece; limite de armas; pílula de estilo nas cartas e lista de poderes completa). 34/34.
+- `tests/balance/`: políticas `melee`, `ranged`, `hybrid`; nomes desconhecidos ficam com prioridade mínima; marcação da fonte de dano das armas novas; `agg` usa o alcance da aura/martelo.
+- `tests/perf.py`: o cenário `late` também põe as 3 armas novas e os 2 passivos no máximo (mais armas do que o limite permite: pior caso). CPU 4x, `late`: 59,7 → 56–57 fps, render 9,9 (p95 13,1) → 12,4–13,0 (p95 ~19) ms; 1x 60 fps. `boss` 4x: 60 fps, render 6,9 ms. Os espinhos da aura passaram a ir direto para a camada `LX` (~1 ms → ~0,7 ms).
+- Infraestrutura (commit separado): estilos + multiplicadores dos passivos com os passivos em 0 → determinismo com números idênticos ao da Etapa 3.
+
+### Não verificado
+- Nada foi jogado por um humano: só bot, capturas de tela (390×844 e 1366×768) e medição de volume. Sensação do martelo/tremor e legibilidade da aura num celular real não foram vistas.
+- Desempenho medido só em Chromium headless com CPU limitada, não em celular.
+
 ## Etapa 3 — balanceamento e estrutura de 15 minutos (novembro de 2026, branch `dev`, não publicado)
 
 Mudanças aprovadas pelo Narley. Medido com o novo simulador `tests/balance/` (bot, Chromium headless, `dt` = 1/30 s, 8 sementes × 6 políticas de escolha × 2 movimentos = 96 partidas por versão). O bot não é um humano: os números servem para comparar versões.

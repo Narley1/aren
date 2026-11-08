@@ -63,3 +63,22 @@
 - [ ] Flechas dos elfos são a maior fonte de dano para o bot; ver se para humanos também
 - [ ] Bot: a política "balanced" (espalha níveis) morre cedo (~4:00); builds só de espada morrem ~7:00
 - [ ] Etapa 5 vai trocar os guardiões por Paladino e Lich de verdade (`GUARD_EV`, ver `ARCHITECTURE.md`)
+
+## Etapa 4 — Novos poderes por estilo — concluída no `dev`
+
+- [x] Estilo de cada poder (`UPG.kind/style/boost`), pílula com insígnia + cor + texto nas cartas, chips do HUD com insígnia e borda, lista de poderes em "Como jogar", texto de "Como jogar"
+- [x] Martelo Sísmico, Aura de Espinhos, Arco Élfico (5 níveis, nerf do 1º nível), Manoplas do Guerreiro, Grimório Arcano (5 níveis); números em `BAL`
+- [x] Ícones 8×8, flecha e martelo pré-rotacionados, anel de choque com rachaduras, aura de espinhos; capturas em 390×844 e 1366×768
+- [x] Sons do martelo (golpe e tremor) e do arco, volume medido contra a explosão do fogo; aura sem som
+- [x] Pesos das escolhas (arma nova só até ter 3, poder já tido ×2) e limite de 4 armas
+- [x] Bot: políticas `melee`/`ranged`/`hybrid`, 48 sementes; `smoke.py` 34/34; `perf.py` late com as armas novas no máximo
+- [x] "Will-o'-Wisp" passou a se chamar "Fogo-fátuo" (texto da interface em PT-BR)
+
+## Pendências da Etapa 4 (decisões e testes do Narley)
+
+- [ ] **Confirmar o limite de 4 armas** (a espada conta; relíquias e passivos não). Sem limite (ou com 5) as builds se espalham em armas de nível 1 e o bot morre bem mais cedo (ver `CHANGELOG.md`). Alternativas: 5 armas, ou sem limite e só os pesos
+- [ ] Confirmar os pesos novos das escolhas (`BAL.pick`: arma nova +1,4 só enquanto houver menos de 3 armas; poder já tido ×2) — mudam também a chance de Shuriken/Fogo/Fogo-fátuo aparecerem
+- [ ] Confirmar o nome "Fogo-fátuo" (era "Will-o'-Wisp", em inglês)
+- [ ] Jogar uma build de cada estilo: o corpo a corpo parece arriscado mas recompensador? A aura dá para ler sem poluir?
+- [ ] O Fogo-fátuo (único híbrido) continua a arma mais fraca (67 de dano/s aos 10:00 no nível 5 contra 217 da Espada e 370–680 das outras); não foi mexido porque é número de poder existente
+- [ ] O bot com movimento de perto (`agg`) sobrevive menos que o cauteloso mesmo com corpo a corpo; um humano pode render bem diferente

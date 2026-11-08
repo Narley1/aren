@@ -8,6 +8,7 @@ Este branch guarda o código-fonte do jogo. **Não é publicado**: o GitHub Page
 - `tools/gen_assets.py` — ícones e og-image (gravados em `dist/`).
 - `tools/parts/` — trechos de desenvolvimento (tela de título, áudio, sprites) já incorporados ao HTML; mantidos como histórico.
 - `tests/smoke.py` — teste principal: simulação headless completa no Chromium, testes das correções e verificação de determinismo. `python3 tests/smoke.py`.
+- `tests/perf.py` — desempenho por cenário; `tests/balance/` — simulador de balanceamento com bot (políticas por estilo).
 - `tests/legacy/`, `tests/shot*.py`, `tests/test.html` — scripts e cópias antigas, mantidos como histórico.
 
 Documentação:
@@ -18,4 +19,4 @@ Documentação:
 - [`TASKS.md`](TASKS.md) — checklist atual.
 - [`CHANGELOG.md`](CHANGELOG.md) — histórico.
 
-Versão do fonte: v21 + Etapa 1 (correções, limpeza, `BAL`, testes), 08/11/2026. O site no ar ainda é o build de 26/10.
+Versão do fonte: v21 + Etapas 1–4 (correções, desempenho, partida de 15 minutos, poderes por estilo), 08/11/2026. O site no ar ainda é o build de 26/10.
