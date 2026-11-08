@@ -864,6 +864,9 @@ const BAL = {
   /* cooldown = max(min, base - level*perLvl); storm and meteor use the relic level rl() */
   cd:     {boomBase:2.8, boomPerLvl:.25, boomMin:1.4, fireBase:2, firePerLvl:.2, fireMin:.75,
            stormBase:1.5, stormPerLvl:.25, stormMin:.7, meteorBase:8.4, meteorPerLvl:1.2, meteorMin:4.4},
+  /* shuriken on the way back: speed = max(returnSpd, hero speed*returnHeroMul) so a boots-maxed hero no longer
+     outruns them; any shuriken still alive after maxLife s vanishes (approved by the owner, Etapa 2) */
+  boom:   {returnSpd:125, returnHeroMul:1.6, maxLife:6},
   /* first level of every power except the sword hits softer (f1) */
   firstLvl: {power:.55, relic:.7},
   /* spawn interval = max(intervalMin, interval/(1 + t/intervalT)); no spawn while cap enemies are alive */
@@ -2588,7 +2591,8 @@ function update(dt){
       b.rot += dt*70;
       const tp = b.tr.length >= 4 ? b.tr.pop() : [0, 0]; tp[0] = b.x; tp[1] = b.y; b.tr.unshift(tp);  // keeps the 4 newest, reusing the oldest pair
       if (b.out){ const v = 105 - (b.d/b.max)*45; b.x += Math.cos(b.a)*v*dt; b.y += Math.sin(b.a)*v*dt; b.d += v*dt; if (b.d >= b.max) b.out = false; }
-      else { const dx = P.x - b.x, dy = P.y-10 - b.y, l2 = Math.hypot(dx, dy); if (l2 < 9){ b.dead = true; continue; } b.x += dx/l2*125*dt; b.y += dy/l2*125*dt; }
+      else { const dx = P.x - b.x, dy = P.y-10 - b.y, l2 = Math.hypot(dx, dy), rv = Math.max(BAL.boom.returnSpd, spd*BAL.boom.returnHeroMul); if (l2 < 9){ b.dead = true; continue; } b.x += dx/l2*rv*dt; b.y += dy/l2*rv*dt; }
+      b.alive = (b.alive || 0) + dt; if (b.alive > BAL.boom.maxLife){ b.dead = true; continue; }
       const hr = [9, 10, 11][b.tier];
       query(b.x, b.y, hr + 14, e => { if (e.boomCd <= 0 && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < hr + e.d.r){ hit(e, b.dmg); e.boomCd = .35; } });
     } else if (b.k === 'wave'){
