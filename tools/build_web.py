@@ -3,7 +3,7 @@
 Uso:  python3 tools/build_web.py [--src caminho/bosque-do-enxame.html] [--out pasta/dist] [--zip arquivo.zip]
 Sem --src: usa ./bosque-do-enxame.html se existir na pasta atual, senão src/bosque-do-enxame.html do repositório.
 --out e --zip são relativos à pasta atual (padrão: dist/ e aren-github-pages.zip).
-Ícones e og-image vêm de tools/gen_assets.py (gravados em dist/icons e dist/og-image.png).
+Ícones e og-image vêm de tools/gen_assets.py (gravados em dist/icons e dist/og-image.png); sem eles o build falha.
 """
 import re, json, hashlib, os, zipfile, shutil, argparse
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +14,9 @@ SRC = _args.src or ('bosque-do-enxame.html' if os.path.exists('bosque-do-enxame.
 D = _args.out
 os.makedirs(os.path.join(D, 'icons'), exist_ok=True)
 SITE='https://narley1.github.io/aren/'
+ICONS = ['icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png']
+REQUIRED = ICONS + ['og-image.png']
+PRECACHE = ['./', './index.html', './manifest.webmanifest'] + ['./' + f for f in ICONS]   # lista do sw.js
 s=open(SRC, encoding='utf-8').read()
 title=re.search(r'<title>(.*?)</title>',s).group(1)
 body=s.replace(re.search(r'<title>.*?</title>\n',s).group(0),'',1)
@@ -80,7 +83,7 @@ manifest={
 open(os.path.join(D,'manifest.webmanifest'),'w',encoding='utf-8').write(json.dumps(manifest,ensure_ascii=False,indent=2))
 sw=f'''/* Aren, o Guardião do Bosque — cache para jogar offline. Versão {ver} */
 const CACHE = 'aren-{ver}';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
+const ASSETS = {json.dumps(PRECACHE)};
 self.addEventListener('install', e => {{
   /* cache:'reload' skips the HTTP cache so a new version never precaches stale files */
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS.map(u => new Request(u, {{cache: 'reload'}})))).then(() => self.skipWaiting()));
@@ -145,8 +148,13 @@ Fonte: [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans), licença SIL Op
 open(os.path.join(D,'README.md'),'w',encoding='utf-8').write(readme_gh)
 ofl = os.path.join(os.path.dirname(os.path.abspath(SRC)), 'font', 'OFL.txt')
 if os.path.exists(ofl): shutil.copyfile(ofl, os.path.join(D, 'OFL.txt'))
-for f in ['icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png', 'og-image.png']:
-    if not os.path.exists(os.path.join(D, f)): print('AVISO: falta', f, '- rode tools/gen_assets.py')
+# Ícones são obrigatórios: o sw.js pré-cacheia todos com addAll, e um arquivo faltando quebra a instalação
+# do service worker (sem offline e sem "Instalar app"). Melhor falhar aqui do que publicar assim.
+falta = [f for f in REQUIRED if not os.path.exists(os.path.join(D, f))]
+if falta:
+    raise SystemExit('ERRO: faltam no build: ' + ', '.join(falta) + '\n'
+                     f'Rode antes: python3 {os.path.join(HERE, "gen_assets.py")} --out {D}  (ou --from-main para copiar os do main)\n'
+                     'Sem esses arquivos o service worker não instala (o jogo não funciona offline nem se instala como app).')
 open(os.path.join(D,'.nojekyll'),'w').write('')
 if os.path.exists(os.path.join(D,'LEIA-ME.md')): os.remove(os.path.join(D,'LEIA-ME.md'))
 zp=_args.zip

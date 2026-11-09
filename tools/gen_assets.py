@@ -1,8 +1,28 @@
-import asyncio, os, base64
-from playwright.async_api import async_playwright
+#!/usr/bin/env python3
+"""Gera os ícones do site (dist/icons/*.png) e a imagem de compartilhamento (dist/og-image.png).
+
+Carrega src/bosque-do-enxame.html no Chromium headless (sem iniciar a partida), com um gancho dentro do IIFE
+que expõe o herói, os inimigos e o chão do próprio jogo (como tests/smoke.py e tools/sprite_sheet.py), e
+desenha os ícones a partir deles. Nada no jogo é alterado: o gancho só existe numa cópia temporária.
+
+    python3 tools/gen_assets.py                    # grava em ./dist
+    python3 tools/gen_assets.py --out /tmp/d       # grava em /tmp/d/icons e /tmp/d/og-image.png
+    python3 tools/gen_assets.py --from-main        # não desenha: copia os ícones publicados no branch main
+
+Se o desenho falhar (sem Playwright/Chromium, por exemplo), use --from-main ou --fallback-main (tenta desenhar
+e, se der erro, copia do main). Copiar do main lê origin/main (rode `git fetch` antes) e nunca escreve no main.
+"""
+import argparse, asyncio, base64, os, subprocess, sys, tempfile
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = os.path.join(ROOT, 'src', 'bosque-do-enxame.html')
+FILES = {'i512': 'icons/icon-512.png', 'i192': 'icons/icon-192.png', 'm512': 'icons/maskable-512.png',
+         'apple': 'icons/apple-touch-icon.png', 'fav': 'icons/favicon-32.png', 'og': 'og-image.png'}
+HOOK = ('\nwindow.__GA = {HERO, ET, GCH, groundChunk, dirtN, tallN, DIRT_T, TALL_T};\n')
+
 JS = r"""
 async () => {
-  const D = __d(), H = D.HERO.down[0], ET = D.ET;
+  const D = window.__GA, H = D.HERO.down[0], ET = D.ET, dirtN = D.dirtN, tallN = D.tallN, DIRT_T = D.DIRT_T, TALL_T = D.TALL_T;
   await document.fonts.load('700 120px "Pixelify Sans"'); await document.fonts.load('600 40px "Pixelify Sans"');
   const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; };
   // find a grassy 48x48 window
@@ -61,17 +81,59 @@ async () => {
   return {i512:icon(512, .7, true), i192:icon(192, .7, true), m512:icon(512, .5, true), apple:icon(180, .66, true), fav, og:o.toDataURL('image/png'), at:[gx, gy]};
 }
 """
-async def main():
-    async with async_playwright() as p:
-        b = await p.chromium.launch()
-        pg = await b.new_page(viewport={'width':420,'height':800})
-        errs=[]; pg.on('pageerror', lambda e: errs.append(str(e)))
-        await pg.goto('file://'+os.path.abspath('test.html'))
+
+
+async def draw(src, out):
+    from playwright.async_api import async_playwright
+    s = open(src, encoding='utf-8').read()
+    i = s.rfind('})();\n</script>')
+    if i < 0:
+        raise RuntimeError('não achei o fim do IIFE do jogo')
+    s = '<meta charset="utf-8"><style>[hidden]{display:none!important}</style>\n' + s[:i] + HOOK + s[i:]
+    tmp = tempfile.mkdtemp(prefix='ga-'); p = os.path.join(tmp, 'g.html')
+    open(p, 'w', encoding='utf-8').write(s)
+    async with async_playwright() as pw:
+        b = await pw.chromium.launch()
+        pg = await b.new_page(viewport={'width': 420, 'height': 800})
+        errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.goto('file://' + p)
         await pg.wait_for_timeout(800)
         r = await pg.evaluate(JS)
-        out = {'i512':'dist/icons/icon-512.png','i192':'dist/icons/icon-192.png','m512':'dist/icons/maskable-512.png','apple':'dist/icons/apple-touch-icon.png','fav':'dist/icons/favicon-32.png','og':'dist/og-image.png'}
-        for k, path in out.items():
-            open(path,'wb').write(base64.b64decode(r[k].split(',',1)[1]))
-        print('grass at', r['at'], errs)
         await b.close()
-asyncio.run(main())
+    for k, rel in FILES.items():
+        open(os.path.join(out, rel), 'wb').write(base64.b64decode(r[k].split(',', 1)[1]))
+    print('ícones desenhados; grama em', r['at'], ('avisos da página: ' + '; '.join(errs[:3])) if errs else '')
+
+
+def from_main(out):
+    for rel in FILES.values():
+        try:
+            data = subprocess.run(['git', '-C', ROOT, 'show', 'origin/main:' + rel], check=True, capture_output=True).stdout
+        except subprocess.CalledProcessError as e:
+            raise SystemExit(f'ERRO: não consegui ler {rel} do origin/main (rode git fetch): {e.stderr.decode().strip()}')
+        open(os.path.join(out, rel), 'wb').write(data)
+    print('ícones copiados do origin/main')
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--src', default=SRC)
+    ap.add_argument('--out', default='dist', help='pasta do build (padrão: ./dist)')
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument('--from-main', action='store_true', help='copiar os ícones do origin/main em vez de desenhar')
+    g.add_argument('--fallback-main', action='store_true', help='desenhar; se falhar, copiar do origin/main')
+    a = ap.parse_args()
+    os.makedirs(os.path.join(a.out, 'icons'), exist_ok=True)
+    if a.from_main:
+        return from_main(a.out)
+    try:
+        asyncio.run(draw(a.src, a.out))
+    except Exception as e:
+        if not a.fallback_main:
+            raise SystemExit(f'ERRO ao desenhar os ícones: {e}\nUse --fallback-main ou --from-main para copiar os do main.')
+        print('aviso: desenho falhou (' + str(e).splitlines()[0] + '); copiando do main', file=sys.stderr)
+        from_main(a.out)
+
+
+if __name__ == '__main__':
+    main()
