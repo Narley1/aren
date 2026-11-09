@@ -135,3 +135,27 @@ Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r2`):
 - [ ] Ainda acima do limite e sem pedido de mudança: morte do dragão (+18 dB, ele gostou), risada da súcubo (+9 a +11), subir de nível (+6,5); abaixo de −8 sem pedido: preparar o giro, salto, carregar relâmpago em cadeia. O laboratório mostra a Proposta para cada um
 - [ ] Lâmina disparada continua baixa (−14 dB) porque só foi pedido "mais afiado"
 - [ ] Volume separado para Música e Efeitos (hoje só liga/desliga)
+
+### Áudio — rodada 3 (08/11/2026): notas do Narley na rodada 2 + monstros, lote 1
+
+Feito (medido com `tools/sfx_levels.py`; volume = rms150 em relação à explosão; picos dos sons novos e mudados entre −13,6 e −25 dBFS):
+- [x] Shuriken: sem som na volta (`boomCatch` removido do jogo e do catálogo); o arremesso ficou
+- [x] Risada do demônio: a mesma, ~30% mais curta (4 "ha"; voz de ~1,4 s para ~1,0 s)
+- [x] Morte da gárgula refeita (pedra rachando e esfarelando) e da serpe-dragão (guincho curto, baque, asas caindo); receitas em `KILL_FX`, 8 nós
+- [x] Vida baixa +4,5 dB (−10,8 → −6,6); salto do Paladino +5 dB (proposta escolhida; medido −13,1 → −8,6); preparar o giro ficou igual (escolha dele)
+- [x] Cajado da Tempestade: zumbido elétrico "bzzzt" (quadrada grave picotada a ~37 Hz), −6,1 → −4,4 dB
+- [x] Risada da súcubo refeita: ronronar "mrrr", "nyaa" de gato, risinhos soprados e "hmm"; +10,2 → +4,4 dB
+- [x] Vozes de presença, lote 1: goblin (risadinha), gárgula (asas de pedra, às vezes guincho rouco), hobgoblin (grunhido ou rosnado); −10 a −8 dB, até 12 nós; um temporizador por tipo com gerador próprio (sem `Math.random`), no máximo uma voz por tipo a cada 2,5–7,5 s
+- [x] Determinismo IDENTICAL; `smoke.py` 0 falhas
+- [x] Laboratório da rodada 3: Antes = commit 10da437, notas em `avaliacoes_r3`, nota anterior de `avaliacoes_r2` (ou `avaliacoes`)
+
+Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r3`):
+- [ ] Todos os sons da rodada 3 (eu não ouço: medi nível, duração, nós e olhei espectrogramas)
+- [ ] Vozes de presença: frequência (2,5–7,5 s por tipo) e volume
+- [ ] Ainda acima do limite e sem pedido: morte do dragão (+18,5 dB, pico −2,7 dBFS; ele gostou)
+
+### Áudio — próximos lotes de monstros (proposta, não feito)
+
+- [ ] **Lote 2:** orc (bufada/rugido curto e pesado), elfo (voz curta ao atirar ou ao chegar perto, aguda e limpa), esqueleto (chacoalhar de ossos e mandíbula batendo)
+- [ ] **Lote 3:** demônio (rosnado ou respiração além da risada), serpe-dragão (bater de asas grandes e grasnido além do fogo), súcubo (asas leves/sussurro enquanto voa)
+- Mesmas regras do lote 1: temporizador por tipo em `VOX`, nada de `Math.random` no jogo, −12 a −6 dB, até ~12 nós

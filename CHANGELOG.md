@@ -1,5 +1,18 @@
 # Changelog
 
+## Áudio — rodada 3 (08/11/2026, branch `dev`, não publicado)
+
+Notas do Narley no laboratório da rodada 2 e o primeiro lote de sons dos monstros. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta, comparado com a explosão do fogo, ~−29,7 dBFS). Eu não ouço: a aprovação é do Narley, no laboratório.
+
+- **Removido:** som da Shuriken voltando (`boomCatch`); o arremesso continua.
+- **Mais curto:** risada do demônio com 4 "ha" em vez de 6 (~30% mais curta).
+- **Refeitos:** morte da gárgula (pedra rachando e esfarelando) e da serpe-dragão (guincho curto, baque, asas caindo), com receita própria em `KILL_FX`; Cajado da Tempestade com zumbido elétrico "bzzzt" (−6,1 → −4,4 dB); risada da súcubo mais felina e feminina (ronronar, "nyaa", risinhos soprados, "hmm") e mais baixa (+10,2 → +4,4 dB).
+- **Volume:** vida baixa +4,5 dB (−10,8 → −6,6); salto do Paladino +5 dB (−13,1 → −8,6 medido). Preparar o giro ficou igual, como ele escolheu.
+- **Monstros, lote 1 (vozes de presença):** goblin (risadinha "he-he-he"), gárgula (asas de pedra; ~1 em 3 com guincho rouco) e hobgoblin (grunhido; quase metade das vezes um rosnado), com um deles a menos de 150 px de Aren. Um temporizador por tipo (`VOX`/`voxTick`), intervalo de 2,5 a 7,5 s sorteado por um gerador próprio (o jogo não usa `Math.random` para isso); variação de altura e de sílabas dentro de `SFX.voice`. −10 a −8 dB em relação à explosão, até 12 nós.
+- **Desempenho:** 40 goblins perto de Aren por ~10 s: 5 chamadas de voz (uma barrada pela recarga do `SFX`), 24 nós de voz; com 40 goblins + 20 gárgulas + 20 hobgoblins: 12 vozes, 100 nós (no máximo 22 em meio segundo).
+- **Determinismo:** `smoke.py --compare` IDENTICAL; `smoke.py` 0 falhas.
+- **Laboratório:** "Antes" = commit 10da437 (rodada 2 aprovada), notas em `avaliacoes_r3`, nota anterior vinda de `avaliacoes_r2` (ou de `avaliacoes`); commit e coleções configuráveis (`--before`, `--store`, `--prev-store`); o catálogo só marca `estado` nos sons desta rodada.
+
 ## Áudio — rodada 2 (08/11/2026, branch `dev`, não publicado)
 
 Pedidos do Narley no Laboratório de Som. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta). Eu não ouço os sons: a aprovação é do Narley, no laboratório.
