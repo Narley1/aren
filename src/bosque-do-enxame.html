@@ -992,14 +992,14 @@ const BAL = {
   /* level-up picks: while Aren has fewer than newUntil weapons, weapons not owned yet get +newWeapon weight; powers already
      owned x owned (with 14 powers the offers would otherwise spread a build over many weak level-1 weapons);
      Aren carries at most maxWeapons weapons (the sword counts; relics and passives do not): once full, new weapons stop
-     showing up (Narley chose 5 on 2026-11-08) */
+     showing up (Narley chose 5 and confirmed these weights on 2026-11-08) */
   pick:   {newWeapon:1.4, newUntil:3, owned:2, maxWeapons:5},
   /* experience: it comes from the gems (each enemy drops ET.gem, elites x elite.gems), granted when the gem is picked up.
      xpNeed(L) = round(base + lin*(L - 1) + quad*(L - 1)^2). Power choice on the levels in picks, then every pickEvery levels. */
   xp:     {base:8, lin:4.5, quad:.3, picks:[2, 3, 5, 7, 10], pickEvery:3},
   /* spawn interval = max(intervalMin, interval/(1 + t/intervalT)); no spawn while cap enemies are alive;
      for the first guardCalmT s of a living mid-boss the interval is divided by guardMul and there are no hordes
-     (guardMul .4 -> .25 in Etapa 5: fewer small enemies around the boss fights) */
+     (guardMul .4 -> .25 in Etapa 5: fewer small enemies around the boss fights; kept by Narley on 09/11/2026) */
   spawn:  {interval:.95, intervalT:75, intervalMin:.07, cap:230, guardMul:.25, guardCalmT:75},
   /* weight of each unlocked type in pickType(); goblin = max(goblinMin, goblin - t/goblinDecayT); types unlocked less than newT s ago get a bonus (newBonusRare for succubus and wyvern) */
   weights:{goblin:6, goblinDecayT:50, goblinMin:1, wyvern:.5, orc:1.6, succubus:.8, other:3, newT:40, newBonus:3, newBonusRare:1},
@@ -1012,7 +1012,7 @@ const BAL = {
   /* drop chance per kill: up (crystal) / life (half heart), x 1/(1 + max(0, t - decayAt)/decayT);
      gemCap: above it the oldest gem is merged into its nearest neighbour (values add up, no experience is lost) */
   drops:  {up:.0025, upElite:.12, life:.05, lifeElite:.4, decayAt:240, decayT:160, gemCap:400},
-  /* auto-aim of shuriken, bow and fire prefers a living mid-boss: it counts as aimBoss x its distance (see nearest) */
+  /* auto-aim of shuriken, bow and fire prefers a living mid-boss: it counts as aimBoss x its distance (see nearest; kept by Narley on 09/11/2026) */
   aimBoss: .6,
   /* Etapa 5 mid-bosses (see BOSSES). Times in s, distances in px, damage in half hearts. Both bosses: fixed hp (not hpScale),
      enter = distance from Aren where they appear (kept on screen), r = body radius (weapons reach r further),
@@ -2940,7 +2940,7 @@ function query(x, y, r, fn){
   }
 }
 /* auto-aim: a living mid-boss counts as BAL.aimBoss x nearer (Etapa 5: ranged weapons would otherwise spend the fight on
-   the small fry around it; to be confirmed by the owner) */
+   the small fry around it; kept by Narley on 09/11/2026) */
 function nearest(x, y, maxD, noBoss){
   let best = null, bd = maxD*maxD;
   for (const e of E){ if (e.dead || (noBoss && e.d.boss)) continue; let d = (e.x-x)**2 + (e.y-y)**2; if (e.d.mid){ if (d > maxD*maxD) continue; d *= BAL.aimBoss*BAL.aimBoss; } if (d < bd){ bd = d; best = e; } }

@@ -26,7 +26,7 @@ Falta: testes do Narley e decisões listadas em `TASKS.md`.
 
 ## Etapa 5 — Chefes ✔
 
-Concluída no `dev` (novembro de 2026), aguardando o Narley jogar. **Paladino Possuído** (5:00: investida com escudo, giro da espada, salto esmagador, lâminas fantasmas, fase 2 com o espírito à mostra) e **Lich Ancião** (10:00: teleporte, orbes de gelo, chuva de relâmpagos, relâmpago em cadeia, esqueletos invocados, fase 2), desenhados em código, com telegrafias legíveis, cartão de apresentação, barra com fase, sons, animação de morte e relíquia. Decisões a confirmar em `TASKS.md` (mira que prefere o chefe, spawn a 25% na luta, fuga após 240 s). Detalhes e números no `CHANGELOG.md`.
+Concluída no `dev` (novembro de 2026), aguardando o Narley jogar. **Paladino Possuído** (5:00: investida com escudo, giro da espada, salto esmagador, lâminas fantasmas, fase 2 com o espírito à mostra) e **Lich Ancião** (10:00: teleporte, orbes de gelo, chuva de relâmpagos, relâmpago em cadeia, esqueletos invocados, fase 2), desenhados em código, com telegrafias legíveis, cartão de apresentação, barra com fase, sons, animação de morte e relíquia. Decisões do Narley (09/11/2026): mira que prefere o chefe e spawn a 25% na luta mantidos, vida dos chefes +25% e **sem fuga: o relógio da partida para até o chefe morrer**. Testes dele e pendências em `TASKS.md`; detalhes e números no `CHANGELOG.md`.
 
 ## Futuro — opção de jogar em inglês
 

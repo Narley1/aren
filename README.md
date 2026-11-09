@@ -4,8 +4,8 @@ Este branch guarda o código-fonte do jogo. **Não é publicado**: o GitHub Page
 
 - `src/bosque-do-enxame.html` — o jogo inteiro (HTML5 Canvas + JS puro, arquivo único). Fonte da verdade.
 - `src/font/` — Pixelify Sans (OFL).
-- `tools/build_web.py` — gera `dist/` (PWA: index.html, manifest, service worker, README, OFL.txt) e `aren-github-pages.zip`. Ex.: `python3 tools/build_web.py --src src/bosque-do-enxame.html`.
-- `tools/gen_assets.py` — ícones e og-image (gravados em `dist/`).
+- `tools/gen_assets.py` — ícones e og-image desenhados a partir do jogo (gravados em `dist/`; `--from-main` copia os publicados no `main`). Rode **antes** do build: `python3 tools/gen_assets.py`.
+- `tools/build_web.py` — gera `dist/` (PWA: index.html, manifest, service worker, README, OFL.txt) e `aren-github-pages.zip`; falha se faltar um ícone (o service worker pré-cacheia todos). Ex.: `python3 tools/build_web.py --src src/bosque-do-enxame.html`.
 - `tools/parts/` — trechos de desenvolvimento (tela de título, áudio, sprites) já incorporados ao HTML; mantidos como histórico.
 - `tests/smoke.py` — teste principal: simulação headless completa no Chromium, testes das correções e verificação de determinismo. `python3 tests/smoke.py`.
 - `tests/perf.py` — desempenho por cenário; `tests/balance/` — simulador de balanceamento com bot (políticas por estilo).
