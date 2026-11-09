@@ -11,7 +11,6 @@
       {"id": "sword5", "nome": "Golpe da Espada (nível 5)", "quando": "O mesmo golpe no nível máximo: mais agudo, com fio de lâmina.", "call": "S.sword(5)", "estado": "novo"},
       {"id": "holy", "nome": "Onda da Espada Sagrada", "quando": "Ondas de luz saindo com o golpe (relíquia do Paladino).", "call": "S.holy()", "estado": "novo"},
       {"id": "boomThrow", "nome": "Arremesso da Shuriken Gigante", "quando": "Cada arremesso (todas as shurikens juntas).", "call": "S.boomThrow()", "estado": "novo"},
-      {"id": "boomCatch", "nome": "Shuriken volta", "quando": "Quando uma shuriken volta para Aren.", "call": "S.boomCatch()", "estado": "novo"},
       {"id": "wisp", "nome": "Fogo-fátuo acerta", "quando": "Quando um fogo-fátuo acerta um inimigo (no máximo a cada 0,4 s).", "call": "S.wisp()", "estado": "novo"},
       {"id": "storm", "nome": "Raio do Cajado da Tempestade", "quando": "Cada raio do Cajado (relíquia do Lich). Mais leve que o raio do Lich.", "call": "S.storm()", "estado": "novo"}
     ]},

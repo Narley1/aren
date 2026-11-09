@@ -29,7 +29,7 @@ BEFORE_REV = '01c5ba5'  # the game as the owner heard it in round 1 ("Antes")
 STORE = 'avaliacoes_r2' # this round's ratings; round 1 stays in 'avaliacoes' (read-only here)
 # round-1 "silent moment" rows -> the round-2 sounds that answer them (to show what he asked)
 R1_MAP = {'x_hurt': ['hurt'], 'x_gem': ['gem'], 'x_heart': ['heart', 'heart2'], 'x_lvl': ['lvlSmall'], 'x_sword': ['sword', 'sword5'],
-          'x_boom': ['boomThrow', 'boomCatch'], 'x_fire': ['fireCast'], 'x_wisp': ['wisp'], 'x_storm': ['storm'], 'x_holy': ['holy'],
+          'x_boom': ['boomThrow'], 'x_fire': ['fireCast'], 'x_wisp': ['wisp'], 'x_storm': ['storm'], 'x_holy': ['holy'],
           'x_arrow': ['elfArrow'], 'x_wfire': ['wyvernFire'], 'x_elite': ['elite'], 'x_lowhp': ['lowHp'], 'x_ui': ['ui', 'uiPick'],
           'x_pause': ['pauseOpen', 'pauseClose'], 'x_stinger': ['win_sfx', 'lose_sfx'], 'x_kill': None}   # None: every kill_* row
 

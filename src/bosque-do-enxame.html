@@ -2441,13 +2441,12 @@ const SFX = (() => {
     nz(t, noise(t, .13), 'bandpass', 700*(1 + k*1.6)*p, 2400*(1 + k*1.5)*p, 1.3 + k*2, 1.24 - k*.24, .13, .1, .03);
     if (lvl >= 3) tone(t + .03, 'sine', (2600 + k*2400)*p, (3000 + k*2800)*p, .04 + k*.06, .1 + k*.06, .25, .004);
   }
-  // giant shuriken: a whirring spin moving away; a small metallic tick when one comes back
+  // giant shuriken: a whirring spin moving away (round 3: no sound when it comes back, the owner's request)
   function boomThrow(){
     if (!ready('boom', .2)) return; const t = ac.currentTime + .005, p = jit(.05), L = .42;
     const am = flutter(t, L, 20*p, .8, .5); noise(t, L).connect(am);
     nz(t, am, 'bandpass', 1900*p, 1100*p, 3, 1.43, L, .15, .04);
   }
-  function boomCatch(){ if (!ready('boomC', .25)) return; const t = ac.currentTime + .003, f = 2100*jit(.04); tone(t, 'sine', f, f*.97, .32, .08, 0, .001); tone(t, 'sine', f*2.76, f*2.7, .11, .05, 0, .001); }
   function fireCast(){
     if (!ready('fireC', .15)) return; const t = ac.currentTime + .005, p = jit(.05);
     nz(t, noise(t, .22), 'bandpass', 500*p, 1900*p, 1.1, .78, .22, .2, .03);
@@ -2682,7 +2681,7 @@ const SFX = (() => {
   function pause(p, grace){ if (!ac) return; clearTimeout(susT); if (p){ if (grace) susT = setTimeout(() => ac.suspend().catch(() => {}), grace*1000); else ac.suspend().catch(() => {}); } else ac.resume().catch(() => {}); }
   function moodFn(fn){ M.fn = fn; }
   return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, slam, bow: bowShot, boss: bossSfx, setOn, setMusic, pause, moodFn,
-    hurt, gem, heart, lvlSmall, sword, boomThrow, boomCatch, fireCast, wisp, storm, holy, elfArrow, wyvernFire, elite, lowHp, kill, ui, pauseCue,
+    hurt, gem, heart, lvlSmall, sword, boomThrow, fireCast, wisp, storm, holy, elfArrow, wyvernFire, elite, lowHp, kill, ui, pauseCue,
     get on(){ return on; }, get music(){ return musicOn; }};
 })();
 
@@ -4182,7 +4181,7 @@ function update(dt){
       b.rot += dt*70;
       const tp = b.tr.length >= 4 ? b.tr.pop() : [0, 0]; tp[0] = b.x; tp[1] = b.y; b.tr.unshift(tp);  // keeps the 4 newest, reusing the oldest pair
       if (b.out){ const v = 105 - (b.d/b.max)*45; b.x += Math.cos(b.a)*v*dt; b.y += Math.sin(b.a)*v*dt; b.d += v*dt; if (b.d >= b.max) b.out = false; }
-      else { const dx = P.x - b.x, dy = P.y-10 - b.y, l2 = Math.hypot(dx, dy), rv = Math.max(BAL.boom.returnSpd, spd*BAL.boom.returnHeroMul); if (l2 < 9){ b.dead = true; SFX.boomCatch(); continue; } b.x += dx/l2*rv*dt; b.y += dy/l2*rv*dt; }
+      else { const dx = P.x - b.x, dy = P.y-10 - b.y, l2 = Math.hypot(dx, dy), rv = Math.max(BAL.boom.returnSpd, spd*BAL.boom.returnHeroMul); if (l2 < 9){ b.dead = true; continue; } b.x += dx/l2*rv*dt; b.y += dy/l2*rv*dt; }
       b.alive = (b.alive || 0) + dt; if (b.alive > BAL.boom.maxLife){ b.dead = true; continue; }
       const hr = [9, 10, 11][b.tier];
       query(b.x, b.y, hr + 14, e => { if (e.boomCd <= 0 && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < hr + e.d.r){ hit(e, b.dmg); e.boomCd = .35; } });
