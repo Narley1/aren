@@ -13,6 +13,8 @@ def q(xs, p):
     return xs[i] + (xs[j] - xs[i]) * (k - i)
 
 def end_t(r): return r['t']
+def end_rt(r): return r.get('rt', r['t'])   # real time (= run clock before 09/11/2026, when bosses did not hold it)
+def fdur(f): return (f['r1'] - f['r0']) if 'r0' in f else (f['t1'] - f['t0'])   # fight length in real time
 def won(r): return r['title'] == 'Vitória!'
 
 for f in args:
@@ -23,7 +25,9 @@ for f in args:
     for mode, rs in by.items():
         ts = [end_t(r) for r in rs]
         print(f'-- mode {mode}: n={len(rs)}')
-        print(f'   end time  min {min(ts):.0f}  p25 {q(ts,.25):.0f}  median {q(ts,.5):.0f}  p75 {q(ts,.75):.0f}  max {max(ts):.0f}')
+        rts = [end_rt(r) for r in rs]
+        print(f'   end time  min {min(ts):.0f}  p25 {q(ts,.25):.0f}  median {q(ts,.5):.0f}  p75 {q(ts,.75):.0f}  max {max(ts):.0f}  mean {st.mean(ts):.0f}'
+              f'   | real time mean {st.mean(rts):.0f}  max {max(rts):.0f}   stalled (real-time cap) {sum(bool(r.get("stalled")) for r in rs)}')
         for T in (300, 360, 480, 600, 750, 900):
             print(f'   reached {T:4d}s: {sum(t >= T for t in ts)/len(rs)*100:5.1f}%', end='')
         print(f'   victory: {sum(won(r) for r in rs)/len(rs)*100:.1f}%')
@@ -64,6 +68,8 @@ for f in args:
                 for k, v in r['ST']['eff'].items(): e[k] += v / s / len(prs)
             top = ' '.join(f'{k}{v*100:.0f}' for k, v in sorted(e.items(), key=lambda x: -x[1])[:4])
             print(f'     {p:9s} end {pts2}  dmg {top}')
+            print(f'     {"":9s} mean run clock {st.mean(end_t(r) for r in prs):.0f}s  real {st.mean(end_rt(r) for r in prs):.0f}s  victory {sum(won(r) for r in prs)/len(prs)*100:.0f}%'
+                  f'  stalled {sum(bool(r.get("stalled")) for r in prs)}')
         # hurt causes
         hc = defaultdict(float)
         for r in rs:
@@ -88,12 +94,13 @@ for f in args:
                 fs = [r['fights'][bid] for r in prs if bid in (r.get('fights') or {})]
                 if not fs: continue
                 kl = [f for f in fs if f['end'] == 'killed']
-                dur = [f['t1'] - f['t0'] for f in kl]
+                dur = [fdur(f) for f in kl]
                 cnt = {k: sum(f['end'] == k for f in fs) for k in ('killed', 'died', 'fled', 'alive')}
-                d120 = sum(f['end'] == 'died' and f['t1'] - f['t0'] <= 120 for f in fs)
+                d120 = sum(f['end'] == 'died' and fdur(f) <= 120 for f in fs)
                 print(f"     {p:9s} reached {len(fs):3d}/{len(prs):3d}  killed {cnt['killed']/len(fs)*100:5.1f}%  died in fight {cnt['died']/len(fs)*100:5.1f}%"
                       f" (<=120s {d120/len(fs)*100:5.1f}%)  fled {cnt['fled']/len(fs)*100:4.1f}%  ttk p25/med/p75 " + (f"{q(dur,.25):4.0f}/{q(dur,.5):4.0f}/{q(dur,.75):4.0f}s" if dur else '   -   ')
-                      + f"  hurt med {st.median([f['hurt'] for f in fs]):.0f}  lvl med {st.median([f['lvl'] for f in fs]):.0f}")
+                      + f"  hurt med {st.median([f['hurt'] for f in fs]):.0f}  lvl med {st.median([f['lvl'] for f in fs]):.0f}"
+                      + f"  alive at end {cnt['alive']}  longest (real) " + ' '.join(f"{fdur(f):.0f}{f['end'][0]}" for f in sorted(fs, key=fdur)[-3:]))
                 if p == 'ALL' and any('causes' in f for f in fs):
                     cz = defaultdict(float)
                     for f in fs:
