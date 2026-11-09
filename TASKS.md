@@ -154,8 +154,25 @@ Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r3`):
 - [ ] Vozes de presença: frequência (2,5–7,5 s por tipo) e volume
 - [ ] Ainda acima do limite e sem pedido: morte do dragão (+18,5 dB, pico −2,7 dBFS; ele gostou)
 
-### Áudio — próximos lotes de monstros (proposta, não feito)
+### Áudio — rodada 4 (09/11/2026): notas do Narley na rodada 3 + monstros, lote 3
+
+Feito (medido com `tools/sfx_levels.py`; volume = rms150 em relação à explosão; picos dos sons novos e mudados entre −14 e −29 dBFS):
+- [x] Risada da súcubo sem o ronronar "mrrr"; o resto igual, começando 0,3 s antes (+4,2 → −0,9 dB: o ronronar era o trecho mais alto)
+- [x] Hobgoblin: grunhido removido (do jogo e do catálogo); a voz é sempre o rosnado aprovado, com variação de altura (±6%), duração (0,40–0,52 s), ponto do pico e rolado
+- [x] Vida baixa mais +4 dB (−6,8 → −2,8), mesmo formato
+- [x] Morte da serpe-dragão, terceira tentativa: grito curto de dragão pequeno (timbre do `roar()`, ~0,2 s) e o corpo pesado caindo (−4,3 dB, 12 nós). Opção B só no laboratório (`kill_wyvern_b`: chiado de réptil, fogo apagando, baque leve; −3,3 dB, 11 nós)
+- [x] Vozes de presença, lote 3: demônio (respiração + rosnado grave, −8,4 dB, 11 nós; nunca junto com a risada), serpe (asas grandes de couro, −9,5 dB, 5 nós; com grasnido "kraa-ak" −10,8 dB, 12 nós), súcubo (asas leves, −10,8 dB, 4 nós; com suspiro −8,3 dB, 12 nós)
+- [x] Rajada: 20 demônios + 15 serpes + 15 súcubos perto de Aren por 10 s: 11 vozes, 105 nós de voz, no máximo 24 em meio segundo; com os 6 tipos juntos: 20 vozes, 146 nós, no máximo 22 em meio segundo
+- [x] Determinismo IDENTICAL; `smoke.py` 0 falhas
+- [x] Laboratório da rodada 4: Antes = commit fde193b, notas em `avaliacoes_r4`, nota anterior de `avaliacoes_r3` (ou r2, ou rodada 1)
+
+Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r4`):
+- [ ] Todos os sons da rodada 4 (eu não ouço: medi nível, duração, nós e olhei espectrogramas)
+- [ ] Morte da serpe: A (no jogo) ou B (só no laboratório)
+- [ ] Ainda acima do limite e sem pedido: morte do dragão (+18,4 dB, pico −3 dBFS; ele gostou). O aviso dos relâmpagos (`zapWarn`, não mexido) tem estalos aleatórios: numa medição o pico foi −5,0 dBFS (nas outras, −7,8 a −10,6)
+
+### Áudio — próximo lote de monstros (proposta, não feito)
 
 - [ ] **Lote 2:** orc (bufada/rugido curto e pesado), elfo (voz curta ao atirar ou ao chegar perto, aguda e limpa), esqueleto (chacoalhar de ossos e mandíbula batendo)
-- [ ] **Lote 3:** demônio (rosnado ou respiração além da risada), serpe-dragão (bater de asas grandes e grasnido além do fogo), súcubo (asas leves/sussurro enquanto voa)
-- Mesmas regras do lote 1: temporizador por tipo em `VOX`, nada de `Math.random` no jogo, −12 a −6 dB, até ~12 nós
+- [x] ~~Lote 3~~ feito na rodada 4
+- Mesmas regras: temporizador por tipo em `VOX`, nada de `Math.random` no jogo, −12 a −6 dB, até ~12 nós

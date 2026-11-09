@@ -1,5 +1,19 @@
 # Changelog
 
+## Áudio — rodada 4 (09/11/2026, branch `dev`, não publicado)
+
+Notas do Narley no laboratório da rodada 3 e o lote 3 de sons dos monstros. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta, comparado com a explosão do fogo, ~−29,7 dBFS). Eu não ouço: a aprovação é do Narley, no laboratório.
+
+- **Risada da súcubo:** sem o ronronar "mrrr" do começo; o resto é o mesmo e começa 0,3 s antes (onde estava o ronronar). O volume medido caiu de +4,2 para −0,9 dB porque o ronronar era o trecho mais alto; o resto não mudou de nível.
+- **Hobgoblin:** o grunhido curto saiu (nota 1); a voz é sempre o rosnado aprovado (nota 5), com pequenas variações de altura, duração, pico e rolado. Linha `v_hobgoblin` removida do catálogo.
+- **Vida baixa:** mais +4 dB (−6,8 → −2,8), a mesma batida suave.
+- **Morte da serpe-dragão (terceira tentativa):** grito curto de dragão pequeno, com o timbre do rugido novo encolhido para ~0,2 s e mais agudo, e o corpo pesado caindo no chão (−4,3 dB, 12 nós). Opção B só no laboratório (`kill_wyvern_b`): chiado de réptil, o fogo de dentro apagando em estalos e um baque leve (−3,3 dB, 11 nós). A versão A é a que está no jogo.
+- **Monstros, lote 3 (vozes de presença):** demônio (respiração quente e rosnado grave; −8,4 dB, 11 nós), serpe-dragão (asas grandes de couro, mais lentas e graves que as da gárgula, −9,5 dB, 5 nós; ~1 em 3 com um grasnido "kraa-ak", −10,8 dB, 12 nós) e súcubo (asas leves e rápidas, −10,8 dB, 4 nós; ~1 em 3 com um suspiro soprado, −8,3 dB, 12 nós). Intervalos por tipo: demônio 5–10 s, serpe 3,5–7,5 s, súcubo 4–9 s; depois dessas vozes os outros tipos esperam 0,9/0,9/0,7 s (antes 0,5 para todos).
+- **Demônio:** o rosnado e a risada (que continua com o temporizador antigo) nunca tocam juntos: dentro do `SFX`, o rosnado não toca enquanto a risada dura, e uma risada que chegue durante um rosnado começa logo depois dele (verificado no espectrograma: rosnado até ~0,9 s, risada a partir de ~1,15 s).
+- **Desempenho:** 20 demônios + 15 serpes + 15 súcubos perto de Aren por ~10 s: 11 vozes, 105 nós de voz, no máximo 24 em meio segundo (as risadas antigas criam 85 e 108 nós cada); com os 6 tipos juntos (30 goblins, 15 gárgulas, 15 hobgoblins, 15 demônios, 10 serpes, 10 súcubos): 20 vozes, 146 nós, no máximo 22 em meio segundo.
+- **Determinismo:** `smoke.py --compare` IDENTICAL; `smoke.py` 0 falhas.
+- **Laboratório:** "Antes" = commit fde193b (rodada 3), notas em `avaliacoes_r4`, nota anterior de `avaliacoes_r3`, depois `avaliacoes_r2`, depois a rodada 1 (`avaliacoes`); as coleções antigas só são lidas.
+
 ## Áudio — rodada 3 (08/11/2026, branch `dev`, não publicado)
 
 Notas do Narley no laboratório da rodada 2 e o primeiro lote de sons dos monstros. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta, comparado com a explosão do fogo, ~−29,7 dBFS). Eu não ouço: a aprovação é do Narley, no laboratório.
