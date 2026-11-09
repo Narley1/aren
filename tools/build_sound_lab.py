@@ -4,17 +4,17 @@
 A página usa o MESMO módulo SFX de src/bosque-do-enxame.html (copiado no build, com ganchos de teste
 só na cópia), o catálogo tools/sound_catalog.json e os volumes medidos por tools/sfx_levels.py.
 Também embute o módulo de som da rodada anterior (commit BEFORE_REV, como SFX_OLD), para os botões
-"Antes" e "Agora" dos sons com 'estado' no catálogo. Rodada 4: as notas vão para a coleção STORE
-(`avaliacoes_r4`) do armazenamento `db` do artifact; a nota anterior de cada som aparece só para leitura,
-vinda de PREV_STORE (`avaliacoes_r3`) ou, se o som não tiver nota lá, das rodadas antes dela
-(OLDER_STORES: `avaliacoes_r2`, depois `avaliacoes` da rodada 1). Nada é gravado nessas coleções antigas.
+"Antes" e "Agora" dos sons com 'estado' no catálogo. Rodada 5: as notas vão para a coleção STORE
+(`avaliacoes_r5`) do armazenamento `db` do artifact; a nota anterior de cada som aparece só para leitura,
+vinda de PREV_STORE (`avaliacoes_r4`) ou, se o som não tiver nota lá, das rodadas antes dela
+(OLDER_STORES: `avaliacoes_r3`, `avaliacoes_r2`, depois `avaliacoes` da rodada 1). Nada é gravado nessas coleções antigas.
 O commit "Antes" e as coleções podem ser trocados por opções (--before, --store, --prev-store).
 A saída é um fragmento HTML (sem doctype): o publicador do artifact põe o cabeçalho.
 
     python3 tools/build_sound_lab.py --out /caminho/laboratorio-som.html
     python3 tools/build_sound_lab.py --out lab.html --levels /tmp/levels.json   # reaproveita medição
     python3 tools/build_sound_lab.py --out lab.html --levels l.json --levels-old antes.json
-    python3 tools/build_sound_lab.py --out lab.html --before fde193b --store avaliacoes_r4 --prev-store avaliacoes_r3
+    python3 tools/build_sound_lab.py --out lab.html --before 9e732e4 --store avaliacoes_r5 --prev-store avaliacoes_r4
 """
 import argparse, asyncio, datetime, json, os, subprocess, sys
 
@@ -29,12 +29,12 @@ BIG_MOMENT_CAP_DB = 8.0 # dragon arrival, rage and death may stay a little loude
 BIG_MOMENTS = {'roarIntro', 'roarRage', 'dragonDeath'}
 WARN_FLOOR_DB = -8.0    # attack warnings (and the bow, heard all the time) come up to this
 WARN_IDS = {'scrape', 'windup', 'jump', 'zapWarn', 'chainCharge', 'bow'}
-# Round 4 defaults (each can be overridden on the command line)
-ROUND = 4
-BEFORE_REV = 'fde193b'       # "Antes": the game as the owner heard it in round 3
-STORE = 'avaliacoes_r4'      # this round's ratings
-PREV_STORE = 'avaliacoes_r3' # previous round's notes, shown read-only under each row
-OLDER_STORES = [('avaliacoes_r2', 2), ('avaliacoes', 1)]   # fallbacks, newest first (round 1 = 'avaliacoes')
+# Round 5 defaults (each can be overridden on the command line)
+ROUND = 5
+BEFORE_REV = '9e732e4'       # "Antes": the game as the owner heard it in round 4
+STORE = 'avaliacoes_r5'      # this round's ratings
+PREV_STORE = 'avaliacoes_r4' # previous round's notes, shown read-only under each row
+OLDER_STORES = [('avaliacoes_r3', 3), ('avaliacoes_r2', 2), ('avaliacoes', 1)]   # fallbacks, newest first (round 1 = 'avaliacoes')
 DECIDED = {'windup'}         # volume proposals the owner already answered ("igual"): no Proposta button
 # round-1 "silent moment" rows -> the sounds that answer them (for the round-1 fallback note)
 R1_MAP = {'x_hurt': ['hurt'], 'x_gem': ['gem'], 'x_heart': ['heart', 'heart2'], 'x_lvl': ['lvlSmall'], 'x_sword': ['sword', 'sword5'],
@@ -230,8 +230,8 @@ footer{margin-top:40px;font-size:13px;color:var(--mute);display:grid;gap:6px;max
 </style>
 
 <div class="wrap">
-  <h1>Laboratório de Som do Aren · rodada 4</h1>
-  <p class="lead">Fiz os ajustes que você pediu na rodada 3 e o lote 3 dos monstros: demônio, serpe-dragão e súcubo agora fazem barulho quando estão perto de Aren. Cada som que mudou tem <b>Antes</b> (a versão da rodada 3) e <b>Agora</b>. Os sons novos só têm <b>Agora</b>. Para a morte da serpe há duas opções, <b>A</b> (no jogo) e <b>B</b> (só aqui): escolha uma. Use <b>Só o que mudou</b> para ver só eles.</p>
+  <h1>Laboratório de Som do Aren · rodada 5</h1>
+  <p class="lead">Fiz os ajustes que você pediu na rodada 4 e o último lote dos monstros: orc, elfo e esqueleto agora também fazem barulho quando estão perto de Aren. Com isso, <b>todos os monstros têm som de presença</b>. Cada som que mudou tem <b>Antes</b> (a versão da rodada 4) e <b>Agora</b>. Os sons novos só têm <b>Agora</b>. Use <b>Só o que mudou</b> para ver só eles.</p>
   <p class="small" id="meta"></p>
 </div>
 
@@ -253,7 +253,7 @@ footer{margin-top:40px;font-size:13px;color:var(--mute);display:grid;gap:6px;max
 
   <h2>Cena de teste</h2>
   <div class="scene">
-    <p>Treze segundos de luta: música de combate, espada, fogo, arco, martelo, goblins, gárgula, hobgoblin, demônio, súcubo e serpe por perto, inimigos morrendo, joias, flecha de elfo, risadas, relâmpago, Cajado da Tempestade, dano e subir de nível. <b>Antes</b> toca como estava na rodada 3 (sem as vozes novas); <b>Agora</b> toca tudo como está hoje.</p>
+    <p>Treze segundos de luta: música de combate, espada, fogo, arco, martelo, goblins, gárgula, hobgoblin, orc, elfo, esqueleto, demônio, súcubo e serpe por perto, inimigos morrendo, joias, flecha de elfo, risadas, relâmpago, Cajado da Tempestade, dano e subir de nível. <b>Antes</b> toca como estava na rodada 4 (sem as vozes novas); <b>Agora</b> toca tudo como está hoje.</p>
     <div class="row-btns">
       <button class="btn" type="button" id="sceneOld"><span class="tri"></span>Antes</button>
       <button class="btn alt" type="button" id="sceneNew"><span class="tri"></span>Agora</button>
@@ -326,10 +326,10 @@ function playSound(s, ver, btn){
   const go = () => { M.__clr(); try { M.__play(() => CALLS[s.id](M), k); } catch (e) { console.warn(e); } markPlaying(btn, len); };
   if (M.__st() === 'running') go(); else setTimeout(go, 150);   // first click: let the context start
 }
-const SCENE = [[.3,'v_goblin'],[.5,'sword'],[.8,'explode'],[.9,'kill_goblin'],[1.1,'gem'],[1.25,'gem'],[1.5,'bow'],[1.7,'kill_orc'],[1.9,'bow'],[2.1,'gem'],[2.4,'slam'],
-  [2.6,'v_gargoyle2'],[2.9,'sword'],[3.2,'explode'],[3.3,'kill_hobgoblin'],[3.6,'bow'],[3.75,'kill_gargoyle'],[4.0,'elfArrow'],[4.3,'demon'],[4.9,'hurt'],[5.4,'gem'],[5.55,'gem'],
-  [5.8,'v_hobgoblin2'],[6.3,'levelup'],[6.6,'v_succubus'],[7.0,'succubus'],[7.4,'v_demon'],[8.15,'hex'],[8.6,'v_goblin'],[9.0,'bolt'],[9.6,'explode'],[9.7,'kill_demon'],[10.1,'bow'],
-  [10.2,'v_wyvern2'],[10.4,'storm'],[11.2,'enhance'],[11.5,'kill_wyvern'],[11.8,'heart']];
+const SCENE = [[.3,'v_goblin'],[.5,'sword'],[.8,'explode'],[.9,'kill_goblin'],[1.1,'gem'],[1.25,'gem'],[1.5,'bow'],[1.6,'v_orc'],[1.9,'kill_orc'],[2.0,'bow'],[2.1,'gem'],[2.4,'slam'],
+  [2.6,'v_gargoyle2'],[2.9,'sword'],[3.2,'explode'],[3.3,'kill_hobgoblin'],[3.6,'bow'],[3.75,'kill_gargoyle'],[3.9,'elfArrow'],[4.6,'v_elf'],[4.3,'demon'],[4.9,'hurt'],[5.4,'gem'],[5.55,'gem'],
+  [5.8,'v_hobgoblin2'],[6.3,'levelup'],[6.6,'v_succubus'],[7.0,'succubus'],[7.4,'v_demon'],[8.15,'hex'],[8.6,'v_skeleton'],[9.0,'bolt'],[9.6,'explode'],[9.7,'kill_demon'],[10.1,'bow'],
+  [10.2,'v_wyvern'],[10.4,'storm'],[11.2,'enhance'],[11.5,'kill_wyvern'],[11.8,'heart']];
 function playScene(old, btn){
   audioOn(old); stopAll(); const M = old ? SFX_OLD : SFX; M.__clr();
   setMood(old ? 'silent' : 'combat'); if (old) setMoodOld('combat');
@@ -487,20 +487,19 @@ function mudoRow(m){
   return row;
 }
 
-/* ---------- findings: what changed in round 4 (numbers from the measurements) ---------- */
+/* ---------- findings: what changed in round 5 (numbers from the measurements) ---------- */
 function findings(){
   const rel = id => L[id].rms150_db - REF, relO = id => LO[id].rms150_db - REFO, all = Object.values(SOUND).filter(s => !s.mood);
   const cnt = k => Object.values(SOUND).filter(s => s.estado === k).length;
   const loud = all.filter(s => P[s.id] && P[s.id].db < 0).sort((a, b) => rel(b.id) - rel(a.id));   // same rule as the Proposta buttons
-  const NEW = ['v_demon', 'v_wyvern', 'v_wyvern2', 'v_succubus', 'v_succubus2'].filter(id => L[id]), vr = NEW.map(rel), vn = Math.max(...NEW.map(id => L[id].nodes));
+  const NEW = ['v_orc', 'v_elf', 'v_skeleton'].filter(id => L[id]), vr = NEW.map(rel), vn = Math.max(...NEW.map(id => L[id].nodes));
   const was = (id, t) => LO[id] ? `${t} (${num(relO(id))} → <b>${num(rel(id))} dB</b>)` : `${t} (<b>${num(rel(id))} dB</b>)`;
   const F = [
-    ['Rodada 4', `${cnt('refeito')} refeitos, ${cnt('volume')} com volume novo, ${cnt('novo')} sons novos`, `Mudei só o que você pediu na rodada 3; o que você aprovou (risada do demônio, salto, morte da gárgula, Cajado, goblin, gárgula, rosnado do hobgoblin e a cena) ficou igual. Use <b>Só o que mudou</b> no topo para ver só os sons desta rodada.`],
-    ['Monstros · lote 3', 'Demônio, serpe-dragão e súcubo por perto', NEW.length ? `Demônio: respiração quente e rosnado grave, além da risada (os dois nunca tocam juntos: um espera o outro). Serpe: asas grandes de couro, mais lentas e graves que as da gárgula, às vezes com um grasnido curto. Súcubo: asas leves e rápidas, às vezes um suspiro soprado. Cada tipo fala no máximo uma vez a cada 3,5 a 10 s. Ficam baixos, entre <b>${num(Math.min(...vr))}</b> e <b>${num(Math.max(...vr))} dB</b> em relação à explosão, com até ${vn} nós de áudio.` : ''],
-    ['Refeitos', 'O que você marcou para refazer', `${was('succubus', 'Risada da súcubo sem o ronronar')}: o resto é o mesmo (o número caiu porque o ronronar era o trecho mais alto). Hobgoblin: o grunhido saiu; agora é sempre o rosnado que você aprovou, com pequenas variações de altura e duração (toque várias vezes). ${was('kill_wyvern', 'Morte da serpe, opção A (no jogo): grito curto de dragão pequeno e o corpo pesado caindo')}; ${L.kill_wyvern_b ? `opção B (só aqui): chiado de réptil, o fogo apagando e um baque leve (<b>${num(rel('kill_wyvern_b'))} dB</b>). Diga qual prefere.` : ''}`],
-    ['Volume', 'Vida baixa mais alta', `${was('lowHp', 'Vida baixa')}: mais +4 dB, a mesma batida de coração suave.`],
+    ['Rodada 5', `${cnt('refeito')} refeitos, ${cnt('volume')} com volume novo, ${cnt('novo')} sons novos`, `Mudei só o que você pediu na rodada 4; o que você aprovou (a cena, a morte da serpe A, a risada da súcubo, o rosnado do hobgoblin, as asas e o suspiro da súcubo, as asas da serpe) ficou igual. A opção B da morte da serpe saiu (você escolheu a A). Use <b>Só o que mudou</b> no topo para ver só os sons desta rodada.`],
+    ['Monstros · último lote', 'Orc, elfo e esqueleto por perto', NEW.length ? `Orc: bufada pesada pelo nariz com um grunhido gutural grave, mais grave e com mais ar que o rosnado do hobgoblin. Elfo: grito de batalha curto e agudo ("hah!" ou "hy-ah!"), raro porque há muitos elfos, e nunca em cima da flecha (espera ela terminar). Esqueleto: ossinhos chacoalhando, secos e agudos, e a mandíbula batendo "clac-clac". Ficam baixos, entre <b>${num(Math.min(...vr))}</b> e <b>${num(Math.max(...vr))} dB</b> em relação à explosão, com até ${vn} nós de áudio. Agora <b>todos os monstros</b> têm som de presença.` : ''],
+    ['Refeitos', 'O que você marcou', `${was('v_wyvern', 'Serpe por perto')}: o grasnido "kraa-ak" saiu; são só as asas que você aprovou, de 2 a 4 batidas, ora mais rápidas, ora mais lentas (toque várias vezes).`],
+    ['Vida baixa', 'Feita para aparecer em alto-falante pequeno', `${was('lowHp', 'Vida baixa')}. Pela terceira vez "baixo demais": subir o volume não resolvia porque a batida era quase toda grave (abaixo de 200 Hz), que caixinha de notebook e de celular mal toca e a música cobre. Agora cada batida tem também um toque abafado (como um nó de dedo na madeira) e um tom uma oitava acima; a parte acima de 500 Hz ficou cerca de 16 dB mais forte. Continua uma batida suave. Teste no celular, se puder.`],
     ['Limite', loud.length ? 'Sons que ainda passam do limite' : 'Nenhum som acima do limite', loud.length ? `${loud.map(s => `<b>${s.nome}</b> (${num(rel(s.id))} dB)`).join(', ')}. Não mexi neles porque você não pediu; o botão <b>Proposta</b> mostra como ficaria mais baixo.` : 'Todos os efeitos estão no máximo 6 dB acima da explosão (8 para chegadas e fúria de chefe).'],
-    ['Próximo lote', 'Monstros que ainda vou fazer', 'Lote 2: orc, voz do elfo e esqueleto. Diga se quer algum antes.'],
   ];
   $('#finds').append(...F.map(([tag, h, p]) => { const d = el('div', {class: 'find'}, [el('span', {class: 'tag', text: tag}), el('h3', {text: h})]); const pp = el('p'); pp.innerHTML = p; d.append(pp); return d; }));
 }
