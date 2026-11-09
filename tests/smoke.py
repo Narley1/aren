@@ -57,7 +57,10 @@ window.__t = {
   // Etapa 5
   get ZAPS(){ return typeof ZAPS !== 'undefined' ? ZAPS : null; },
   get CORPSES(){ return typeof CORPSES !== 'undefined' ? CORPSES : null; },
-  get lichStart(){ return typeof lichStart === 'function' ? lichStart : null; }
+  get lichStart(){ return typeof lichStart === 'function' ? lichStart : null; },
+  // ambient butterflies/leaves live across runs and are topped up with Math.random by the title screen between
+  // evaluates (how many frames ran depends on machine load), so the seeded runs start from an empty set
+  clearAmb(){ if (typeof AMB !== 'undefined'){ AMB.bf.length = 0; AMB.lv.length = 0; AMB.t = 0; AMB.step = 0; } }
 };
 '''
 
@@ -87,7 +90,7 @@ STRESS = r'''
 (seed) => {
   const T = window.__t, out = {errors: []};
   window.__seed(seed);
-  T.start();
+  T.start(); T.clearAmb();
   const DT = 1/30;
   let maxE = 0, maxFX = 0, maxB = 0, maxEB = 0, maxGEMS = 0, maxITEMS = 0, maxNUMS = 0, picks = 0, nan = 0, steps = 0;
   let at120 = null, bossSeen = false, fightSeen = false, forced = false;
@@ -126,7 +129,7 @@ NORMAL = r'''
 (seed) => {
   const T = window.__t;
   window.__seed(seed);
-  T.start();
+  T.start(); T.clearAmb();
   const DT = 1/30, K = T.keys;
   let picks = 0, died = null, at120 = null, maxE = 0, nan = 0;
   for (let i = 0; i < 125*30; i++){
