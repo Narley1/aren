@@ -27,6 +27,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--display);overflow:h
 #hearts{display:flex;flex-wrap:wrap;gap:2px;max-width:150px}
 #hearts img{width:21px;height:18px;image-rendering:pixelated}
 #timer{font-size:22px;font-weight:700;letter-spacing:.06em;text-shadow:2px 2px 0 #0b1218;font-variant-numeric:tabular-nums;text-align:center}
+/* run clock held while a mid-boss lives: dimmed digits, a pause sign (shape) and a label (text), not colour alone */
+.tbox{display:flex;flex-direction:column;align-items:center;gap:3px}
+#timer.held{display:flex;align-items:center;gap:6px;color:var(--mute)}
+#timer.held::before{content:"";width:3px;height:.62em;border-inline:4px solid currentColor;filter:drop-shadow(2px 2px 0 #0b1218)}
+#hold{font-size:12px;font-weight:700;color:#ffe7a3;background:rgba(58,36,10,.85);border:2px solid var(--gold);padding:1px 6px;white-space:nowrap;box-shadow:2px 2px 0 #0b1218}
+@media (prefers-reduced-motion:no-preference){#timer.held::before{animation:held 1.6s ease-in-out infinite}}
+@keyframes held{50%{opacity:.35}}
 .hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .stat{font-size:14px;text-shadow:2px 2px 0 #0b1218;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
 .stat img{width:12px;height:14px;image-rendering:pixelated}
@@ -173,7 +180,7 @@ body{-webkit-touch-callout:none}
     <div id="xp"><span id="lvl">Nv 1</span><div class="xp-track"><div id="xpFill"></div></div><span id="nextPick">poder no 3</span></div>
     <div class="hud-top">
       <div id="hearts"></div>
-      <div id="timer">0:00</div>
+      <div class="tbox"><div id="timer">0:00</div><div id="hold" hidden></div></div>
       <div class="hud-right">
         <div class="btns"><button id="musicBtn" type="button">Música</button><button id="soundBtn" type="button">Efeitos</button><button id="pauseBtn" type="button">Pausa</button></div>
         <div class="stat"><span id="kills">0</span> abates</div>
@@ -207,7 +214,7 @@ body{-webkit-touch-callout:none}
     <div class="panel">
       <div class="label">Aren, o Guardião do Bosque</div>
       <h2>Como jogar</h2>
-      <p id="howText">Aren, aprendiz de guardião, só tem a velha espada da família quando o enxame invade o bosque. Criaturas derrotadas deixam joias de experiência: as mais fortes valem mais, e só contam quando Aren as recolhe. Nos níveis 2, 3, 5, 7 e 10, e depois a cada 3 níveis, ele escolhe um entre três poderes; nos outros níveis, recupera meio coração. Aos 5:00 surge o Paladino Possuído e aos 10:00 o Lich Ancião: derrote-os para ganhar relíquias lendárias. Aos 15:00, o Dragão Esqueleto desperta.</p>
+      <p id="howText">Aren, aprendiz de guardião, só tem a velha espada da família quando o enxame invade o bosque. Criaturas derrotadas deixam joias de experiência: as mais fortes valem mais, e só contam quando Aren as recolhe. Nos níveis 2, 3, 5, 7 e 10, e depois a cada 3 níveis, ele escolhe um entre três poderes; nos outros níveis, recupera meio coração. Aos 5:00 surge o Paladino Possuído e aos 10:00 o Lich Ancião: derrote-os para ganhar relíquias lendárias. Enquanto um deles estiver vivo, o relógio para: o bosque só avança quando ele cair. Aos 15:00, o Dragão Esqueleto desperta.</p>
       <p id="howStyle">Cada arma tem um estilo: <b>Corpo a corpo</b> bate mais forte, mas Aren precisa chegar perto; <b>A distância</b> ataca de longe; <b>Híbrido</b> fica no meio. As Manoplas do Guerreiro reforçam o corpo a corpo e o Grimório Arcano, o ataque a distância. Aren carrega até <span id="howCap">5</span> armas (a espada conta; relíquias e passivos não).</p>
       <div class="row"><button class="btn" id="startBtn" type="button">Começar</button><button class="btn alt" id="backBtn" type="button">Voltar</button><button class="btn alt" id="fsBtn" type="button" hidden>Tela cheia</button><button class="btn alt" id="installBtn" type="button" hidden>Instalar app</button></div>
       <div class="best" id="bestStart"></div>
@@ -249,7 +256,7 @@ body{-webkit-touch-callout:none}
       <h2 id="overTitle">Aren caiu</h2>
       <p id="overMsg" hidden></p>
       <div class="results">
-        <div class="res"><div class="label">Tempo</div><div class="v" id="rTime">0:00</div></div>
+        <div class="res"><div class="label">Tempo</div><div class="v" id="rTime">0:00</div><div class="label" id="rReal" hidden></div></div>
         <div class="res"><div class="label">Abates</div><div class="v" id="rKills">0</div></div>
         <div class="res"><div class="label">Joias</div><div class="v" id="rGems">0</div></div>
         <div class="res"><div class="label">Poderes</div><div class="v" id="rUp">0</div></div>
@@ -1009,14 +1016,15 @@ const BAL = {
   /* Etapa 5 mid-bosses (see BOSSES). Times in s, distances in px, damage in half hearts. Both bosses: fixed hp (not hpScale),
      enter = distance from Aren where they appear (kept on screen), r = body radius (weapons reach r further),
      touch = contact damage (none while recovering: the melee window), phase2 = hp fraction where phase 2 starts (damage in
-     phase 1 cannot go below it, so phase 2 always plays), transT = invulnerable transition, flee = s alive before the boss
-     leaves and its relic is lost (decision of Etapa 5, see CHANGELOG); p2 = phase 2 multipliers.
+     phase 1 cannot go below it, so phase 2 always plays), transT = invulnerable transition; p2 = phase 2 multipliers.
+     A mid-boss never leaves: while it lives the run clock G.t is held (Narley, 09/11/2026: "o jogo só prossegue quando o
+     boss for derrotado").
      Paladin: walks at speed, between attacks waits gap s; leash = farther than this it leaps or charges at once.
        charge: lane telegraph tele s (locked direction), then runs len px at speed; hit = dmg + knockback kb; recover s dazed.
        spin: ring telegraph windup s, then spins dur s; hit inside R (ground ellipse). leap: crouch s, flies air s to the spot
        Aren stood on at take-off (landing circle shown while airborne), hit inside R; recover s with the sword in the ground.
        blades: cast s (n blades appear), then fires one every gap s at speed px/s (dmg each). */
-  paladin: {hp:2300, gem:60, enter:92, r:14, touch:1, speed:34, gap:1.6, leash:150, phase2:.5, transT:1.8, flee:240,
+  paladin: {hp:2300, gem:60, enter:92, r:14, touch:1, speed:34, gap:1.6, leash:150, phase2:.5, transT:1.8,
             p2:{speed:1.2, tele:.85, gap:.6, cd:.8},
             intro:{fall:1.15, R:30, dmg:2, roar:.8},
             charge:{tele:.85, speed:250, len:175, w:13, dmg:2, kb:160, recover:1.15, minD:46, maxD:200},
@@ -1030,7 +1038,7 @@ const BAL = {
        chain: charge s with a line that follows Aren, locked for the last lock s, then a bolt len px long (hit within w px);
        phase 2 forks into 3 (fork rad apart). summon: cast s showing graves, then n skeletons rise in rise s (at most max alive,
        not again before every s). After each spell: recover s, tired and still (no contact damage). */
-  lich:    {hp:7600, gem:120, enter:105, r:11, touch:2, speed:36, keep:130, gap:1.1, phase2:.5, transT:1.6, flee:240,
+  lich:    {hp:7600, gem:120, enter:105, r:11, touch:2, speed:36, keep:130, gap:1.1, phase2:.5, transT:1.6,
             p2:{speed:1.15, cast:.8, gap:.6, recover:.7},
             intro:{mist:.9, rise:.9},
             tele:{out:.45, in:.4, d:[90, 125], near:75, nearT:.6, every:7},
@@ -1049,16 +1057,16 @@ const BOSSES = [{t:300, id:'paladin', relic:'holy'}, {t:600, id:'lich', relic:'s
 /* every visible text of the Etapa 5 bosses, in one place (an English option is planned: translate here) */
 const BOSS_TXT = {
   card:'Chefe',                     // title card label: "Chefe · 5:00"
-  phase1:'Fase 1', phase2:'Fase 2', ward:'Invulnerável', leaving:'Recuando',
+  phase1:'Fase 1', phase2:'Fase 2', ward:'Invulnerável',
+  hold:'Derrote o chefe!',          // HUD, under the held timer while a mid-boss lives
+  realTime:'Tempo real',            // game-over panel: total time played, when a boss fight held the clock
   summoned:'invocado',              // bestiary: skeletons only come from the lich
   paladin:{name:'Paladino Possuído', sub:'Uma armadura vazia a serviço do dragão',
     p2:['O espírito se revela!', 'O Paladino ataca mais rápido e invoca mais lâminas'],
-    down:['O Paladino caiu!', 'O espírito se desfez · pegue a relíquia: '],
-    fled:['O Paladino recuou...', 'A relíquia se perdeu: ']},
+    down:['O Paladino caiu!', 'O espírito se desfez · pegue a relíquia: ']},
   lich:{name:'Lich Ancião', sub:'Senhor dos mortos e das tempestades',
     p2:['O Lich desperta seu poder!', 'Feitiços mais rápidos, um atrás do outro'],
     down:['O Lich virou pó!', 'O cristal se partiu · pegue a relíquia: '],
-    fled:['O Lich desapareceu...', 'A relíquia se perdeu: '],
     frost:['Congelado!', 'Aren fica mais lento por alguns segundos']},
   skeleton:'Esqueleto'
 };
@@ -2901,7 +2909,7 @@ let state = 'menu';
 let overTimer = 0; /* delayed game-over/victory panel; cleared on every new run or title */
 function reset(){
   clearTimeout(overTimer);
-  G = {t:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mi:0, guard:[], boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0, hmCd:1.5, slam:null, thT:.5, thPulse:0, bwCd:1};
+  G = {t:0, rt:0, hold:0, kills:0, gems:0, ups:0, since:0, spawnT:0, waveT:BAL.horde.first, swCd:.3, swRev:false, bmCd:1, frCd:1, orbA:0, swing:null, shake:0, unlocked:new Set(['goblin']), stCd:1, mi:0, guard:[], boss:null, dark:0, flash:0, xp:0, lvl:1, need:xpNeed(1), pending:0, hmCd:1.5, slam:null, thT:.5, thPulse:0, bwCd:1};
   P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, frost:0, kx:0, ky:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
   W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, gauntlets:0, grimoire:0, hammer:0, thorns:0, bow:0};
   E = []; B = []; EB = []; GEMS = []; ITEMS = []; FX = []; NUMS = []; ORBS = []; MARKS = []; CURSES = []; DECALS = []; BURNS = []; ZAPS = []; CORPSES = [];
@@ -3203,7 +3211,10 @@ function toRest(s){ s.st = 'rest'; s.t = 0; }
 /* ---------- boss milestones (BOSSES) ----------
    update() calls bossEvent(m) once when G.t reaches m.t (G.mi = index of the next milestone).
    'dragon' starts the final fight (startBoss). Any other id runs GUARD_EV[id](m) (spawnMidBoss: Paladino, Lich), whose
-   death drops m.relic. For BAL.spawn.guardCalmT s after a boss of G.guard appears (while it lives) spawning slows and hordes wait. */
+   death drops m.relic. While a boss of G.guard lives the run clock G.t is held (clockHeld): no new enemy types, scaling,
+   elite ramp, drop decay or next milestone until it dies (G.hold sums the held seconds: real time played = G.t + G.hold);
+   G.rt (real time) keeps running for animations and the calm window. For BAL.spawn.guardCalmT real s after a boss of G.guard appears (while it lives) spawning slows and hordes wait. */
+const clockHeld = () => G.guard.length > 0;
 /* the dragon's body for melee: its chest, lower while it is stunned (it sinks, see bossTick); BZ is reused */
 const BZ = {x:0, y:0, e:null};
 function bossInReach(range){
@@ -3219,7 +3230,7 @@ function bossEvent(m){
 /* ---------- mid-bosses (Etapa 5): Paladino Possuído (5:00) and Lich Ancião (10:00) ----------
    They are ordinary entries of E (every weapon hits them; ET[id].mid: no knockback, no stun) and of G.guard (spawning stays
    calm for BAL.spawn.guardCalmT s, the HUD shows their bar). The AI lives in e.m ({st, t, ph, ...}); midTick runs it from
-   the enemy loop. e.untouch = invulnerable (intro, airborne, phase change, teleport, flee). Ground telegraphs are ellipses
+   the enemy loop. e.untouch = invulnerable (intro, airborne, phase change, teleport). Ground telegraphs are ellipses
    (height x GSY), the same shape the hit tests use. Death: kill() -> guardDown() -> a CORPSES animation that drops the relic. */
 const GSY = THORN_SY;
 const GUARD_EV = {paladin: spawnMidBoss, lich: spawnMidBoss};
@@ -3254,7 +3265,7 @@ let ZAPS = [], CORPSES = [];   // lich strike circles; boss death animations
 function spawnMidBoss(m){
   const id = m.id, B = BAL[id], [x, y] = aroundHero(B.enter, B.enter + 20);
   const e = {type:id, d:ET[id], x, y, hp:B.hp, max:B.hp, kx:0, ky:0, flash:0, anim:0, elite:false, cd:0, orbCd:0, boomCd:0, dead:false,
-    guard:true, relic:m.relic, born:G.t, mb:id, untouch:true, fc:P.x < x ? -1 : 1, z:id === 'paladin' ? 170 : 0, alpha:id === 'lich' ? 0 : 1,
+    guard:true, relic:m.relic, born:G.t, bornR:G.rt, mb:id, untouch:true, fc:P.x < x ? -1 : 1, z:id === 'paladin' ? 170 : 0, alpha:id === 'lich' ? 0 : 1,
     m:{st:'intro', t:0, ph:1, last:'', gap:1, teleT:BAL.lich.tele.every, near:0, sumT:0, side:Math.random() < .5 ? 1 : -1}};
   E.push(e); G.guard.push(e);
   bossCard(id, m.t, y < P.y);   // the card goes to the half of the screen the boss is not in
@@ -3275,7 +3286,6 @@ function midTick(e, dt){
   const m = e.m, B = BAL[e.mb];
   m.t += dt;
   const dx = P.x - e.x, dy = P.y - e.y, dist = Math.hypot(dx, dy) || 1;
-  if (m.st !== 'flee' && m.st !== 'intro' && G.t - e.born > B.flee && !e.untouch){ startFlee(e); return; }
   if (m.ph === 1 && e.hp <= e.max*B.phase2 && !e.untouch && m.st !== 'charge'){ startPhase2(e); }
   if (e.mb === 'paladin') palTick(e, dt, dx, dy, dist); else lichTick(e, dt, dx, dy, dist);
   // wisps leaking from the armour joints / cold mist under the lich (only near the screen)
@@ -3293,15 +3303,6 @@ function startPhase2(e){
   for (let i = 0; i < 3; i++) FX.push({k:'ring', x:e.x, y:e.y - 28, r:4, max:34 + i*12, t:-i*.15, life:.5, col: e.mb === 'paladin' ? '#b884e8' : '#7ff0e0'});
   SFX.boss(e.mb === 'paladin' ? 'shriek' : 'lichP2');
   toast(T.p2[0], T.p2[1]);
-}
-function startFlee(e){
-  const m = e.m; setSt(m, 'flee'); e.untouch = true; m.bl = null; m.graves = null;
-  SFX.boss(e.mb === 'paladin' ? 'charge' : 'tele');
-  const T = BOSS_TXT[e.mb]; toast(T.fled[0], T.fled[1] + UPG[e.relic].name);
-}
-function bossGone(e){
-  e.dead = true;
-  const i = G.guard.indexOf(e); if (i >= 0) G.guard.splice(i, 1);
 }
 /* kill() -> here, for every boss in G.guard: the death animation drops the relic when it ends */
 function guardDown(e){
@@ -3461,11 +3462,6 @@ function palTick(e, dt, dx, dy, dist){
       if (Math.random() < .5) FX.push({k:'p', x:e.x + (Math.random() - .5)*30, y:e.y - 20 - Math.random()*30, vx:0, vy:-30, t:0, life:.5, col: Math.random() < .5 ? '#b884e8' : '#ffffff', s:1});
       if (m.t >= B.transT){ e.untouch = false; setSt(m, 'walk'); m.gap = .4; }
       break;
-    case 'flee':
-      contact = false;
-      e.z += dt*(m.t < .3 ? 0 : 260); e.alpha = Math.max(0, 1 - Math.max(0, m.t - .5)/.6);
-      if (m.t >= 1.2) bossGone(e);
-      break;
   }
   if (contact && e.z === 0 && dist < B.r + 6) bossHurt(B.touch, 'paladin', ux, uy, 60);
 }
@@ -3596,11 +3592,6 @@ function lichTick(e, dt, dx, dy, dist){
       if (Math.random() < .5) FX.push({k:'p', x:e.x + (Math.random() - .5)*34, y:e.y - Math.random()*50, vx:0, vy:-26, t:0, life:.5, col: Math.random() < .5 ? '#7ff0e0' : '#ffffff', s:1});
       if (m.t >= L.transT){ e.untouch = false; setSt(m, 'float'); m.gap = .3; }
       break;
-    case 'flee':
-      contact = false;
-      e.alpha = Math.max(0, 1 - m.t/.6);
-      if (m.t >= .7){ puff(e.x, e.y - 30); bossGone(e); }
-      break;
   }
   if (contact && dist < L.r + 7) bossHurt(L.touch, 'lich', ux, uy, 60);
 }
@@ -3636,7 +3627,6 @@ function palPose(e){
     case 'leap0': case 'leap': return 'crouch';
     case 'intro': return e.z > 0 ? 'crouch' : 'raise';
     case 'recover': return m.stuck ? 'crouch' : 'walk0';
-    case 'flee': return 'crouch';
   }
   return 'walk' + (Math.abs(Math.floor(e.anim)) % 4);
 }
@@ -3661,10 +3651,10 @@ function drawPaladin(e, cx, cy){
   // eyes in the visor: green, violet-white once the spirit shows itself
   const low = pose === 'brace' ? 3 : pose === 'crouch' ? 4 : 0, ey = y + 12 + low + walkBob, ex1 = x + (fl ? PAL_W - 1 - 21 : 20), ex2 = x + (fl ? PAL_W - 1 - 26 : 25);
   const ec = m.ph === 2 ? '#f0d8ff' : '#c8ff9a', eh = m.ph === 2 ? '#b884e8' : '#6ad04a';
-  ctx.globalAlpha = e.alpha*(.35 + .15*Math.sin(G.t*6)); ctx.fillStyle = eh; ctx.fillRect(ex1 - 1, ey - 1, 4, 3); ctx.fillRect(ex2 - 1, ey - 1, 4, 3);
+  ctx.globalAlpha = e.alpha*(.35 + .15*Math.sin(G.rt*6)); ctx.fillStyle = eh; ctx.fillRect(ex1 - 1, ey - 1, 4, 3); ctx.fillRect(ex2 - 1, ey - 1, 4, 3);
   ctx.globalAlpha = e.alpha; ctx.fillStyle = ec; ctx.fillRect(ex1, ey, 2, 1); ctx.fillRect(ex2, ey, 2, 1);
   // dazed after a charge: stars circling the helm
-  if (m.st === 'recover' && m.daze){ for (let i = 0; i < 3; i++){ const a = G.t*5 + i*2.09; ctx.fillStyle = i % 2 ? '#ffffff' : '#ffe27a'; ctx.fillRect(Math.round(x + 23 + Math.cos(a)*10) - 1, Math.round(y + 4 + low + Math.sin(a)*3) - 1, 3, 3); } }
+  if (m.st === 'recover' && m.daze){ for (let i = 0; i < 3; i++){ const a = G.rt*5 + i*2.09; ctx.fillStyle = i % 2 ? '#ffffff' : '#ffe27a'; ctx.fillRect(Math.round(x + 23 + Math.cos(a)*10) - 1, Math.round(y + 4 + low + Math.sin(a)*3) - 1, 3, 3); } }
   ctx.globalAlpha = 1;
 }
 function drawLich(e, cx, cy){
@@ -3683,12 +3673,12 @@ function drawLich(e, cx, cy){
   if (!(st === 'intro' && a < 1)){
     const hy = y + 11 + (pose === 'tired' ? 3 : 0), ex = [x + (fl ? LICH_W - 1 - 20 : 19), x + (fl ? LICH_W - 1 - 24 : 23)];
     const ec = m.ph === 2 ? '#ffffff' : '#9ffff0', eh = m.ph === 2 ? '#ff7ae0' : '#2fa0a0';
-    ctx.globalAlpha = a*(.4 + .2*Math.sin(G.t*5)); ctx.fillStyle = eh; for (const q of ex) ctx.fillRect(q - 1, hy - 1, 4, 4);
+    ctx.globalAlpha = a*(.4 + .2*Math.sin(G.rt*5)); ctx.fillStyle = eh; for (const q of ex) ctx.fillRect(q - 1, hy - 1, 4, 4);
     ctx.globalAlpha = a; ctx.fillStyle = ec; for (const q of ex) ctx.fillRect(q, hy, 2, 2);
     // staff crystal glow, brighter while casting
     const g = LICH_GEM[pose.startsWith('float') ? 'float' : pose], gx = x + (fl ? LICH_W - 1 - g[0] - 1 : g[0]) + 1, gy = y + g[1] + (pose === 'tired' ? 3 : 0) + 1;
     const cast = st.endsWith('0'), pr = cast ? Math.min(1, m.t/.6) : 0;
-    ctx.globalAlpha = a*(.18 + .25*pr + .06*Math.sin(G.t*7)); pixCircle(gx, gy, 5 + Math.round(pr*4), st === 'chain0' || st === 'rain0' ? '#bff2ff' : '#7ff0e0');
+    ctx.globalAlpha = a*(.18 + .25*pr + .06*Math.sin(G.rt*7)); pixCircle(gx, gy, 5 + Math.round(pr*4), st === 'chain0' || st === 'rain0' ? '#bff2ff' : '#7ff0e0');
     ctx.globalAlpha = a*(.5 + .4*pr); pixCircle(gx, gy, 2 + Math.round(pr*2), '#e8ffff');
   }
   ctx.globalAlpha = 1;
@@ -3709,7 +3699,7 @@ function fillEllipse(x, y, R, col, a){
   for (let oy = -H; oy <= H; oy++){ const w = Math.round(R*Math.sqrt(Math.max(0, 1 - (oy/(R*GSY))**2))); if (w > 0) ctx.fillRect(X - w, Y + oy, w*2 + 1, 1); }
 }
 function drawMidGround(cx, cy){
-  const tt = G.t;
+  const tt = G.rt;
   for (const c of CORPSES) drawCorpse(c, cx, cy, false);
   for (const z of ZAPS){
     if (z.t < 0) continue;
@@ -3790,16 +3780,16 @@ function drawMidAbove(cx, cy){
     if (e.mb === 'paladin'){
       const A = palArt();
       if (m.ph === 2 || m.st === 'trans'){
-        const q = m.st === 'trans' ? Math.min(1, m.t/BAL.paladin.transT) : 1, sp = A.spirit[Math.floor(G.t*4) % 2];
-        const sx = Math.round(e.x - 17 - cx), sy = Math.round(e.y - 56 - 26*q - cy - e.z + Math.sin(G.t*2.5)*2);
+        const q = m.st === 'trans' ? Math.min(1, m.t/BAL.paladin.transT) : 1, sp = A.spirit[Math.floor(G.rt*4) % 2];
+        const sx = Math.round(e.x - 17 - cx), sy = Math.round(e.y - 56 - 26*q - cy - e.z + Math.sin(G.rt*2.5)*2);
         ctx.globalAlpha = .22*q*e.alpha; pixCircle(sx + 17, sy + 16, 17, '#8a4ab8');
-        ctx.globalAlpha = (.62 + .18*Math.sin(G.t*5))*q*e.alpha;
+        ctx.globalAlpha = (.62 + .18*Math.sin(G.rt*5))*q*e.alpha;
         ctx.drawImage(sp, sx, sy);
       }
       if (m.st === 'trans'){ ctx.globalAlpha = .5 + .3*Math.sin(m.t*20); pixRing(e.x - cx, e.y - 30 - cy, 30, '#e0c8ff', 1); }
       if (m.bl){ const set = GBLADE.get();
         for (let i = 0; i < m.bl.length; i++){ const b = m.bl[i]; if (b.gone) continue;
-          const [bx, by] = bladeSpot(e, i, m.bl.length), a = Math.atan2(P.y - 10 - by, P.x - bx), X = bx - cx, Y = by - cy + Math.round(Math.sin(G.t*6 + i)*1.5);
+          const [bx, by] = bladeSpot(e, i, m.bl.length), a = Math.atan2(P.y - 10 - by, P.x - bx), X = bx - cx, Y = by - cy + Math.round(Math.sin(G.rt*6 + i)*1.5);
           ctx.globalAlpha = Math.min(1, b.t/.2)*.35; ctx.fillStyle = '#c8b8ff';
           for (let d = 12; d < 60; d += 4) ctx.fillRect(Math.round(X + Math.cos(a)*d), Math.round(Y + Math.sin(a)*d), 1, 1);
           ctx.globalAlpha = Math.min(1, b.t/.2)*.9; drawRot(set, X, Y, a); }
@@ -3809,7 +3799,7 @@ function drawMidAbove(cx, cy){
         // aim: a dashed beam that follows Aren; locked (last C.lock s): a thick solid beam, blinking
         const C = BAL.lich.chain, ch = C.charge*(m.ph === 2 ? BAL.lich.p2.cast : 1), lock = m.t >= ch - C.lock, gx = lichGemX(e) - cx, gy = lichGemY(e) - cy;
         const forks = m.ph === 2 ? [0, -C.fork, C.fork] : [0], put = ctx === LX, dark = lxParse('#0a1a3a'), lit = lxParse(lock ? '#ffffff' : '#9fe6ff'), mid = lxParse('#4fb8ff');
-        const A_ = lock ? (Math.floor(G.t*20) % 2 ? 1 : .55) : .55 + .35*Math.min(1, m.t/ch), off = Math.floor(G.t*30) % 6;
+        const A_ = lock ? (Math.floor(G.rt*20) % 2 ? 1 : .55) : .55 + .35*Math.min(1, m.t/ch), off = Math.floor(G.rt*30) % 6;
         const px = (x, y, c, a) => { if (put) LX.px(x, y, c, a); else { ctx.globalAlpha = a; ctx.fillStyle = c === dark ? '#0a1a3a' : c === mid ? '#4fb8ff' : lock ? '#ffffff' : '#9fe6ff'; ctx.fillRect(x, y, 1, 1); } };
         for (const o of forks){ const a = m.a + o, ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca;
           for (let d = 6; d < C.len; d++){
@@ -3820,7 +3810,7 @@ function drawMidAbove(cx, cy){
           } }
         // sparks crackling round the crystal
         ctx.globalAlpha = 1; ctx.fillStyle = '#e8ffff';
-        for (let i = 0; i < 4; i++){ const a = G.t*13 + i*1.6, r = 5 + (i % 2)*3; ctx.fillRect(Math.round(gx + Math.cos(a)*r), Math.round(gy + Math.sin(a)*r), 1, 1); }
+        for (let i = 0; i < 4; i++){ const a = G.rt*13 + i*1.6, r = 5 + (i % 2)*3; ctx.fillRect(Math.round(gx + Math.cos(a)*r), Math.round(gy + Math.sin(a)*r), 1, 1); }
       }
       if (m.st === 'trans'){ ctx.globalAlpha = .5 + .3*Math.sin(m.t*20); pixRing(e.x - cx, e.y - 34 - cy, 30, '#bff2ff', 1); }
     }
@@ -3850,7 +3840,7 @@ function drawCorpse(c, cx, cy, above){
 const ICE_TINT = new Map();
 function iceOf(img){ let c = ICE_TINT.get(img); if (!c){ c = tintC(img, '#bff2ff'); ICE_TINT.set(img, c); } return c; }
 function startBoss(){
-  // a mid-boss still alive here leaves without its relic (it normally flees before: BAL.paladin/lich.flee)
+  // G.guard is empty here: a living mid-boss holds the clock, so 15:00 only comes after both died (cleared for safety)
   G.boss = {phase:'intro', t:0, e:null}; G.guard.length = 0; ZAPS = []; hideBossCard();
   for (const e of E){
     if (e.dead) continue;
@@ -4132,7 +4122,7 @@ function victory(){
   state = 'over'; clearInput(); SFX.stinger('win'); keepAwake(false);
   const best = store.get(), nb = G.t > best;
   if (nb) store.set(G.t);
-  $('#rTime').textContent = fmt(G.t); $('#rKills').textContent = G.kills; $('#rGems').textContent = G.gems; $('#rUp').textContent = G.ups;
+  showTimes(); $('#rKills').textContent = G.kills; $('#rGems').textContent = G.gems; $('#rUp').textContent = G.ups;
   $('#overTitle').textContent = 'Vitória!';
   $('#overMsg').hidden = false; $('#overMsg').textContent = 'Aren derrotou o Dragão Esqueleto e salvou o bosque.';
   $('#bestOver').textContent = nb ? 'Novo recorde de tempo!' : `Recorde: ${fmt(best)}`;
@@ -4185,7 +4175,8 @@ addEventListener('pointerup', endJ); addEventListener('pointercancel', endJ);
 /* ---------------- update ---------------- */
 const SWS = {dmg: 0, range: 0, cd: 0, arc: 0, double: false}, WAVE_SETS = [];
 function update(dt){
-  G.t += dt;
+  G.rt += dt;
+  if (clockHeld()) G.hold += dt; else G.t += dt;   // run clock: held while a mid-boss lives (Narley, 09/11/2026)
   while (G.mi < BOSSES.length && G.t >= BOSSES[G.mi].t) bossEvent(BOSSES[G.mi++]);
   if (G.boss) bossDirector(dt);
   G.flash = Math.max(0, G.flash - dt*1.5);
@@ -4225,7 +4216,7 @@ function update(dt){
   // spawning (slower and without hordes while a guardian lives; stops once the dragon arrives)
   if (!G.boss){
   G.spawnT -= dt;
-  const SP = BAL.spawn, EL = BAL.elite, HO = BAL.horde, calm = G.guard.some(e => G.t - e.born < SP.guardCalmT);
+  const SP = BAL.spawn, EL = BAL.elite, HO = BAL.horde, calm = G.guard.some(e => G.rt - e.bornR < SP.guardCalmT);
   const interval = Math.max(SP.intervalMin, SP.interval / (1 + G.t/SP.intervalT)) / (calm ? SP.guardMul : 1);
   while (G.spawnT <= 0){
     G.spawnT += interval;
@@ -4750,7 +4741,7 @@ function drawScene(dt){
       if (P.inv > 0 && Math.floor(P.inv*14)%2) continue;
       const set = HERO[P.dir], f = P.moving ? Math.abs(Math.floor(P.anim)) % 4 : 0;
       ctx.drawImage(set[f], Math.round(P.x - set[f].width/2 - cx), Math.round(P.y - set[f].height + 1 - cy));
-      if (P.frost > 0){ ctx.globalAlpha = .45 + .1*Math.sin(G.t*8); ctx.drawImage(iceOf(set[f]), Math.round(P.x - set[f].width/2 - cx), Math.round(P.y - set[f].height + 1 - cy)); ctx.globalAlpha = 1; }
+      if (P.frost > 0){ ctx.globalAlpha = .45 + .1*Math.sin(G.rt*8); ctx.drawImage(iceOf(set[f]), Math.round(P.x - set[f].width/2 - cx), Math.round(P.y - set[f].height + 1 - cy)); ctx.globalAlpha = 1; }
     }
   }
 
@@ -4949,7 +4940,7 @@ function drawScene(dt){
 /* thorn aura: a shaded zone on the ground ringed by a bramble with bone-white thorns pointing out, slowly turning;
    brighter on each damage tick (G.thPulse) */
 function drawThorns(x, y, R){
-  const sy = THORN_SY, pulse = G.thPulse > 0 ? G.thPulse/.14 : 0, rot = reduceMotion ? 0 : G.t*.35;
+  const sy = THORN_SY, pulse = G.thPulse > 0 ? G.thPulse/.14 : 0, rot = reduceMotion ? 0 : G.rt*.35;
   const X = Math.round(x), Y = Math.round(y), H = Math.round(R*sy);
   ctx.globalAlpha = .1 + .08*pulse; ctx.fillStyle = pulse > .5 ? '#9be05a' : '#1e4a16';
   for (let oy = -H; oy <= H; oy++){ const w = Math.round(R*Math.sqrt(Math.max(0, 1 - (oy/(R*sy))**2))); ctx.fillRect(X - w, Y + oy, w*2 + 1, 1); }
@@ -5074,7 +5065,7 @@ function ambDraw(cx, cy){
 }
 
 /* ---------------- HUD ---------------- */
-let lastHearts = '', lastTime = '', lastKills = -1, lastGems = -1, lastXp = '';
+let lastHearts = '', lastTime = '', lastKills = -1, lastGems = -1, lastXp = '', lastHeld = null;
 function hud(){
   const hk = P.hp + '/' + P.maxHp;
   if (hk !== lastHearts){
@@ -5086,6 +5077,8 @@ function hud(){
     }
   }
   const ts = fmt(G.t); if (ts !== lastTime){ lastTime = ts; $('#timer').textContent = ts; }
+  const held = clockHeld();
+  if (held !== lastHeld){ lastHeld = held; $('#timer').classList.toggle('held', held); const h = $('#hold'); h.textContent = BOSS_TXT.hold; h.hidden = !held; }
   if (G.kills !== lastKills){ lastKills = G.kills; $('#kills').textContent = G.kills; }
   const xk = G.lvl + ':' + G.xp;
   if (xk !== lastXp){ lastXp = xk; $('#lvl').textContent = 'Nv ' + G.lvl; $('#xpFill').style.width = (G.xp/G.need*100).toFixed(1) + '%'; $('#xpFill').classList.toggle('pick', isPickLevel(G.lvl + 1)); $('#nextPick').textContent = 'poder no ' + nextPickLevel(G.lvl); }
@@ -5096,7 +5089,7 @@ function hud(){
     $('#bossFill').style.width = (Math.max(0, be.hp)/(be.max || be.d.hp)*100).toFixed(1) + '%';
     const s = be.bs, mm = be.m;
     if (bar.dataset.b !== (be.mb || 'dragon')) bar.dataset.b = be.mb || 'dragon';
-    const info = mm ? (mm.st === 'flee' ? BOSS_TXT.leaving : be.untouch && mm.st === 'trans' ? BOSS_TXT.ward : mm.ph === 2 ? BOSS_TXT.phase2 : BOSS_TXT.phase1) : s.seals ? `Selos ${s.seals.filter(z => z.lit).length}/3 · ${Math.max(0, Math.ceil(s.sealWin))}s` : s.stun > 0 ? 'Atordoado' : s.enraged ? 'Enfurecido' : '';
+    const info = mm ? (be.untouch && mm.st === 'trans' ? BOSS_TXT.ward : mm.ph === 2 ? BOSS_TXT.phase2 : BOSS_TXT.phase1) : s.seals ? `Selos ${s.seals.filter(z => z.lit).length}/3 · ${Math.max(0, Math.ceil(s.sealWin))}s` : s.stun > 0 ? 'Atordoado' : s.enraged ? 'Enfurecido' : '';
     const el = $('#bossInfo'); if (el.textContent !== info) el.textContent = info;
     const nm = $('#bossName'); if (nm.textContent !== be.d.name) nm.textContent = be.d.name;
   } else if (!bar.hidden) bar.hidden = true;
@@ -5123,7 +5116,7 @@ function toast(a, b){
 function start(){
   SFX.init(); clearInput();
   reset(); state = 'play'; keepAwake(true); audioSync(); $('#hud').inert = false;
-  $('#titleScreen').hidden = true; $('#startScreen').hidden = true; $('#overScreen').hidden = true; $('#pauseScreen').hidden = true; $('#levelScreen').hidden = true; lastXp = ''; $('#hud').hidden = false; $('#bossBar').hidden = true;
+  $('#titleScreen').hidden = true; $('#startScreen').hidden = true; $('#overScreen').hidden = true; $('#pauseScreen').hidden = true; $('#levelScreen').hidden = true; lastXp = ''; lastHeld = null; $('#hud').hidden = false; $('#bossBar').hidden = true;
   toast('Sobreviva, Aren!', 'A espada ataca sozinha quando há inimigos perto');
 }
 function togglePause(){
@@ -5133,11 +5126,17 @@ function togglePause(){
 /* the AudioContext runs only while the tab is visible, the game is not paused and some sound is on
    (a visible pause waits .3 s so the pause cue is heard; a hidden tab suspends at once) */
 function audioSync(){ SFX.pause(document.hidden || state === 'pause' || (!SFX.on && !SFX.music), document.hidden ? 0 : .3); }
+/* game-over panel: survival time (run clock) and, if a boss fight held the clock, the real time played under it */
+function showTimes(){
+  $('#rTime').textContent = fmt(G.t);
+  const r = $('#rReal'), more = G.hold >= 1; r.hidden = !more;
+  if (more) r.textContent = `${BOSS_TXT.realTime}: ${fmt(G.t + G.hold)}`;
+}
 function gameOver(){
   state = 'over'; clearInput(); SFX.stinger('lose'); keepAwake(false);
   const best = store.get(), nb = G.t > best;
   if (nb) store.set(G.t);
-  $('#rTime').textContent = fmt(G.t); $('#rKills').textContent = G.kills; $('#rGems').textContent = G.gems; $('#rUp').textContent = G.ups;
+  showTimes(); $('#rKills').textContent = G.kills; $('#rGems').textContent = G.gems; $('#rUp').textContent = G.ups;
   $('#overTitle').textContent = 'Aren caiu'; $('#overMsg').hidden = true;
   $('#bestOver').textContent = nb ? 'Novo recorde de tempo!' : `Recorde: ${fmt(best)}`;
   clearTimeout(overTimer); overTimer = setTimeout(() => { $('#overScreen').hidden = false; $('#againBtn').focus(); }, 500);
