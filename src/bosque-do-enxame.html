@@ -2411,6 +2411,124 @@ const SFX = (() => {
   const BOSS_CD = {bolt:.08, clank:.06, bladeGo:.05, iceHit:.15};
   function bossSfx(name){ if (!ready('b_' + name, BOSS_CD[name] || .2)) return; BOSS_SFX[name](ac.currentTime + .01); }
 
+  /* ================= round 2: hero, pickups, weapons, enemies, interface =================
+     Frequent sounds: a cooldown in ready(), few nodes, dry (no reverb send) where it saves nodes, +-3..5% pitch. */
+  function hurt(){
+    if (!ready('hurt', .25)) return; const t = ac.currentTime + .005, p = jit(.04);
+    const lp = filt('lowpass', 2400); route(lp, .15);
+    tone(t, 'square', 440*p, 150*p, .15, .17, 0, .002, lp);
+    tone(t, 'sine', 170*p, 60, .75, .16, 0, .003, lp);
+    nz(t, noise(t, .06), 'bandpass', 1100*p, 700, 1.2, .8, .06, 0, .001, lp);
+  }
+  // gem: a short soft blip; quick successive pickups climb in whole tones (up to 7 steps), merged by a 45 ms cooldown
+  let gemN = 0, gemT = -9;
+  function gem(){
+    if (!ready('gem', .045)) return; const t = ac.currentTime + .003;
+    gemN = t - gemT < .35 ? Math.min(gemN + 1, 7) : 0; gemT = t;
+    const f = 760*Math.pow(2, gemN/6)*jit(.02);
+    tone(t, 'triangle', f, f*1.5, .7, .06, 0, .002);
+  }
+  // heart: a bright rising chiptune arpeggio (full heart = one more note); lvlSmall: a shorter two-note version
+  function arp(t0, notes, gap, amp, dur){
+    const lp = filt('lowpass', 3400); route(lp, .35);
+    notes.forEach((f, i) => { const t = t0 + i*gap; tone(t, 'square', f, f, amp*.35, dur, 0, .003, lp); tone(t, 'sine', f*2, f*2, amp*.5, dur*.8, 0, .003, lp); });
+  }
+  function heart(full){ if (!ready('heart', .15)) return; arp(ac.currentTime + .01, full ? [659.25, 830.61, 987.77, 1318.5] : [659.25, 987.77, 1318.5], .07, .28, .24); }
+  function lvlSmall(){ if (!ready('lvlS', .15)) return; arp(ac.currentTime + .01, [783.99, 1174.66], .06, .25, .17); }
+  // sword: a quick swish that gets brighter and sharper with the sword level (1..5); a blade edge from level 3
+  function sword(lvl = 1){
+    if (!ready('sword', .08)) return; const t = ac.currentTime + .005, p = jit(.05), k = Math.max(0, Math.min(1, (lvl - 1)/4));
+    nz(t, noise(t, .13), 'bandpass', 700*(1 + k*1.6)*p, 2400*(1 + k*1.5)*p, 1.3 + k*2, 1.24 - k*.24, .13, .1, .03);
+    if (lvl >= 3) tone(t + .03, 'sine', (2600 + k*2400)*p, (3000 + k*2800)*p, .04 + k*.06, .1 + k*.06, .25, .004);
+  }
+  // giant shuriken: a whirring spin moving away; a small metallic tick when one comes back
+  function boomThrow(){
+    if (!ready('boom', .2)) return; const t = ac.currentTime + .005, p = jit(.05), L = .42;
+    const am = flutter(t, L, 20*p, .8, .5); noise(t, L).connect(am);
+    nz(t, am, 'bandpass', 1900*p, 1100*p, 3, 1.43, L, .15, .04);
+  }
+  function boomCatch(){ if (!ready('boomC', .25)) return; const t = ac.currentTime + .003, f = 2100*jit(.04); tone(t, 'sine', f, f*.97, .32, .08, 0, .001); tone(t, 'sine', f*2.76, f*2.7, .11, .05, 0, .001); }
+  function fireCast(){
+    if (!ready('fireC', .15)) return; const t = ac.currentTime + .005, p = jit(.05);
+    nz(t, noise(t, .22), 'bandpass', 500*p, 1900*p, 1.1, .78, .22, .2, .03);
+    tone(t, 'sine', 180*p, 110*p, .2, .18, 0, .01);
+  }
+  // will-o'-wisp hit: a ghostly rising "ooh" with vibrato and a breathy whistle, mostly reverb
+  function wisp(){
+    if (!ready('wisp', .4)) return; const t = ac.currentTime + .005, f = 620*jit(.06);
+    const o = tone(t, 'sine', f, f*1.3, .07, .38, .8, .06);
+    const l = ac.createOscillator(), lg = G_(f*.03); l.frequency.value = 7; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + .45);
+    nz(t, noise(t, .35), 'bandpass', 1400, 2200, 4, .12, .35, .8, .08);
+  }
+  // storm staff: a light bright snap with sparkles (no rumble, unlike the Lich's thunder)
+  function storm(){
+    if (!ready('storm', .15)) return; const t = ac.currentTime + .005, p = jit(.06);
+    nz(t, noise(t, .14), 'highpass', 3200*p, 3200*p, .7, .57, .14, .3, .001);
+    tone(t, 'sawtooth', 2600*p, 420*p, .085, .1, .2, .001);
+    nz(t + .005, play(crackBuf, t + .005, .2, 2), 'highpass', 4000, 4000, .7, 1.1, .2, .3, .005);
+  }
+  // holy sword wave: an airy shimmer (open fifth) over a rising breath
+  function holy(){
+    if (!ready('holy', .3)) return; const t = ac.currentTime + .005, p = jit(.03);
+    tone(t, 'sine', 880*p, 900*p, .058, .45, .6, .03); tone(t, 'sine', 1320*p, 1350*p, .04, .4, .6, .03);
+    nz(t, noise(t, .3), 'bandpass', 1200*p, 3200*p, 2, .29, .3, .4, .05);
+  }
+  // elf arrow: a thin twang (higher than Aren's bow) and a small "tsip"
+  function elfArrow(){
+    if (!ready('elfA', .15)) return; const t = ac.currentTime + .005, v = jit(.05);
+    tone(t, 'vw', 318*v, 300*v, .34, .12, 0, .0015);
+    nz(t, noise(t, .1), 'bandpass', 2600*v, 1800*v, 2.5, .9, .1, .1, .003);
+  }
+  function wyvernFire(){
+    if (!ready('wyF', .2)) return; const t = ac.currentTime + .005, p = jit(.05);
+    nz(t, noise(t, .3), 'lowpass', 2400*p, 500*p, .9, .45, .3, .25, .015);
+    tone(t, 'sine', 160*p, 90*p, .18, .22, 0, .01);
+    nz(t, play(crackBuf, t, .3), 'highpass', 2500, 2500, .7, .45, .3, .2, .01);
+  }
+  // elite spawns: a subtle low dissonant bell (minor second) with a faint metallic ring
+  function elite(){
+    if (!ready('elite', 1.5)) return; const t = ac.currentTime + .02;
+    tone(t, 'triangle', 196, 196, .08, .9, .6, .01); tone(t, 'triangle', 207.65, 207.65, .057, .9, .6, .01); metal(t, 392, .015, .8);
+  }
+  // low health: a soft heartbeat (lub-dub), at most every 2.4 s while it is called
+  function lowHp(){
+    if (!ready('lowhp', 2.4)) return; const t = ac.currentTime + .01;
+    tone(t, 'sine', 110, 60, .1, .14, 0, .006); nz(t, noise(t, .08), 'lowpass', 520, 300, .8, .1, .08, 0, .003);
+    tone(t + .18, 'sine', 95, 55, .075, .14, 0, .006);
+  }
+  // enemy death: one pitched blip + one filtered noise tick, timbre by type; elites lower, longer, a little louder.
+  // [osc type, f0, f1, osc amp, noise filter, noise f, q, noise amp, dur]. 5 nodes, dry, 50 ms cooldown shared by all types.
+  const KILL = {
+    goblin:   ['square', 620, 300, .223, 'bandpass', 2400, 1.5, 1.787, .09],
+    gargoyle: ['triangle', 330, 150, .458, 'bandpass', 1500, 2.5, 1.637, .1],
+    hobgoblin:['triangle', 280, 130, .461, 'bandpass', 1100, 1.5, 1.298, .11],
+    orc:      ['sine', 170, 62, .364, 'lowpass', 900, .8, .482, .14],
+    elf:      ['sine', 900, 520, .39, 'bandpass', 3200, 2, 1.242, .09],
+    demon:    ['sawtooth', 130, 55, .248, 'lowpass', 700, 1, 1.774, .16],
+    succubus: ['triangle', 1050, 700, .318, 'bandpass', 3800, 3, 1.393, .12],
+    wyvern:   ['triangle', 240, 95, .367, 'bandpass', 800, 1.2, 1.031, .15],
+    skeleton: ['triangle', 900, 650, .539, 'bandpass', 2600, 5, 2.939, .07]
+  };
+  function kill(type, isElite){
+    if (!ready('kill', .05)) return; const K = KILL[type] || KILL.goblin, t = ac.currentTime + .004, p = jit(.05)*(isElite ? .8 : 1), a = isElite ? 1.2 : 1, d = K[8]*(isElite ? 1.4 : 1);
+    tone(t, K[0], K[1]*p, K[2]*p, K[3]*a, d, 0, .002);
+    nz(t, noise(t, d), K[4], K[5]*p, K[5]*p*.6, K[6], K[7]*a, d*.8, 0, .001);
+  }
+  // interface: a small click for buttons, two notes when a level-up card is chosen
+  function ui(kind){
+    if (!ready('ui', .06)) return; const t = ac.currentTime + .003;
+    if (kind === 'pick'){ tone(t, 'triangle', 880, 880, .2, .08, .15, .002); tone(t + .06, 'triangle', 1318.5, 1318.5, .2, .14, .2, .002); }
+    else tone(t, 'triangle', 1050, 1250, .68, .045, 0, .002);
+  }
+  // pause: two notes going down when it opens, up when it closes. Opening: audioSync() suspends the context after a short grace
+  // (pause(true, .3)) so the cue is heard; closing: the context is resuming, so it plays once it runs
+  function pauseCue(open){
+    if (!ac || !on) return;
+    if (ac.state !== 'running'){ if (!open) ac.resume().then(() => { if (ac.state === 'running') pauseCue(false); }).catch(() => {}); return; }
+    if (!ready('pauseC', .1)) return; const t = ac.currentTime + .005, a = open ? [659.25, 440] : [440, 659.25];
+    a.forEach((f, i) => tone(t + i*.07, 'triangle', f, f, .175, .12, .2, .003));
+  }
+
   /* ================= MUSIC: ocarina, flute, lute ================= */
   const mtof = m => 440*Math.pow(2, (m - 69)/12);
   const NN = {C:0, 'C#':1, Db:1, D:2, 'D#':3, Eb:3, E:4, F:5, 'F#':6, Gb:6, G:7, 'G#':8, Ab:8, A:9, 'A#':10, Bb:10, B:11};
@@ -2423,7 +2541,7 @@ const SFX = (() => {
     for (const [type, mul, amp] of [['sine', 1, 1], ['triangle', 1, .16], ['sine', 2, .05]]){ const o = ac.createOscillator(), g = G_(amp); o.type = type; o.frequency.value = f*mul; vd.connect(o.frequency); o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + .2); }
     l.start(t); l.stop(t + dur + .2);
     const n = noise(t, .07), bp = filt('bandpass', f*2, 3), ng = ac.createGain(); env(ng, t, .005, vel*.09, .07); n.connect(bp); bp.connect(ng); ng.connect(out);
-    out.connect(lp); route(lp, .4, musDry, musWet);
+    out.connect(lp); route(lp, .4, mD || musDry, mW || musWet);
   }
   function flute(t, m, dur, vel, trem){
     const f = mtof(m), out = ac.createGain(), atk = .12;
@@ -2433,7 +2551,7 @@ const SFX = (() => {
     for (const [mul, amp] of [[1, 1], [2, .22], [3, .06]]){ const o = ac.createOscillator(), g = G_(amp); o.type = 'sine'; o.frequency.value = f*mul; vd.connect(o.frequency); o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + .3); }
     l.start(t); l.stop(t + dur + .3);
     const n = noise(t, dur + .25), bp = filt('bandpass', f*1.02, 1.6), ng = G_(vel*.05); n.connect(bp); bp.connect(ng); ng.connect(out);
-    route(out, .5, musDry, musWet);
+    route(out, .5, mD || musDry, mW || musWet);
   }
   const KS = {};
   function ksBuf(m){
@@ -2451,7 +2569,7 @@ const SFX = (() => {
     const body = filt('peaking', 230, 1.2, 6), lp = filt('lowpass', 3800, .6), g = G_(vel*.42), p = ac.createStereoPanner ? ac.createStereoPanner() : null;
     s.connect(body); body.connect(lp); lp.connect(g);
     let o = g; if (p){ p.pan.value = pan; g.connect(p); o = p; }
-    route(o, .25, musDry, musWet); s.start(t); s.stop(t + 1.9);
+    route(o, .25, mD || musDry, mW || musWet); s.start(t); s.stop(t + 1.9);
   }
   function drum(t, k){
     const P = {low:[100, 46, .3, .85, 380], mid:[170, 95, .16, .45, 1100], soft:[170, 95, .12, .22, 1100], boom:[66, 30, .75, 1, 220]}[k];
@@ -2537,8 +2655,16 @@ const SFX = (() => {
       M.next += 60/bpm/4; M.step = (M.step + 1) % 16; if (M.step === 0) M.bar++;
     }
   }
-  function stinger(kind){
-    if (!ac || !musicOn || ac.state !== 'running') return;
+  // win/lose stinger. With Música off but Efeitos on (or sfxBus true, the Sound Lab), it plays through the effects bus at the
+  // same level it has on the music bus: the music instruments read mD/mW, swapped to a scaled copy of the effects bus here
+  let mD = null, mW = null;
+  function stinger(kind, sfxBus){
+    if (!ac || ac.state !== 'running') return;
+    const viaSfx = sfxBus || !musicOn; if (viaSfx && !on) return;
+    if (viaSfx){ const k = MUS/.8; mD = G_(k); mD.connect(sfxDry); mW = G_(k); mW.connect(sfxWet); }
+    try { stingerNotes(kind); } finally { mD = mW = null; }
+  }
+  function stingerNotes(kind){
     const t = ac.currentTime + .1;
     if (kind === 'win'){
       [['D5', 0], ['F#5', .14], ['A5', .28], ['D6', .42]].forEach(([n, d]) => ocarina(t + d, midi(n), .16, .85));
@@ -2552,9 +2678,11 @@ const SFX = (() => {
   }
   function setOn(v){ on = v; try { localStorage.setItem('bosque-enxame-som', v ? '1' : '0'); } catch {} if (sfxDry){ sfxDry.gain.value = v ? .8 : 0; sfxWet.gain.value = v ? .8 : 0; } }
   function setMusic(v){ musicOn = v; try { localStorage.setItem('bosque-enxame-musica', v ? '1' : '0'); } catch {} if (musDry){ musDry.gain.value = v ? MUS : 0; musWet.gain.value = v ? MUS : 0; } }
-  function pause(p){ if (!ac) return; if (p) ac.suspend().catch(() => {}); else ac.resume().catch(() => {}); }
+  let susT = 0;   // pending delayed suspend (pause(true, grace))
+  function pause(p, grace){ if (!ac) return; clearTimeout(susT); if (p){ if (grace) susT = setTimeout(() => ac.suspend().catch(() => {}), grace*1000); else ac.suspend().catch(() => {}); } else ac.resume().catch(() => {}); }
   function moodFn(fn){ M.fn = fn; }
   return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, slam, bow: bowShot, boss: bossSfx, setOn, setMusic, pause, moodFn,
+    hurt, gem, heart, lvlSmall, sword, boomThrow, boomCatch, fireCast, wisp, storm, holy, elfArrow, wyvernFire, elite, lowHp, kill, ui, pauseCue,
     get on(){ return on; }, get music(){ return musicOn; }};
 })();
 
@@ -2610,6 +2738,7 @@ function spawn(type, ang, dist, elite){
   const m = hpScale() * (elite ? BAL.elite.hp : 1);
   E.push({type, d, x:P.x + Math.cos(a)*R, y:P.y + Math.sin(a)*R, hp:d.hp*m, kx:0, ky:0, flash:0, anim:Math.random()*2,
     elite:!!elite, cd:1 + Math.random()*2, state:0, st:Math.random()*2, orbCd:0, boomCd:0, side:Math.random()<.5?1:-1, dead:false});
+  if (elite) SFX.elite();
 }
 function pickType(){
   const opts = [];
@@ -2654,6 +2783,7 @@ function hit(e, dmg, nx, ny, kb = 70){
 }
 function kill(e){
   e.dead = true; G.kills++;
+  if (!e.guard) SFX.kill(e.type, e.elite);
   const n = e.d.sc > 1 ? 10 : 6;
   for (let i=0;i<n;i++){ const a = Math.random()*Math.PI*2, s = 20 + Math.random()*40;
     FX.push({k:'p', x:e.x, y:e.y - e.d.h/2, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:.35+Math.random()*.25, col: i%2 ? '#ffffff' : '#d6d0e6', s: Math.random()<.5?1:2}); }
@@ -2684,7 +2814,7 @@ function gainXp(n){
   while (G.xp >= G.need){
     G.xp -= G.need; G.lvl++; G.need = xpNeed(G.lvl);
     if (isPickLevel(G.lvl)) G.pending++;
-    else { P.hp = Math.min(P.maxHp, P.hp + 1); toast(`Nível ${G.lvl}`, `+½ coração · próximo poder no nível ${nextPickLevel(G.lvl)}`); }
+    else { P.hp = Math.min(P.maxHp, P.hp + 1); SFX.lvlSmall(); toast(`Nível ${G.lvl}`, `+½ coração · próximo poder no nível ${nextPickLevel(G.lvl)}`); }
   }
 }
 /* powers that can show up in a level-up pick (relics only after a guardian dropped them) */
@@ -2718,8 +2848,8 @@ function grant(k){
   renderGear();
 }
 function applyItem(kind, rk){
-  if (kind === 'life'){ P.hp = Math.min(P.maxHp, P.hp + 1); toast('Meio coração', 'Recupera ½ coração'); burst(P.x, P.y-11, '#ff6b6b'); return; }
-  if (kind === 'apple'){ P.hp = Math.min(P.maxHp, P.hp + 2); toast('Coração', 'Recupera 1 coração'); burst(P.x, P.y-11, '#ff6b6b'); return; }
+  if (kind === 'life'){ P.hp = Math.min(P.maxHp, P.hp + 1); SFX.heart(false); toast('Meio coração', 'Recupera ½ coração'); burst(P.x, P.y-11, '#ff6b6b'); return; }
+  if (kind === 'apple'){ P.hp = Math.min(P.maxHp, P.hp + 2); SFX.heart(true); toast('Coração', 'Recupera 1 coração'); burst(P.x, P.y-11, '#ff6b6b'); return; }
   if (kind === 'up'){
     const ks = enhanceable();
     if (!ks.length){ P.hp = Math.min(P.maxHp, P.hp + 2); toast('Cristal de Aprimoramento', 'Tudo no máximo: recupera 1 coração'); return; }
@@ -2766,7 +2896,7 @@ function openLevelUp(){
 function chooseLevel(i){
   if (state !== 'levelup' || performance.now() - lvlOpenedAt < 350) return;
   const k = lvlOpts[i]; if (!k) return;
-  grant(k);
+  SFX.ui('pick'); grant(k);
   $('#levelScreen').hidden = true; state = 'play';
   toast(W[k] === 1 ? UPG[k].name : `${UPG[k].name} · Nv ${W[k]}`, UPG[k].desc(W[k]));
   P.inv = Math.max(P.inv, BAL.hero.invAfterPick);
@@ -2833,7 +2963,7 @@ function strike(x, y, R, dmg){
 /* cause: what hit Aren (only read by the balance simulator) */
 function hurt(n, cause){
   if (P.inv > 0) return;
-  P.hp -= n; P.inv = BAL.hero.invHit; G.shake = reduceMotion ? 0 : .25;
+  P.hp -= n; P.inv = BAL.hero.invHit; G.shake = reduceMotion ? 0 : .25; SFX.hurt();
   query(P.x, P.y, 34, e => { const dx = e.x-P.x, dy = e.y-P.y, l = Math.hypot(dx,dy)||1; e.kx += dx/l*120; e.ky += dy/l*120; });
   if (P.hp <= 0){ P.hp = 0; gameOver(); }
 }
@@ -3902,7 +4032,9 @@ function update(dt){
       const dirs = sw.double ? [ang, ang + Math.PI] : [ang];
       G.swRev = !G.swRev;
       G.swing = {t:0, dur:.26, ang, arc:sw.arc, range:sw.range, dirs, holy:W.holy > 0, rev:G.swRev && sw.arc < 6};
+      SFX.sword(l);
       if (W.holy){
+        SFX.holy();
         const wd = sw.arc >= 6 ? [0,1,2,3].map(i => ang + i*Math.PI/2) : dirs;
         for (const a of wd) B.push({k:'wave', x:P.x, y:P.y-10, a, d:0, max:90 + rl('holy')*25, dmg:(8 + rl('holy')*7)*.75*f1('holy')*sDmg('holy'), r:(9 + rl('holy')*2)*sArea('holy'), hit:WAVE_SETS.pop() || new Set()});
       }
@@ -3933,6 +4065,7 @@ function update(dt){
         B.push({k:'boom', x:P.x, y:P.y-10, a, out:true, d:0, max:88 + W.boom*6, dmg:(4 + W.boom*2.4)*f1('boom')*sDmg('boom'), rot:Math.random()*SHUR_FR, tier:shurTier(W.boom), tr:[]});
       }
       G.bmCd = Math.max(BAL.cd.boomMin, BAL.cd.boomBase - W.boom*BAL.cd.boomPerLvl)*sCd('boom');
+      SFX.boomThrow();
     }
   }
   // fire
@@ -3941,6 +4074,7 @@ function update(dt){
     if (G.frCd <= 0){
       const n = Math.ceil(W.fire/2), cands = E.filter(e => !e.dead && Math.hypot(e.x-P.x, e.y-P.y) < 150);
       const mb = cands.findIndex(e => e.d.mid);   // a mid-boss in range takes the first fireball (Etapa 5, see nearest)
+      if (cands.length) SFX.fireCast();
       for (let i=0;i<n && cands.length;i++){
         const e = cands.splice(i === 0 && mb >= 0 ? mb : (Math.random()*cands.length)|0, 1)[0];
         const a = Math.atan2(e.y - P.y, e.x - P.x);
@@ -3955,6 +4089,7 @@ function update(dt){
     if (G.stCd <= 0){
       const cands = E.filter(e => !e.dead && Math.hypot(e.x - P.x, e.y - P.y) < 160);
       const n = 1 + rl('storm'), R = 20 + rl('storm')*5, dmg = (25 + rl('storm')*15)*.4*f1('storm')*sDmg('storm');
+      if (cands.length) SFX.storm();
       for (let i=0;i<n && cands.length;i++){
         const e = cands.splice((Math.random()*cands.length)|0, 1)[0];
         strike(e.x, e.y - e.d.h/3, R, dmg);
@@ -4037,7 +4172,7 @@ function update(dt){
       if (Math.random() < .35) FX.push({k:'p', x:ox + (Math.random() - .5)*4, y:oy - 2, vx:(Math.random() - .5)*8, vy:-20 - Math.random()*15, t:0, life:.35, col: Math.random() < .6 ? '#6ab8ff' : '#e6f6ff', s:1});
       query(ox, oy, 10, e => {
         if (e.orbCd > 0) return;
-        if (Math.hypot(e.x - ox, e.y - e.d.h/3 - oy) < 6 + e.d.r){ hit(e, od, undefined, undefined, 50); e.orbCd = ocd; }
+        if (Math.hypot(e.x - ox, e.y - e.d.h/3 - oy) < 6 + e.d.r){ hit(e, od, undefined, undefined, 50); e.orbCd = ocd; SFX.wisp(); }
       });
     }
   }
@@ -4047,7 +4182,7 @@ function update(dt){
       b.rot += dt*70;
       const tp = b.tr.length >= 4 ? b.tr.pop() : [0, 0]; tp[0] = b.x; tp[1] = b.y; b.tr.unshift(tp);  // keeps the 4 newest, reusing the oldest pair
       if (b.out){ const v = 105 - (b.d/b.max)*45; b.x += Math.cos(b.a)*v*dt; b.y += Math.sin(b.a)*v*dt; b.d += v*dt; if (b.d >= b.max) b.out = false; }
-      else { const dx = P.x - b.x, dy = P.y-10 - b.y, l2 = Math.hypot(dx, dy), rv = Math.max(BAL.boom.returnSpd, spd*BAL.boom.returnHeroMul); if (l2 < 9){ b.dead = true; continue; } b.x += dx/l2*rv*dt; b.y += dy/l2*rv*dt; }
+      else { const dx = P.x - b.x, dy = P.y-10 - b.y, l2 = Math.hypot(dx, dy), rv = Math.max(BAL.boom.returnSpd, spd*BAL.boom.returnHeroMul); if (l2 < 9){ b.dead = true; SFX.boomCatch(); continue; } b.x += dx/l2*rv*dt; b.y += dy/l2*rv*dt; }
       b.alive = (b.alive || 0) + dt; if (b.alive > BAL.boom.maxLife){ b.dead = true; continue; }
       const hr = [9, 10, 11][b.tier];
       query(b.x, b.y, hr + 14, e => { if (e.boomCd <= 0 && Math.hypot(e.x - b.x, e.y - e.d.h/3 - b.y) < hr + e.d.r){ hit(e, b.dmg); e.boomCd = .35; } });
@@ -4125,7 +4260,7 @@ function update(dt){
       if (dist < 62){ mx = -ux; my = -uy; } else if (dist < 100){ mx = -uy*e.side; my = ux*e.side; sp *= .7; }
       e.cd -= dt;
       if (e.cd <= 0 && dist < 150){
-        EB.push({k:'arrow', x:e.x, y:e.y - 12, vx:ux*75, vy:uy*75, life:2.8, dmg:2}); e.cd = 2.4 + Math.random();
+        EB.push({k:'arrow', x:e.x, y:e.y - 12, vx:ux*75, vy:uy*75, life:2.8, dmg:2}); e.cd = 2.4 + Math.random(); SFX.elfArrow();
       }
     } else if (d.ai === 'caster'){
       if (dist < 70){ mx = -ux; my = -uy; } else if (dist < 105){ mx = -uy*e.side; my = ux*e.side; sp *= .6; }
@@ -4142,6 +4277,7 @@ function update(dt){
       if (e.cd <= 0 && dist < 170){
         const a = Math.atan2(dy, dx);
         for (const o of [-.28, 0, .28]) EB.push({k:'wfire', x:e.x, y:e.y-14, vx:Math.cos(a+o)*85, vy:Math.sin(a+o)*85, life:2.4, dmg:2});
+        SFX.wyvernFire();
         e.cd = 3.2 + Math.random();
       }
     }
@@ -4201,13 +4337,14 @@ function update(dt){
   { let j = 0; for (const z of ZAPS) if (zapTick(z, dt)) ZAPS[j++] = z; ZAPS.length = j; }
   { let j = 0; for (const c of CORPSES) if (corpseTick(c, dt)) CORPSES[j++] = c; CORPSES.length = j; }
 
+  if (P.hp > 0 && P.hp <= 2) SFX.lowHp();   // 1 heart or less: soft heartbeat (the cue throttles itself)
   // gems
   const mag = 26 + W.magnet*16;
   for (const g of GEMS){
     const dx = P.x - g.x, dy = P.y - 8 - g.y, d = Math.hypot(dx, dy);
     if (d < mag) g.pull = true;
     if (g.pull){ const s = 120 + (mag - Math.min(d, mag))*3; g.x += dx/(d||1)*s*dt; g.y += dy/(d||1)*s*dt; }
-    if (d < 6){ g.dead = true; G.gems += g.v; gainXp(g.v); }
+    if (d < 6){ g.dead = true; G.gems += g.v; gainXp(g.v); SFX.gem(); }
   }
   dropDead(GEMS);
   // items
@@ -4761,11 +4898,12 @@ function start(){
   toast('Sobreviva, Aren!', 'A espada ataca sozinha quando há inimigos perto');
 }
 function togglePause(){
-  if (state === 'play'){ state = 'pause'; clearInput(); audioSync(); keepAwake(false); $('#hud').inert = true; $('#pauseInfo').textContent = `${fmt(G.t)} sobrevividos · ${G.kills} abates`; $('#pauseScreen').hidden = false; $('#resumeBtn').focus(); }
-  else if (state === 'pause'){ state = 'play'; $('#pauseScreen').hidden = true; $('#hud').inert = false; audioSync(); keepAwake(true); }
+  if (state === 'play'){ state = 'pause'; clearInput(); SFX.pauseCue(true); audioSync(); keepAwake(false); $('#hud').inert = true; $('#pauseInfo').textContent = `${fmt(G.t)} sobrevividos · ${G.kills} abates`; $('#pauseScreen').hidden = false; $('#resumeBtn').focus(); }
+  else if (state === 'pause'){ state = 'play'; $('#pauseScreen').hidden = true; $('#hud').inert = false; audioSync(); SFX.pauseCue(false); keepAwake(true); }
 }
-/* the AudioContext runs only while the tab is visible, the game is not paused and some sound is on */
-function audioSync(){ SFX.pause(document.hidden || state === 'pause' || (!SFX.on && !SFX.music)); }
+/* the AudioContext runs only while the tab is visible, the game is not paused and some sound is on
+   (a visible pause waits .3 s so the pause cue is heard; a hidden tab suspends at once) */
+function audioSync(){ SFX.pause(document.hidden || state === 'pause' || (!SFX.on && !SFX.music), document.hidden ? 0 : .3); }
 function gameOver(){
   state = 'over'; clearInput(); SFX.stinger('lose'); keepAwake(false);
   const best = store.get(), nb = G.t > best;
@@ -4783,6 +4921,7 @@ function goTitle(){
   $('#titleScreen').hidden = false; showBest();
 }
 $('#menuBtn').onclick = goTitle;
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b && b.id !== 'pauseBtn' && b.id !== 'resumeBtn' && !b.classList.contains('choice')) SFX.ui(); });
 for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => SFX.init(), {once:true});
 $('#titleScreen').addEventListener('click', e => { if (e.target.closest('button') || state !== 'menu') return; start(); });
 $('#howBtn').onclick = () => { $('#startScreen').hidden = false; $('#startBtn').focus(); };
