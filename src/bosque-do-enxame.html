@@ -1078,7 +1078,7 @@ const ET = {
   elf:      {name:'Elfo Negro',hp:10, spd:38, dmg:1, r:6,  sc:1, gem:2,  ai:'archer'},
   orc:      {name:'Orc',       hp:30, spd:23, dmg:2, r:10,  sc:2, gem:5,  ai:'walk'},
   demon:    {name:'Demônio',   hp:18, spd:50, dmg:2, r:7,  sc:1, gem:3,  ai:'walk'},
-  succubus: {name:'Succubus',  hp:22, spd:34, dmg:1, r:7,  sc:1, gem:4,  ai:'caster', fly:true},
+  succubus: {name:'Súcubo',    hp:22, spd:34, dmg:1, r:7,  sc:1, gem:4,  ai:'caster', fly:true},
   wyvern:   {name:'Wyvern',    hp:85, spd:30, dmg:2, r:12, sc:2, gem:12, ai:'wyvern', fly:true},
   // summoned by the Lich Ancião only (not in SCHED)
   skeleton: {name:BOSS_TXT.skeleton, hp:9, spd:30, dmg:1, r:6, sc:1, gem:2, ai:'walk'}
@@ -4534,7 +4534,7 @@ function update(dt){
       z.dead = true;
       const dx = P.x - z.x, dy = (P.y - z.y)/.7;
       if (dx*dx + dy*dy < (z.r + 3)**2){
-        if (P.slow <= 0) toast('Maldição da Succubus', 'Você está mais lento por alguns segundos');
+        if (P.slow <= 0) toast('Maldição da Súcubo', 'Você está mais lento por alguns segundos');
         P.slow = 2.6; hurt(1);
       }
       FX.push({k:'ring', x:z.x, y:z.y, r:3, max:z.r + 4, t:0, life:.35, col:'#ff7ae0'}); SFX.hex();
