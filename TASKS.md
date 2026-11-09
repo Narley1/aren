@@ -96,9 +96,13 @@
 
 ## Pendências da Etapa 5 (decisões e testes do Narley)
 
-- [ ] **Confirmar a mira automática que prefere o chefe** (`BAL.aimBoss` = 0,6: Shuriken, Arco e a 1ª bola de fogo miram o chefe vivo se ele estiver no alcance). Sem isso as armas a distância gastavam a luta nos inimigos pequenos e levavam ~75% mais tempo que o corpo a corpo para matar o Paladino
-- [ ] **Confirmar o spawn a 25% durante a luta** (`BAL.spawn.guardMul` 0,4 → 0,25, primeiros 75 s de um chefe vivo)
-- [ ] **Confirmar a fuga**: chefe não derrotado em 240 s (`BAL.paladin.flee`/`BAL.lich.flee`) vai embora e a relíquia se perde (antes o guardião ficava até as 15:00; com a fuga o Paladino nunca encontra o Lich)
+- [x] **Mira automática que prefere o chefe** (`BAL.aimBoss` = 0,6): mantida — decidido pelo Narley (09/11/2026)
+- [x] **Spawn a 25% durante a luta** (`BAL.spawn.guardMul` 0,25, primeiros 75 s de um chefe vivo): mantido — decidido pelo Narley (09/11/2026)
+- [x] **Fuga**: removida — decidido pelo Narley (09/11/2026): "o jogo só prossegue quando o boss for derrotado". Enquanto o Paladino ou o Lich vive, o relógio da partida para (HUD com sinal de pausa e "Derrote o chefe!"); a relíquia sempre cai na morte
+- [x] **Vida dos chefes +25%**: Paladino 2300 → 2875, Lich 7600 → 9500 — decidido pelo Narley (09/11/2026)
+- [ ] **Corpo a corpo cauteloso caiu de 27% para 15% de vitórias** com o relógio parado e a vida +25% (bot, 48 sementes): 71% morrem na luta do Paladino, quase tudo por flechas dos elfos e investida; as outras políticas subiram (prio 15 → 29%, híbrido 10 → 21%, aleatório 8 → 23%). Ver se acontece com humanos antes de mexer (ver `CHANGELOG.md`)
+- [ ] **Risco de travar no chefe:** uma build fraca e defensiva pode ficar muito tempo parada em 5:00 (bot imortal levou 21 min de tempo real para matar o Paladino; mortal, nenhuma partida travou e a luta mais longa foi 324 s). Decidir se precisa de alguma saída (o Narley pediu sem fuga)
+- [ ] Depois dos 75 s de spawn calmo, o spawn volta ao normal do horário parado (5:00/10:00) enquanto a luta durar — confirmar se é o esperado
 - [ ] Jogar as duas lutas: as telegrafias dão tempo de reagir? O Paladino na fase 2 fica injusto? O Lich parece ameaçador (para o bot ele quase não acerta; quem mata às 10:00 é o enxame)?
 - [ ] Testar num celular real: legibilidade das telegrafias e do cartão, desempenho do Lich na fase 2
 - [ ] Bot de corpo a corpo morre mais na luta do Paladino que com o guardião antigo (partidas inteiras: 51% contra 32% até 120 s; de perto 67% contra 30%), quase tudo por flechas dos elfos enquanto contorna o chefe; as vitórias do corpo a corpo não mudaram (27%). Ver se acontece com humanos antes de mexer

@@ -1,5 +1,47 @@
 # Changelog
 
+## Decisões do Narley sobre os chefes (09/11/2026, branch `dev`, não publicado)
+
+Respostas às quatro perguntas da Etapa 5.
+
+- **Sem fuga — "o jogo só prossegue quando o boss for derrotado":** enquanto o Paladino (5:00) ou o Lich (10:00) vive, o relógio da partida (`G.t`) para: agenda de inimigos novos, escala de vida, rampa de elites, intervalo de spawn, hordas, queda de cristal/coração, o próximo chefe e o dragão às 15:00 esperam a morte do chefe. Animações, recargas, a IA do chefe e a janela de spawn calmo seguem em tempo real (`G.rt`); `G.hold` soma os segundos parados. A relíquia sempre cai (não há mais como perdê-la). Removidos `startFlee`, `bossGone`, os estados `flee`, `BAL.paladin.flee`/`BAL.lich.flee`, os textos "Recuando" (barra do chefe) e "recuou/desapareceu… a relíquia se perdeu" (`grep` antes: sem outros usos).
+- **HUD:** com o relógio parado os dígitos ficam esmaecidos, com um sinal de pausa (duas barras) à esquerda e a etiqueta "Derrote o chefe!" embaixo — forma e texto, não só cor; o sinal só pisca devagar sem `prefers-reduced-motion`. Capturas em 390×844 e 1366×768 (Paladino e Lich, com e sem movimento reduzido).
+- **Fim de partida:** "Tempo" continua o relógio da partida (e o recorde também); se uma luta segurou o relógio por 1 s ou mais, aparece "Tempo real: m:ss" embaixo. Morrer na luta do Paladino mostra 5:00. A pausa e as escolhas de nível param os dois relógios, como antes. "Como jogar" explica que o relógio para.
+- **Spawn a 25% nos primeiros 75 s da luta** (`BAL.spawn.guardMul`) e **mira automática que prefere o chefe** (`BAL.aimBoss`): mantidos. Depois dos 75 s o spawn volta ao normal do horário parado (5:00 ou 10:00).
+- **Vida +25%:** Paladino 2300 → 2875, Lich 7600 → 9500.
+
+### Bot (48 sementes por política, `tests/balance/`, `dt` = 1/30 s)
+
+O simulador agora mede as lutas e a partida também em tempo real e para uma partida em `--max-real` s (2400; nas lutas isoladas, chefe + 1200 s) para não rodar para sempre se uma build não matar o chefe. "Média" = relógio da partida (quem morre na luta do Paladino fica com 5:00).
+
+| bot (partida inteira) | Etapa 5: média · vitória | agora: média (relógio) · tempo real · vitória |
+|---|---|---|
+| prioridade (`prio`) | 530 s · 15% | 567 s · 622 s · 29% |
+| corpo a corpo (`melee`, cauteloso) | 554 s · 27% | 409 s · 476 s · 15% |
+| corpo a corpo de perto (`agg`) | 488 s · 21% | 434 s · 513 s · 19% |
+| a distância (`ranged`) | 511 s · 17% | 514 s · 550 s · 21% |
+| híbrido (`hybrid`) | 483 s · 10% | 488 s · 533 s · 21% |
+| aleatório (`random`) | 412 s · 8% | 475 s · 538 s · 23% |
+
+Lutas isoladas (`run.py --god-until 300 --max 301` e `--god-until 600 --max 601`: o bot chega ao chefe sem poder morrer e a partida acaba 1 s depois da luta). Tempo para matar = mediana em tempo real; mortes = morreu até 120 s depois de o chefe surgir.
+
+| política | Paladino: matar (antes → agora) | mortes na luta | Lich: matar | mortes na luta |
+|---|---|---|---|---|
+| prioridade | 44 → 62 s | 23% → 17% | 50 → 56 s | 65% → 40% |
+| a distância | 33 → 36 s | 19% → 25% | 39 → 45 s | 62,5% → 46% |
+| híbrido | 31 → 45 s | 27% → 48% | 30 → 33 s | 62,5% → 62,5% |
+| corpo a corpo (cauteloso) | 34 → 47 s | 46% → 31% | 31 → 39 s | 50% → 27% |
+| corpo a corpo de perto | 45 → 50 s | 62,5% → 65% | 27 → 49 s | 73% → 40% |
+| aleatório | 64 → 76 s | 62,5% → 52% | 43 → 47 s | 75% → 60% |
+
+- **Corpo a corpo cauteloso perdeu vitórias (27% → 15%):** nas partidas inteiras 71% dos que chegam ao Paladino morrem na luta (66% até 120 s; era 51%), quase tudo por flechas dos elfos (3,2 meios corações por luta) e pela investida. Com o relógio parado essas mortes ficam em 5:00, por isso a média caiu para 409 s. As outras políticas ganharam vitórias: quem passa pelo Paladino encontra o Lich com o enxame congelado em 10:00, e no Lich ninguém morreu nas partidas inteiras (52 + 9 lutas, todas vencidas).
+- **Lutas mais longas no tempo real:** mediana de todas as políticas 44 s (Paladino) e 41 s (Lich) nas partidas inteiras. As mais longas: Paladino 324 s e 236 s (de perto, morreu) e 139 s (de perto, matou); Lich 81 s. Nas partidas inteiras nenhuma travou (maior tempo real de uma partida: 1203 s; a maior diferença entre tempo real e relógio é a soma das duas lutas).
+- **Risco de travar:** com o bot imortal (lutas isoladas do Lich, imortal até 10:00) uma build fraca (aleatória: Espada 2, Shuriken 1, Martelo 1, Arco 1, Botas 4, Coração 3) levou **1271 s (21 min) de tempo real** para matar o Paladino. Um jogador mortal com essa build provavelmente morre antes, mas uma build defensiva que não causa dano pode ficar muito tempo presa em 5:00. Não foi mexido: decisão do Narley.
+- `tests/smoke.py`: 40 verificações, 0 falhas. A da fuga virou cinco: relógio parado com o Paladino vivo (20 s: `G.t` igual, tempo real anda, 10:00 não chega, HUD com "Derrote o chefe!"), relógio de volta depois da morte, chefe mantido vivo por 250 s sem fugir (sem Lich, sem relíquia), morte na luta com "5:00" e "Tempo real" no painel, vida 2875/9500. O teste de estresse vai até 1100 s de passos. Duas execuções: determinismo IDENTICAL entre elas (o `det` muda em relação a antes, como esperado).
+- **Determinismo do teste:** com a máquina ocupada a passada "normal" do `det` variava de uma execução para outra — também no commit anterior (49db5d2), medido na mesma hora — porque a vida ambiente (`AMB`) passa de uma partida para a outra e a tela inicial a repõe com `Math.random` entre os passos do teste. As partidas semeadas do teste agora começam com `AMB` vazio; o jogo não mudou.
+- `tests/perf.py`: o avanço rápido conta tempo real (`G.t + G.hold`) — antes travava esperando 5:12 com o chefe vivo; nos cenários `late` e `boss` o chefe de meio de partida é tirado assim que surge. Rodou (`paladin`, `late`), mas os números não valem como medição: a máquina estava ocupada com o bot.
+- Ninguém jogou: só bot, testes e capturas.
+
 ## Áudio — rodada 5 (09/11/2026, branch `dev`, não publicado)
 
 Notas do Narley no laboratório da rodada 4 e o lote 2, o último, dos sons dos monstros. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta, comparado com a explosão do fogo, ~−29,7 dBFS). Eu não ouço: a aprovação é do Narley, no laboratório.
