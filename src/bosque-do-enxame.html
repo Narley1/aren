@@ -2117,34 +2117,42 @@ const SFX = (() => {
     const hp = filt('highpass', 500); n.connect(hp); hp.connect(ng); ng.connect(fb);
   }
 
-  /* ---------- DEMON: distorted "MUAH-HA-HA-HA-HA" (round 2: higher voice, no sub, quieter) ---------- */
+  /* ---------- DEMON: distorted "MUAH-HA-HA-HA" (round 2: higher voice, no sub, quieter; round 3: ~30% shorter, 4 "ha"s) ---------- */
   function demonLaugh(){
     if (!ready('demon', 4.5)) return;
     const t0 = ac.currentTime + .03, bus = G_(.042);
     const ws = ac.createWaveShaper(); ws.curve = curve(5); ws.oversample = '2x';
     const lp = filt('lowpass', 3600, .7), hp = filt('highpass', 140);
-    const rm = ac.createGain(); rm.gain.value = 0; const car = ac.createOscillator(); car.frequency.value = 68; const cg = G_(1); car.connect(cg); cg.connect(rm.gain); car.start(t0); car.stop(t0 + 2);
+    const rm = ac.createGain(); rm.gain.value = 0; const car = ac.createOscillator(); car.frequency.value = 68; const cg = G_(1); car.connect(cg); cg.connect(rm.gain); car.start(t0); car.stop(t0 + 1.45);
     bus.connect(ws); ws.connect(lp); bus.connect(rm); const rmg = G_(.5); rm.connect(rmg); rmg.connect(lp); lp.connect(hp);
     route(hp, .45);
     const base = 132 + Math.random()*14, sh = .96;
-    syl(bus, t0, {f0:base*1.05, f1:base*1.3, dur:.34, vow:'u', vow2:'a', morph:.12, asp:.01, aspAmp:.05, amp:.9, vib:.02, vibR:5, shift:sh, breath:.12});
-    const seq = [1.32, 1.22, 1.13, 1.03, .94, .85];
-    seq.forEach((m, i) => syl(bus, t0 + .44 + i*.17, {f0:base*m, f1:base*m*.84, dur:.12, vow:'a', asp:.05, aspAmp:.7, amp:.95 - i*.1, shift:sh, breath:.2}));
-    const n = noise(t0 + 1.4, .5), nl = filt('lowpass', 1100), ng = ac.createGain(); env(ng, t0 + 1.4, .05, .08, .5); n.connect(nl); nl.connect(ng); route(ng, .4);
+    syl(bus, t0, {f0:base*1.05, f1:base*1.3, dur:.3, vow:'u', vow2:'a', morph:.11, asp:.01, aspAmp:.05, amp:.9, vib:.02, vibR:5, shift:sh, breath:.12});
+    const seq = [1.32, 1.17, 1.02, .87];
+    seq.forEach((m, i) => syl(bus, t0 + .39 + i*.155, {f0:base*m, f1:base*m*.84, dur:.12, vow:'a', asp:.05, aspAmp:.7, amp:.95 - i*.13, shift:sh, breath:.2}));
+    const n = noise(t0 + 1.02, .36), nl = filt('lowpass', 1100), ng = ac.createGain(); env(ng, t0 + 1.02, .05, .08, .36); n.connect(nl); nl.connect(ng); route(ng, .4);
   }
-  /* ---------- SUCCUBUS: breathy feminine "hi-hi-hi-hi... mmm" + sparkle ---------- */
+  /* ---------- SUCCUBUS (round 3): feline, feminine, sultry - a rolled purr "mrrr", a meow-shaped "nyaa~" (rises, then
+     falls), three light breathy giggles and a soft exhaled "hmm"; a short echo and a faint sparkle. Lower and breathier than
+     the curse burst's "nya-ha-ha" (hex), and no longer the loudest sound of the game (was ~+10 dB over the explosion) ---------- */
   function succubusLaugh(){
     if (!ready('succ', 3)) return;
-    const t0 = ac.currentTime + .03, bus = G_(.42), hs = filt('highshelf', 3000, 0, 4);
-    const dl = ac.createDelay(); dl.delayTime.value = .15; const fbk = G_(.28); bus.connect(hs); hs.connect(dl); dl.connect(fbk); fbk.connect(dl);
-    route(hs, .5); const dlo = G_(.35); dl.connect(dlo); route(dlo, .5);
-    const base = 340 + Math.random()*40, seq = [1.02, 1.14, 1.22, 1.18, 1.08, .98];
-    seq.forEach((m, i) => syl(bus, t0 + i*.112, {f0:base*m*1.04, f1:base*m*.94, dur:.07, vow:i === 0 ? 'e' : 'i', asp:.035, aspAmp:.9, amp:[.55, .65, .7, .66, .58, .45][i], vib:.012, vibR:8, shift:1.14, breath:.45}));
-    syl(bus, t0 + .74, {f0:base*.92, f1:base*.7, dur:.48, vow:'u', vow2:'e', morph:.3, asp:.06, aspAmp:.35, amp:.32, vib:.02, vibR:5, shift:1.1, breath:.3});
-    [1568, 1976, 2349, 2794, 3136].forEach((f, i) => {
-      const t = t0 + .05 + i*.08, o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f;
-      env(g, t, .004, .07, .5); o.connect(g); route(g, .9); o.start(t); o.stop(t + .55);
-    });
+    const t0 = ac.currentTime + .03, bus = G_(.13), hs = filt('highshelf', 3000, 0, 3);
+    const dl = ac.createDelay(); dl.delayTime.value = .13; const fbk = G_(.22); bus.connect(hs); hs.connect(dl); dl.connect(fbk); fbk.connect(dl);
+    route(hs, .5); const dlo = G_(.28); dl.connect(dlo); route(dlo, .55);
+    const b = 365*jit(.04), sh = 1.16;
+    // "mrrr": closed, low, rolled (amplitude flutter at ~27 Hz = the purr)
+    const purr = flutter(t0, .36, 27*jit(.05), .85, 1); purr.connect(bus);
+    syl(purr, t0, {f0:b*.6, f1:b*.68, dur:.32, vow:'u', vow2:'e', morph:.26, asp:.015, aspAmp:.12, amp:.75, shift:sh, breath:.3});
+    // "nyaa~": nasal onset, then the vowel opens and glides up, and falls back like a meow
+    tone(t0 + .3, 'sine', b*.9, b*.95, .2, .07, 0, .012, bus);
+    syl(bus, t0 + .34, {f0:b*.95, f1:b*1.32, dur:.17, vow:'i', vow2:'a', morph:.08, asp:.004, aspAmp:.03, amp:.72, vib:.02, vibR:6, shift:sh, breath:.3});
+    syl(bus, t0 + .51, {f0:b*1.3, f1:b*.98, dur:.2, vow:'a', vow2:'o', morph:.16, asp:.002, aspAmp:.02, amp:.6, vib:.03, vibR:6, shift:sh, breath:.35});
+    // giggles: light, airy, falling a little
+    [[1.42, .5], [1.34, .45], [1.22, .38]].forEach(([m, a], i) => syl(bus, t0 + .8 + i*.115, {f0:b*m, f1:b*m*.9, dur:.075, vow:i === 1 ? 'a' : 'e', asp:.035, aspAmp:.9, amp:a, shift:sh, breath:.5}));
+    // "hmm...": a low breathy exhale
+    syl(bus, t0 + 1.2, {f0:b*.82, f1:b*.66, dur:.42, vow:'e', vow2:'u', morph:.3, asp:.08, aspAmp:.4, amp:.28, vib:.02, vibR:5, shift:sh, breath:.55});
+    [2349, 2794, 3520].forEach((f, i) => tone(t0 + .36 + i*.09, 'sine', f, f, .035, .45, .9, .004));
   }
   /* curse circle bursting (round 2): a softer swirl, a sparkle and a short feline "nya-ha-ha" (voice at most every 1.4 s) */
   function hex(){
@@ -2373,7 +2381,7 @@ const SFX = (() => {
     // round 2: louder, with a sharp metallic edge on each pass
     spin:    t => { for (let i = 0; i < 3; i++){ const p = jit(.03), tt = t + i*.22; sweep(tt, .24, 600, 2400, .75, 2);
                     tone(tt + .09, 'sine', 3100*p, 3700*p, .05, .15, .3, .008); tone(tt + .09, 'sine', 4650*p, 5500*p, .03, .12, .3, .008); } },
-    jump:    t => { sweep(t, .35, 300, 1200, .3); metal(t, 260, .08, .3); },
+    jump:    t => { sweep(t, .35, 300, 1200, .533); metal(t, 260, .142, .3); },   // round 3: +5 dB (the owner's pick)
     // round 2: spectral blades materializing - ghostly metallic "shiing" swells
     blades:  t => { [1318, 1568, 1976, 2349].forEach((f, i) => shing(t + i*.1, f*jit(.01), .046, .16, .75)); sweep(t, .8, 2000, 5000, .046, 4, .8); },
     bladeGo: t => { sweep(t, .16, 1600, 4800, .35, 2.5, .15); const p = jit(.04); tone(t, 'sine', 5200*p, 6900*p, .05, .1, .15, .002);   // round 2: sharper edge
@@ -2459,12 +2467,18 @@ const SFX = (() => {
     const l = ac.createOscillator(), lg = G_(f*.03); l.frequency.value = 7; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + .45);
     nz(t, noise(t, .35), 'bandpass', 1400, 2200, 4, .12, .35, .8, .08);
   }
-  // storm staff: a light bright snap with sparkles (no rumble, unlike the Lich's thunder)
+  // storm staff: a light bright snap with sparkles (no rumble, unlike the Lich's thunder).
+  // round 3: + an electric "bzzzt" - a low square buzz chopped by a fast flutter (arc stutter), kept bright by a band-pass,
+  // dropping a little at the end ("...zt")
   function storm(){
     if (!ready('storm', .15)) return; const t = ac.currentTime + .005, p = jit(.06);
     nz(t, noise(t, .14), 'highpass', 3200*p, 3200*p, .7, .57, .14, .3, .001);
     tone(t, 'sawtooth', 2600*p, 420*p, .085, .1, .2, .001);
     nz(t + .005, play(crackBuf, t + .005, .2, 2), 'highpass', 4000, 4000, .7, 1.1, .2, .3, .005);
+    const L = .26, tb = t + .012, o = ac.createOscillator(), am = flutter(tb, L, 37*p, .75, .6), bp = filt('bandpass', 1500*p, .8), g = ac.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(122*p, tb); o.frequency.setValueAtTime(122*p, tb + L*.7); o.frequency.exponentialRampToValueAtTime(92*p, tb + L);
+    g.gain.setValueAtTime(.0001, tb); g.gain.exponentialRampToValueAtTime(.16, tb + .006); g.gain.setValueAtTime(.16, tb + L*.55); g.gain.exponentialRampToValueAtTime(.0001, tb + L);
+    o.connect(am); am.connect(bp); bp.connect(g); route(g, .15); o.start(tb); o.stop(tb + L + .05);
   }
   // holy sword wave: an airy shimmer (open fifth) over a rising breath
   function holy(){
@@ -2489,27 +2503,43 @@ const SFX = (() => {
     if (!ready('elite', 1.5)) return; const t = ac.currentTime + .02;
     tone(t, 'triangle', 196, 196, .08, .9, .6, .01); tone(t, 'triangle', 207.65, 207.65, .057, .9, .6, .01); metal(t, 392, .015, .8);
   }
-  // low health: a soft heartbeat (lub-dub), at most every 2.4 s while it is called
+  // low health: a soft heartbeat (lub-dub), at most every 2.4 s while it is called (round 3: +4.5 dB, "Baixo demais")
   function lowHp(){
     if (!ready('lowhp', 2.4)) return; const t = ac.currentTime + .01;
-    tone(t, 'sine', 110, 60, .1, .14, 0, .006); nz(t, noise(t, .08), 'lowpass', 520, 300, .8, .1, .08, 0, .003);
-    tone(t + .18, 'sine', 95, 55, .075, .14, 0, .006);
+    tone(t, 'sine', 110, 60, .168, .14, 0, .006); nz(t, noise(t, .08), 'lowpass', 520, 300, .8, .168, .08, 0, .003);
+    tone(t + .18, 'sine', 95, 55, .126, .14, 0, .006);
   }
   // enemy death: one pitched blip + one filtered noise tick, timbre by type; elites lower, longer, a little louder.
   // [osc type, f0, f1, osc amp, noise filter, noise f, q, noise amp, dur]. 5 nodes, dry, 50 ms cooldown shared by all types.
   const KILL = {
     goblin:   ['square', 620, 300, .223, 'bandpass', 2400, 1.5, 1.787, .09],
-    gargoyle: ['triangle', 330, 150, .458, 'bandpass', 1500, 2.5, 1.637, .1],
     hobgoblin:['triangle', 280, 130, .461, 'bandpass', 1100, 1.5, 1.298, .11],
     orc:      ['sine', 170, 62, .364, 'lowpass', 900, .8, .482, .14],
     elf:      ['sine', 900, 520, .39, 'bandpass', 3200, 2, 1.242, .09],
     demon:    ['sawtooth', 130, 55, .248, 'lowpass', 700, 1, 1.774, .16],
     succubus: ['triangle', 1050, 700, .318, 'bandpass', 3800, 3, 1.393, .12],
-    wyvern:   ['triangle', 240, 95, .367, 'bandpass', 800, 1.2, 1.031, .15],
     skeleton: ['triangle', 900, 650, .539, 'bandpass', 2600, 5, 2.939, .07]
   };
+  // round 3: two types with their own short recipe instead of a KILL row (8 nodes each, dry like the rest)
+  const KILL_FX = {
+    // gargoyle (stone): a sharp crack, a dull stone knock and a short crumble of pebbles (sparse clicks falling in pitch)
+    gargoyle: (t, p, a, d) => {
+      nz(t, noise(t, .025), 'highpass', 2200*p, 2200*p, .7, .95*a, .022, 0, .0008);
+      tone(t, 'triangle', 240*p, 105*p, .36*a, .09*d, 0, .001);
+      nz(t + .012, play(crackBuf, t + .012, .3*d, 2.4*p), 'bandpass', 2600*p, 1000*p, 1.1, 2.2*a, .3*d, 0, .004);
+    },
+    // wyvern: a short raspy screech that breaks off into a body thud and the wings flopping down
+    wyvern: (t, p, a, d) => {
+      const bp = filt('bandpass', 1900*p, 3.5); bp.frequency.setValueAtTime(1900*p, t); bp.frequency.exponentialRampToValueAtTime(1300*p, t + .11); route(bp, 0);
+      tone(t, 'sawtooth', 820*p, 560*p, .12*a, .12*d, 0, .006, bp);
+      tone(t + .1, 'sine', 115*p, 42, .11*a, .16*d, 0, .003);
+      nz(t + .095, noise(t + .095, .17*d), 'lowpass', 1100*p, 280, .8, .14*a, .17*d, 0, .006);
+    }
+  };
   function kill(type, isElite){
-    if (!ready('kill', .05)) return; const K = KILL[type] || KILL.goblin, t = ac.currentTime + .004, p = jit(.05)*(isElite ? .8 : 1), a = isElite ? 1.2 : 1, d = K[8]*(isElite ? 1.4 : 1);
+    if (!ready('kill', .05)) return;
+    if (KILL_FX[type]){ const t = ac.currentTime + .004; KILL_FX[type](t, jit(.05)*(isElite ? .8 : 1), isElite ? 1.2 : 1, isElite ? 1.4 : 1); return; }
+    const K = KILL[type] || KILL.goblin, t = ac.currentTime + .004, p = jit(.05)*(isElite ? .8 : 1), a = isElite ? 1.2 : 1, d = K[8]*(isElite ? 1.4 : 1);
     tone(t, K[0], K[1]*p, K[2]*p, K[3]*a, d, 0, .002);
     nz(t, noise(t, d), K[4], K[5]*p, K[5]*p*.6, K[6], K[7]*a, d*.8, 0, .001);
   }
