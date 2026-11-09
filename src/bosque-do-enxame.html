@@ -4042,14 +4042,11 @@ function pixRing(x, y, r, col, sy = 1){
   for (let i=0;i<n;i++){ const a = i/n*Math.PI*2; ctx.fillRect(Math.round(x + Math.cos(a)*r), Math.round(y + Math.sin(a)*r*sy), 1, 1); }
 }
 /* relic on the floor (dropped by a guardian): the power icon at 2x on a golden halo under a pillar of light;
-   off screen, a blinking marker on the edge points to it */
+   off screen, drawPointers puts an arrow with the relic's icon on the edge */
 const RELIC_SPR = {};
 function drawRelic(it, cx, cy){
   const x = Math.round(it.x - cx), y = Math.round(it.y - cy), tt = it.t;
-  if (x < -20 || x > VW + 20 || y < -20 || y > VH + 100){
-    if (Math.floor(tt*4)%2){ const ex = Math.max(5, Math.min(VW - 6, x)), ey = Math.max(5, Math.min(VH - 6, y)); pixCircle(ex, ey, 3, '#ffe27a'); ctx.fillStyle = '#5a3a0a'; ctx.fillRect(ex, ey, 1, 1); }
-    return;
-  }
+  if (x < -20 || x > VW + 20 || y < -20 || y > VH + 100) return;   // off screen: drawPointers shows an arrow on the edge
   const spr = RELIC_SPR[it.rk] || (RELIC_SPR[it.rk] = x2(ICONS[it.rk].spr));
   const bob = Math.round(Math.sin(tt*3)*2), r = 13 + Math.round(Math.sin(tt*4)*1.5);
   ctx.drawImage(shadow(14), x - 7, y + 1);
@@ -4059,6 +4056,85 @@ function drawRelic(it, cx, cy){
   for (let i = 0; i < 6; i++){ const a = tt*1.6 + i*Math.PI/3; ctx.fillStyle = i%2 ? '#ffffff' : '#ffe27a'; ctx.fillRect(Math.round(x + Math.cos(a)*(r + 3)), Math.round(y - 8 + bob + Math.sin(a)*(r + 3)*.6), 1, 1); }
   ctx.drawImage(spr, x - 8, y - 16 + bob);
   if (Math.floor(tt*3)%3 === 0){ ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 6, y - 17 + bob, 1, 1); }
+}
+/* off-screen pointers: while a living boss (Paladino, Lich, the dragon), a falling boss corpse or a relic on the
+   ground is off screen, a pixel arrow on the edge points at it, with a small plate showing what it is (boss glyph or
+   the relic's icon: shape + icon, not colour alone). Kept inside the part of the canvas the HUD leaves free (measured
+   from the DOM at most every 0.5 s, only while a pointer is needed); drawing only, no Math.random. The arrow nudges
+   toward the target unless reduced motion is on. */
+const PTR_OUT = '#2a1820';
+const PTR_GLYPH = {
+  paladin: mk(["...rr...", "..oyyo..", ".oLyyyo.", ".oyyyyo.", ".okkkko.", ".oyykyo.", ".oyykyo.", "..oooo.."], {o:PTR_OUT, r:'#e0483a', y:'#d6a636', L:'#ffe7a3', k:'#1a1020'}),
+  lich:    mk(["o.o.o.o.", "occcccco", "oWWWWWWo", "oWLWWWWo", "okcWWcko", "oWWkkWWo", ".oWkWko.", "..oooo.."], {o:PTR_OUT, c:'#2fb8b0', W:'#e8e2d0', L:'#ffffff', k:'#1a1020'}),
+  dragon:  mk(["o......o", "oo.oo.oo", ".oWWWWo.", "oWLWWWWo", "okvWWvko", "oWWkkWWo", ".oWkWko.", "..oooo.."], {o:PTR_OUT, v:'#c060ff', W:'#d8d0e8', L:'#ffffff', k:'#1a1020'})
+};
+/* the arrow points out of the side of the free box it sits on (4 directions: hand-drawn pixel art stays clean; a
+   rotated dart breaks up on the grid); where it sits along that side gives the rest of the direction */
+const PTR_ARROW_ROWS = [".#.......", ".##......", "..###....", "..#####..", "...######", "..#####..", "..###....", ".##......", ".#......."];
+const PTR_ARROW = [];   // 0 right, 1 down, 2 left, 3 up; built on first use
+const PTR_POS = [];     // arrow and plate rectangles drawn in the last frame [x, y, w, h, ...] (read by tests/smoke.py)
+function ptrArrow(i){
+  if (PTR_ARROW[i]) return PTR_ARROW[i];
+  const R = PTR_ARROW_ROWS, n = R.length, rows = [];
+  for (let y = 0; y < n; y++){ let row = ''; for (let x = 0; x < n; x++){
+    // rotate the right-pointing grid clockwise i times
+    row += i === 0 ? R[y][x] : i === 1 ? R[n - 1 - x][y] : i === 2 ? R[n - 1 - y][n - 1 - x] : R[x][n - 1 - y]; }
+    rows.push('.' + row + '.'); }
+  const pad = '.'.repeat(n + 2), G2 = [pad, ...rows, pad], on = (x, y) => G2[y][x] !== '.';
+  // light from the top left whatever the direction: lit edge facing up/left, shaded edge facing down/right
+  const shaded = G2.map((r, y) => r.split('').map((ch, x) => ch === '.' ? '.' : !on(x, y - 1) || !on(x - 1, y) ? 'L' : !on(x, y + 1) || !on(x + 1, y) ? 'd' : 'f').join(''));
+  const c = mk(shaded, {L:'#fff3a0', f:'#f2c14e', d:'#c8902a'});
+  outlineC(c, PTR_OUT);
+  return (PTR_ARROW[i] = c);
+}
+let PTR_PLATE = null;
+const ptrPlate = () => PTR_PLATE || (PTR_PLATE = (() => { const c = cnv(12, 12), p = painter(c);
+  p.rect(1, 0, 10, 12, PTR_OUT); p.rect(0, 1, 12, 10, PTR_OUT); p.rect(1, 1, 10, 10, '#f2c14e'); p.rect(2, 2, 8, 8, '#1b2a36'); return c; })());
+const PTR_BOX = {t: -1, vw: 0, vh: 0, l: 0, t0: 0, r: 0, b: 0};
+function ptrBox(){
+  const now = performance.now();
+  if (PTR_BOX.vw === VW && PTR_BOX.vh === VH && now - PTR_BOX.t < 500) return PTR_BOX;
+  PTR_BOX.t = now; PTR_BOX.vw = VW; PTR_BOX.vh = VH;
+  const ar = app.getBoundingClientRect(), hud = $('#hud'), cs = getComputedStyle(hud);
+  const head = $('.hud-head').getBoundingClientRect(), foot = $('.hud-bottom').getBoundingClientRect();
+  const top = hud.hidden ? 0 : head.bottom - ar.top + 4, bot = hud.hidden || foot.height < 1 ? ar.height - 10 : foot.top - ar.top - 4;
+  PTR_BOX.l = Math.ceil((parseFloat(cs.paddingLeft) || 16)/SCALE) - 2; PTR_BOX.r = VW - Math.ceil((parseFloat(cs.paddingRight) || 16)/SCALE) + 2;
+  PTR_BOX.t0 = Math.ceil(top/SCALE); PTR_BOX.b = Math.floor(bot/SCALE);
+  if (PTR_BOX.b - PTR_BOX.t0 < 40){ PTR_BOX.t0 = 4; PTR_BOX.b = VH - 4; }   // tiny/odd layouts: just stay on the canvas
+  return PTR_BOX;
+}
+function drawPointer(tx, ty, icon, tt){
+  // tx, ty: target in view coordinates (already known to be off screen)
+  const bx = ptrBox(), m = 8, L = bx.l + m, R = bx.r - m, T = bx.t0 + m, Bt = bx.b - m;
+  const ox = Math.max(L, Math.min(R, VW/2)), oy = Math.max(T, Math.min(Bt, VH/2));
+  const dx = tx - ox, dy = ty - oy; if (!dx && !dy) return;
+  // where the ray from the hero to the target leaves the free box
+  let k = Infinity, side = 0;
+  if (dx > 0){ k = (R - ox)/dx; side = 0; } else if (dx < 0){ k = (L - ox)/dx; side = 2; }
+  if (dy > 0){ const k2 = (Bt - oy)/dy; if (k2 < k){ k = k2; side = 1; } } else if (dy < 0){ const k2 = (T - oy)/dy; if (k2 < k){ k = k2; side = 3; } }
+  const nx = side === 0 ? 1 : side === 2 ? -1 : 0, ny = side === 1 ? 1 : side === 3 ? -1 : 0;   // outward normal of that side
+  const nudge = reduceMotion ? 0 : Math.round((1 - Math.cos(tt*6))*1.2);
+  const ex = Math.round(ox + dx*k), ey = Math.round(oy + dy*k);
+  ctx.drawImage(ptrArrow(side), ex - 6 + nx*nudge, ey - 6 + ny*nudge);
+  const px = ex - nx*12 - 6, py = ey - ny*12 - 6;
+  ctx.drawImage(ptrPlate(), px, py); ctx.drawImage(icon, px + 2, py + 2);
+  PTR_POS.push(ex - 6 + nx*nudge, ey - 6 + ny*nudge, 13, 13, px, py, 12, 12);
+}
+function drawPointers(cx, cy, tt){
+  const off = (x, y, mx, my) => x < -mx || x > VW + mx || y < -my || y > VH + my;
+  PTR_POS.length = 0;
+  for (const e of G.guard){
+    if (e.dead) continue;
+    const x = e.x - cx, y = e.y - (e.z || 0) - 24 - cy;
+    if (off(x, y, 0, 0)) drawPointer(x, y, PTR_GLYPH[e.mb] || PTR_GLYPH.lich, tt);
+  }
+  const be = G.boss && G.boss.e;
+  if (be && !be.dead && G.boss.phase === 'fight'){
+    const x = be.x - cx, y = be.y - 40 - (be.lift || 0) - cy;
+    if (off(x, y, 0, 0)) drawPointer(x, y, PTR_GLYPH.dragon, tt);
+  }
+  for (const c of CORPSES) if (!c.dropped && c.relic){ const x = c.x - cx, y = c.y - 8 - cy; if (off(x, y, 0, 0)) drawPointer(x, y, ICONS[c.relic].spr, tt); }
+  for (const it of ITEMS) if (it.kind === 'relic'){ const x = it.x - cx, y = it.y - 8 - cy; if (off(x, y, 0, 0)) drawPointer(x, y, ICONS[it.rk].spr, tt); }
 }
 function drawBossLayer(cx, cy){
   const e = G.boss && G.boss.e;
@@ -4923,6 +4999,7 @@ function drawScene(dt){
   }
   ctx.globalAlpha = 1;
   for (const n of NUMS) if (n.t >= 0) drawNum(n.v, n.x - cx, n.y - cy, n.col);
+  drawPointers(cx, cy, tt);
   if (G.flash > 0){ ctx.fillStyle = `rgba(255,255,255,${Math.min(.8, G.flash*.7).toFixed(3)})`; ctx.fillRect(0, 0, VW, VH); }
 
   // joystick
