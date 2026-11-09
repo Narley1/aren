@@ -2120,7 +2120,8 @@ const SFX = (() => {
   /* ---------- DEMON: distorted "MUAH-HA-HA-HA" (round 2: higher voice, no sub, quieter; round 3: ~30% shorter, 4 "ha"s) ---------- */
   function demonLaugh(){
     if (!ready('demon', 4.5)) return;
-    const t0 = ac.currentTime + .03, bus = G_(.042);
+    const t0 = Math.max(ac.currentTime + .03, growlEnd + .08), bus = G_(.042);   // round 4: waits for a growl still playing (vDemon)
+    demonBusy = t0 + 1.5;
     const ws = ac.createWaveShaper(); ws.curve = curve(5); ws.oversample = '2x';
     const lp = filt('lowpass', 3600, .7), hp = filt('highpass', 140);
     const rm = ac.createGain(); rm.gain.value = 0; const car = ac.createOscillator(); car.frequency.value = 68; const cg = G_(1); car.connect(cg); cg.connect(rm.gain); car.start(t0); car.stop(t0 + 1.45);
@@ -2608,7 +2609,69 @@ const SFX = (() => {
     o.connect(am); am.connect(lp); lp.connect(g); route(g, .15); o.start(t + .03); o.stop(t + L + .1);
     nz(t, noise(t, .08), 'bandpass', 900*p, 600*p, 1, .08, .08, 0, .01);   // the breath before it
   }
-  const VOICE = {goblin: [vGoblin, 1.5], gargoyle: [vGargoyle, 1.5], hobgoblin: [vHob, 1.5]};   // [function, safety cooldown s]
+  /* ---- round 4, batch 3: demon, wyvern, succubus ---- */
+  // demon: a slow hot breath in, then a low rough growl out (62 Hz saw, slow 21 Hz roll, dark resonant low-pass, a little
+  // distortion like the laugh) with the exhale's hiss on top. Never on top of the laugh: it waits while the laugh plays,
+  // and the laugh waits for it (see demonLaugh). 11 nodes
+  let demonBusy = 0, growlEnd = 0;
+  function vDemon(t){
+    if (t < demonBusy) return;   // the laugh is still playing
+    const p = jit(.07), inh = Math.random() < .6 ? .3*jit(.15) : 0, tg = t + inh, L = .62*jit(.15);
+    const o = ac.createOscillator(), am = flutter(tg, L, 21*p, .7, .7), ws = ac.createWaveShaper(), lp = filt('lowpass', 380*p, 7), g = ac.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(64*p, tg); o.frequency.linearRampToValueAtTime(72*p, tg + L*.3); o.frequency.exponentialRampToValueAtTime(52*p, tg + L);
+    ws.curve = softCurve(); lp.frequency.setValueAtTime(380*p, tg); lp.frequency.linearRampToValueAtTime(560*p, tg + L*.3); lp.frequency.exponentialRampToValueAtTime(300*p, tg + L);
+    g.gain.setValueAtTime(.0001, tg); g.gain.exponentialRampToValueAtTime(.027, tg + .08); g.gain.setValueAtTime(.027, tg + L*.5); g.gain.exponentialRampToValueAtTime(.0001, tg + L);
+    o.connect(am); am.connect(ws); ws.connect(lp); lp.connect(g); route(g, .2); o.start(tg); o.stop(tg + L + .05);
+    // one breath path: the slow breath in (band rising), then the exhale's hiss over the growl (higher band, falling)
+    const br = noise(t, inh + L), bb = filt('bandpass', 700*p, 1.2), bg = ac.createGain(); br.connect(bb); bb.connect(bg); bg.connect(sfxDry);
+    bg.gain.setValueAtTime(.0001, t);
+    if (inh){ bb.frequency.setValueAtTime(700*p, t); bb.frequency.exponentialRampToValueAtTime(1300*p, tg); bg.gain.exponentialRampToValueAtTime(.025, tg - .04); bg.gain.exponentialRampToValueAtTime(.004, tg); }
+    bb.frequency.setValueAtTime(1800*p, tg); bb.frequency.exponentialRampToValueAtTime(1100*p, tg + L);
+    bg.gain.exponentialRampToValueAtTime(.016, tg + .06); bg.gain.exponentialRampToValueAtTime(.0001, tg + L*.95);
+    growlEnd = tg + L;
+  }
+  let SOFT = null; const softCurve = () => SOFT || (SOFT = curve(4));
+  // wyvern: 2-3 big leathery wing beats, slower and lower than the gargoyle's stone flaps (a deep air "whoomf" on the
+  // downstroke + a short taut membrane snap at its end, no sand grit); sometimes a nasal two-part squawk "kraa-ak" -
+  // higher, shorter and cleaner than any dragon roar. Flaps 5 nodes, + squawk 7 = 12
+  function vWyvern(t, v){
+    const p = jit(.06), n = 2 + (Math.random() < .5 ? 1 : 0), gap = .34*jit(.08), L = n*gap + .1;
+    const ga = ac.createGain(), gs = ac.createGain(); ga.gain.setValueAtTime(.0001, t); gs.gain.setValueAtTime(.0001, t);
+    for (let i = 0; i < n; i++){ const ts = t + i*gap, a = 1 - i*.15;
+      ga.gain.setValueAtTime(.0001, ts); ga.gain.exponentialRampToValueAtTime(.7*a, ts + .09); ga.gain.exponentialRampToValueAtTime(.0001, ts + gap*.85);
+      gs.gain.setValueAtTime(.0001, ts + .1); gs.gain.exponentialRampToValueAtTime(.32*a, ts + .112); gs.gain.exponentialRampToValueAtTime(.0001, ts + .17); }
+    const air = noise(t, L), lp = filt('lowpass', 210*p, 1.1), bp = filt('bandpass', 780*p, 1.6);
+    air.connect(lp); lp.connect(ga); ga.connect(sfxDry); air.connect(bp); bp.connect(gs); gs.connect(sfxDry);
+    if (v === 1 || (v === undefined && Math.random() < .3)){
+      const ts = t + n*gap - .08, o = ac.createOscillator(), am = flutter(ts, .34, 55*p, .45, .7), fb = filt('bandpass', 1100*p, 3), sg = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(400*p, ts); o.frequency.linearRampToValueAtTime(520*p, ts + .06); o.frequency.exponentialRampToValueAtTime(360*p, ts + .17);
+      o.frequency.setValueAtTime(470*p, ts + .21); o.frequency.exponentialRampToValueAtTime(330*p, ts + .3);
+      fb.frequency.setValueAtTime(1100*p, ts); fb.frequency.linearRampToValueAtTime(1600*p, ts + .06); fb.frequency.exponentialRampToValueAtTime(950*p, ts + .17);
+      fb.frequency.setValueAtTime(1350*p, ts + .21); fb.frequency.exponentialRampToValueAtTime(900*p, ts + .3);
+      sg.gain.setValueAtTime(.0001, ts); sg.gain.exponentialRampToValueAtTime(.1, ts + .02); sg.gain.exponentialRampToValueAtTime(.0001, ts + .17);   // "kraa"
+      sg.gain.setValueAtTime(.0001, ts + .2); sg.gain.exponentialRampToValueAtTime(.075, ts + .215); sg.gain.exponentialRampToValueAtTime(.0001, ts + .3);   // "ak"
+      o.connect(am); am.connect(fb); fb.connect(sg); route(sg, .12); o.start(ts); o.stop(ts + .35);
+    }
+  }
+  // succubus: light, soft, quick wing flutters (4-6 airy beats, one noise band) and sometimes a breathy feminine sigh
+  // "haah~" (whispered: noise through two vowel formants a -> e, with a faint voiced tone sliding down, same register as her
+  // laugh). Very quiet. Flutters 3 nodes, + sigh 6 = 9
+  function vSuccubus(t, v){
+    const p = jit(.06), n = 4 + ((Math.random()*3) | 0), gap = .085*jit(.1), L = n*gap + .08;
+    const g = ac.createGain(); g.gain.setValueAtTime(.0001, t);
+    for (let i = 0; i < n; i++){ const ts = t + i*gap, a = .35*(1 - Math.abs(i - n/2)/n);
+      g.gain.setValueAtTime(.0001, ts); g.gain.exponentialRampToValueAtTime(a, ts + .02); g.gain.exponentialRampToValueAtTime(.0001, ts + gap*.9); }
+    const fl = noise(t, L), bp = filt('bandpass', 1900*p, 1.3); fl.connect(bp); bp.connect(g); route(g, .3);
+    if (v === 1 || (v === undefined && Math.random() < .35)){
+      const ts = t + L*.6, S = .62*jit(.1), b = 365*jit(.04), n2 = noise(ts, S), f1 = filt('bandpass', 820*1.16, 5), f2 = filt('bandpass', 1300*1.16, 6), sg = ac.createGain();
+      f1.frequency.setValueAtTime(820*1.16, ts); f1.frequency.linearRampToValueAtTime(560*1.16, ts + S*.7);
+      f2.frequency.setValueAtTime(1300*1.16, ts); f2.frequency.linearRampToValueAtTime(1850*1.16, ts + S*.7);
+      sg.gain.setValueAtTime(.0001, ts); sg.gain.exponentialRampToValueAtTime(.35, ts + S*.3); sg.gain.exponentialRampToValueAtTime(.0001, ts + S);
+      n2.connect(f1); n2.connect(f2); f1.connect(sg); f2.connect(sg); route(sg, .45);
+      tone(ts + .05, 'sine', b*.85, b*.68, .0085, S*.85, .45, S*.35);   // the faint voice under the breath
+    }
+  }
+  const VOICE = {goblin: [vGoblin, 1.5], gargoyle: [vGargoyle, 1.5], hobgoblin: [vHob, 1.5], demon: [vDemon, 2], wyvern: [vWyvern, 1.8], succubus: [vSuccubus, 2]};   // [function, safety cooldown s]
   function voice(kind, v){ const V = VOICE[kind]; if (!V || !ready('v_' + kind, V[1])) return; V[0](ac.currentTime + .01, v); }
 
   // interface: a small click for buttons, two notes when a level-up card is chosen
@@ -2881,7 +2944,8 @@ function hit(e, dmg, nx, ny, kb = 70){
 /* enemy presence voices (audio round 3): one timer per TYPE, not per enemy, so a swarm never spams. When it runs out it
    waits until one of that type is within 150 px of Aren, plays SFX.voice(type) and restarts with a gap from a tiny generator
    of its own. Math.random is never used here: seeded runs stay identical with or without sound */
-const VOX = {goblin:[2.5, 4], gargoyle:[3, 4], hobgoblin:[3, 4.5]};   // [minimum gap s, extra random gap s]
+// round 4 (batch 3): demon growl (its laugh keeps the old e.gig timer; SFX keeps the two apart), wyvern wings, succubus wings
+const VOX = {goblin:[2.5, 4], gargoyle:[3, 4], hobgoblin:[3, 4.5], demon:[5, 5, .9], wyvern:[3.5, 4, .9], succubus:[4, 5, .7]};   // [minimum gap s, extra random gap s, other types wait s (default .5)]
 let voxT = {}, voxNear = {}, voxSeed = 1;
 function voxRnd(){ voxSeed = (Math.imul(voxSeed, 1664525) + 1013904223) >>> 0; return voxSeed/4294967296; }
 function voxReset(){ voxSeed = 1; voxNear = {}; voxT = {}; for (const k in VOX) voxT[k] = 1 + voxRnd()*2; }
@@ -2890,7 +2954,7 @@ function voxTick(dt){
     voxT[k] = Math.max(0, voxT[k] - dt);
     if (voxNear[k] && voxT[k] === 0){
       SFX.voice(k); voxT[k] = VOX[k][0] + voxRnd()*VOX[k][1];
-      for (const o in VOX) if (o !== k) voxT[o] = Math.max(voxT[o], .5);   // two types never speak in the same instant
+      for (const o in VOX) if (o !== k) voxT[o] = Math.max(voxT[o], VOX[k][2] || .5);   // two types never speak in the same instant (longer voices hold the others a bit more)
     }
     voxNear[k] = false;
   }
