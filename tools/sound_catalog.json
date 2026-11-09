@@ -1,0 +1,91 @@
+{
+  "_doc": "Catálogo de áudio do jogo, usado por tools/sfx_levels.py (mede o volume) e tools/build_sound_lab.py (gera o laboratório de som). Cada som tem id (letras, números, _ ou -), nome e 'quando' em PT-BR, e 'call': expressão JS com S = SFX do jogo. 'secs' = segundos renderizados na medição. 'music': true usa o barramento de música. 'mudos' lista momentos do jogo que hoje não têm som.",
+  "groups": [
+    {"id": "aren", "nome": "Aren e poderes", "sounds": [
+      {"id": "explode", "nome": "Explosão da Magia de Fogo", "quando": "Quando a bola de fogo explode no inimigo. É a referência de volume dos efeitos.", "call": "S.explode()"},
+      {"id": "slam", "nome": "Martelo Sísmico", "quando": "Golpe do martelo no chão (onda de choque).", "call": "S.slam(false)"},
+      {"id": "slam2", "nome": "Tremor do Martelo", "quando": "Segundo tremor do martelo, a partir do nível 5.", "call": "S.slam(true)"},
+      {"id": "bow", "nome": "Arco Élfico", "quando": "Cada rajada de flechas. Toca muitas vezes por minuto.", "call": "S.bow()"}
+    ]},
+    {"id": "prog", "nome": "Progressão", "sounds": [
+      {"id": "levelup", "nome": "Subir de nível", "quando": "Nível com escolha de poder (abre as 3 cartas).", "call": "S.levelup()"},
+      {"id": "enhance", "nome": "Cristal e relíquia", "quando": "Pegar um Cristal de Aprimoramento ou uma relíquia.", "call": "S.enhance()"}
+    ]},
+    {"id": "inimigos", "nome": "Inimigos", "sounds": [
+      {"id": "demon", "nome": "Risada do demônio", "quando": "De vez em quando, com um demônio a menos de 150 px de Aren.", "call": "S.giggle('demon')", "secs": 3},
+      {"id": "succubus", "nome": "Risada da súcubo", "quando": "Quando a súcubo lança o círculo de maldição.", "call": "S.giggle('succubus')", "secs": 3},
+      {"id": "hex", "nome": "Maldição estourando", "quando": "O círculo de maldição explode.", "call": "S.hex()"}
+    ]},
+    {"id": "paladino", "nome": "Paladino Possuído (5:00)", "sounds": [
+      {"id": "palFall", "nome": "Queda do céu", "quando": "Entrada: o Paladino cai no círculo marcado.", "call": "S.boss('palFall')"},
+      {"id": "land", "nome": "Aterrissagem", "quando": "Quando ele toca o chão (entrada e salto esmagador).", "call": "S.boss('land')"},
+      {"id": "roarP", "nome": "Grito de entrada", "quando": "Logo depois de aterrissar na entrada.", "call": "S.boss('roarP')"},
+      {"id": "scrape", "nome": "Escudo raspando", "quando": "Aviso da investida (linha no chão).", "call": "S.boss('scrape')"},
+      {"id": "charge", "nome": "Investida", "quando": "Começa a investida. Também toca quando ele vai embora sem morrer.", "call": "S.boss('charge')"},
+      {"id": "bash", "nome": "Pancada do escudo", "quando": "A investida acerta Aren ou termina.", "call": "S.boss('bash')"},
+      {"id": "windup", "nome": "Preparar o giro", "quando": "Aviso do giro da espada (anel enchendo).", "call": "S.boss('windup')"},
+      {"id": "spin", "nome": "Giro da espada", "quando": "O giro de 360° acontece.", "call": "S.boss('spin')"},
+      {"id": "jump", "nome": "Salto", "quando": "Ele salta em direção a Aren.", "call": "S.boss('jump')"},
+      {"id": "blades", "nome": "Lâminas fantasmas surgem", "quando": "As lâminas aparecem em volta dele.", "call": "S.boss('blades')"},
+      {"id": "bladeGo", "nome": "Lâmina disparada", "quando": "Cada lâmina voa em direção a Aren.", "call": "S.boss('bladeGo')"},
+      {"id": "shriek", "nome": "Espírito sai (fase 2)", "quando": "Com metade da vida, o espírito emerge da armadura.", "call": "S.boss('shriek')"},
+      {"id": "clank", "nome": "Peça de armadura", "quando": "Peças da armadura quicando no chão quando ele morre.", "call": "S.boss('clank')"},
+      {"id": "palDie", "nome": "Morte do Paladino", "quando": "A armadura desmonta e o espírito some.", "call": "S.boss('palDie')", "secs": 4}
+    ]},
+    {"id": "lich", "nome": "Lich Ancião (10:00)", "sounds": [
+      {"id": "lichIntro", "nome": "Entrada do Lich", "quando": "Quando ele aparece.", "call": "S.boss('lichIntro')", "secs": 4},
+      {"id": "tele", "nome": "Teletransporte", "quando": "Some e reaparece. Também quando vai embora sem morrer.", "call": "S.boss('tele')"},
+      {"id": "iceCast", "nome": "Preparar orbes de gelo", "quando": "Aviso das orbes de gelo.", "call": "S.boss('iceCast')"},
+      {"id": "iceGo", "nome": "Orbes de gelo saem", "quando": "As orbes são lançadas.", "call": "S.boss('iceGo')"},
+      {"id": "iceHit", "nome": "Gelo acerta Aren", "quando": "Uma orbe acerta e Aren fica lento.", "call": "S.boss('iceHit')"},
+      {"id": "zapWarn", "nome": "Aviso da chuva de relâmpagos", "quando": "Os círculos aparecem no chão.", "call": "S.boss('zapWarn')"},
+      {"id": "chainCharge", "nome": "Carregar relâmpago em cadeia", "quando": "A mira aparece e pisca antes do disparo.", "call": "S.boss('chainCharge')"},
+      {"id": "bolt", "nome": "Relâmpago", "quando": "Cada raio cai (chuva e cadeia).", "call": "S.boss('bolt')"},
+      {"id": "summon", "nome": "Invocar esqueletos", "quando": "Esqueletos saem do chão.", "call": "S.boss('summon')"},
+      {"id": "lichP2", "nome": "Fase 2 do Lich", "quando": "Com metade da vida.", "call": "S.boss('lichP2')"},
+      {"id": "lichDie", "nome": "Morte do Lich", "quando": "Vira pó e o cristal estoura.", "call": "S.boss('lichDie')", "secs": 4}
+    ]},
+    {"id": "dragao", "nome": "Dragão (15:00)", "sounds": [
+      {"id": "roarIntro", "nome": "Rugido de chegada", "quando": "O dragão aparece.", "call": "S.roar({len:2.2, pitch:.62, force:true})", "secs": 4},
+      {"id": "roarSeal", "nome": "Rugido ao levar um Selo", "quando": "Um Selo acerta e ele fica atordoado.", "call": "S.roar({len:1.2, pitch:1.75, force:true})", "secs": 3},
+      {"id": "roarRage", "nome": "Rugido de fúria", "quando": "Com metade da vida ele se enfurece.", "call": "S.roar({len:1.9, pitch:.7, force:true})", "secs": 4},
+      {"id": "roarAtk", "nome": "Rugido de ataque", "quando": "Antes de cada ataque (5 variações de tom; esta é a da espiral).", "call": "S.roar({len:.9, pitch:1.25})", "secs": 3},
+      {"id": "breath", "nome": "Sopro de fogo", "quando": "Ataque de sopro.", "call": "S.fireBreath(1.4)", "secs": 3},
+      {"id": "rattle", "nome": "Ossos chacoalhando", "quando": "Cada marca de ossos no chão.", "call": "S.rattle()"},
+      {"id": "whoosh", "nome": "Mergulho", "quando": "Ele levanta voo para mergulhar.", "call": "S.whoosh(2.4)", "secs": 4},
+      {"id": "thud", "nome": "Impacto do mergulho", "quando": "Ele cai no chão.", "call": "S.thud()", "secs": 3},
+      {"id": "dragonDeath", "nome": "Morte do dragão", "quando": "Fim da partida com vitória.", "call": "S.dragonDeath()", "secs": 7}
+    ]},
+    {"id": "musica", "nome": "Música", "music": true, "sounds": [
+      {"id": "m_title", "nome": "Tela inicial", "quando": "Menu do jogo.", "mood": "title", "secs": 16},
+      {"id": "m_calm", "nome": "Bosque calmo", "quando": "Começo da partida, com poucos inimigos perto.", "mood": "calm", "secs": 16},
+      {"id": "m_combat", "nome": "Combate", "quando": "16 ou mais inimigos perto, ou depois dos 3:30.", "mood": "combat", "secs": 16},
+      {"id": "m_bossM", "nome": "Chefe intermediário", "quando": "Luta com o Paladino ou o Lich.", "mood": "bossM", "secs": 16},
+      {"id": "m_bossM2", "nome": "Chefe intermediário, fase 2", "quando": "Paladino ou Lich com metade da vida.", "mood": "bossM2", "secs": 16},
+      {"id": "m_boss", "nome": "Dragão", "quando": "Luta com o dragão.", "mood": "boss", "secs": 16},
+      {"id": "m_boss2", "nome": "Dragão enfurecido", "quando": "Dragão com metade da vida.", "mood": "boss2", "secs": 16},
+      {"id": "m_win", "nome": "Vitória", "quando": "Vinheta ao vencer. Só toca com a Música ligada.", "call": "S.stinger('win')", "secs": 4},
+      {"id": "m_lose", "nome": "Derrota", "quando": "Vinheta ao perder. Só toca com a Música ligada.", "call": "S.stinger('lose')", "secs": 5}
+    ]}
+  ],
+  "mudos": [
+    {"id": "x_hurt", "nome": "Aren leva dano", "quando": "Hoje só a tela treme (e nem isso com movimento reduzido) e os corações mudam."},
+    {"id": "x_kill", "nome": "Inimigo morre", "quando": "Acontece o tempo todo; hoje é silencioso."},
+    {"id": "x_gem", "nome": "Pegar joia", "quando": "Cada joia de experiência recolhida."},
+    {"id": "x_heart", "nome": "Pegar coração", "quando": "Meio coração ou coração inteiro."},
+    {"id": "x_lvl", "nome": "Nível sem escolha", "quando": "Níveis que só curam ½ coração."},
+    {"id": "x_sword", "nome": "Golpe da Espada", "quando": "Arma inicial, golpeia o tempo todo."},
+    {"id": "x_boom", "nome": "Shuriken Gigante", "quando": "Arremesso e retorno."},
+    {"id": "x_fire", "nome": "Lançar bola de fogo", "quando": "Só a explosão tem som, o disparo não."},
+    {"id": "x_wisp", "nome": "Fogo-fátuo", "quando": "Os fogos que giram em volta de Aren."},
+    {"id": "x_storm", "nome": "Raio do Cajado da Tempestade", "quando": "Relíquia do Lich."},
+    {"id": "x_holy", "nome": "Ondas da Espada Sagrada", "quando": "Relíquia do Paladino."},
+    {"id": "x_arrow", "nome": "Flecha dos elfos", "quando": "A maior fonte de dano para o bot. Um som de disparo ajudaria a desviar."},
+    {"id": "x_wfire", "nome": "Fogo da serpe-dragão", "quando": "Projétil das serpes depois dos 8:00."},
+    {"id": "x_elite", "nome": "Elite aparece", "quando": "Inimigo mais forte, com contorno."},
+    {"id": "x_lowhp", "nome": "Vida baixa", "quando": "Aviso com 1 coração ou menos."},
+    {"id": "x_ui", "nome": "Botões e cartas", "quando": "Clicar nos menus e escolher um poder."},
+    {"id": "x_pause", "nome": "Pausar e voltar", "quando": "Abrir e fechar a pausa."},
+    {"id": "x_stinger", "nome": "Vitória e derrota sem música", "quando": "Com a Música desligada e os Efeitos ligados, o fim da partida fica mudo."}
+  ]
+}

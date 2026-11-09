@@ -105,3 +105,16 @@
 - [ ] Com limite 5 + Grimório reduzido, **A distância fica ~38% atrás do corpo a corpo em vitórias** (17% contra 27%; média de sobrevivência −8%) — números de poderes, não mexidos
 - [ ] O cenário `late` do `perf.py` ficou ~50 fps a 4x nesta máquina, igual ao `dev` sem chefes medido na mesma hora (na Etapa 4 era 56–57 em outra medição); os cenários dos chefes ficam em ~60 fps
 
+## Áudio — auditoria e Laboratório de Som (08/11/2026)
+
+Só leitura: nenhum som do jogo mudou. Medição com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; "volume" = RMS da janela de 150 ms mais alta; referência = explosão da Magia de Fogo, −29,5 dBFS).
+
+- [ ] **Música cobre os efeitos:** músicas com RMS médio de −23 a −20 dBFS; arco −40,5, explosão −29,5. Proposta no laboratório: música −6 dB (ajustável)
+- [ ] **Sons antigos muito altos:** risada do demônio +17,9 dB sobre a explosão (pico −3,3 dBFS), rugidos do dragão +14 a +18, morte do dragão pico −2,4, súcubo +9,4, impacto do mergulho +11,2. Proposta: no máximo +6 (+8 para chegada, fúria e morte do dragão)
+- [ ] **Avisos de ataque baixos:** escudo raspando −12,4, salto −13,1, aviso da chuva de relâmpagos −11,6; arco −11. Proposta: subir para −8
+- [ ] **18 momentos sem som** (dano em Aren, morte de inimigo, joia, coração, Espada, Shuriken, disparo do fogo, Fogo-fátuo, Cajado, Espada Sagrada, flecha dos elfos, fogo da serpe, elite, vida baixa, botões, pausa, vitória/derrota sem música)
+- [ ] Sem variação de altura nos sons repetidos (arco, explosão)
+- [ ] Só liga/desliga Música e Efeitos; sem volume separado
+- [x] Acessibilidade: todo som que avisa um ataque tem marcação visual
+- [ ] Laboratório publicado para o Narley ouvir e dar nota; as notas ficam no armazenamento do artifact (coleção `avaliacoes`) e são lidas antes de mexer no som
+

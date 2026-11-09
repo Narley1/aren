@@ -13,6 +13,8 @@ Jogo: **Aren, o Guardião do Bosque** — sobrevivência 2D em pixel art (HTML5 
 - `src/font/` — Pixelify Sans (OFL). A fonte já vai embutida em base64 no HTML.
 - `tools/build_web.py` — gera `dist/` (index.html, manifest, sw.js, README, OFL.txt) e `aren-github-pages.zip`.
 - `tools/gen_assets.py` — ícones e og-image (precisa de navegador).
+- `tools/sound_catalog.json` — catálogo de todos os sons e músicas (nome, quando toca, chamada no `SFX`) e dos momentos sem som.
+- `tools/sfx_levels.py` — mede pico/volume de cada som pelo mixer real do jogo (OfflineAudioContext). `tools/build_sound_lab.py` — gera o Laboratório de Som (página para ouvir, comparar e dar nota).
 - `tests/smoke.py` — teste principal (ver abaixo). `tests/legacy/`, `tests/shot*.py`, `tests/test.html` são históricos.
 - Documentação: `ARCHITECTURE.md` (mapa do código), `ROADMAP.md`, `TASKS.md`, `CHANGELOG.md`.
 
@@ -27,6 +29,10 @@ python3 tests/smoke.py --compare /tmp/antes.json /tmp/depois.json   # determinis
 # build (de qualquer pasta; dist/ é criado na pasta atual)
 python3 tools/build_web.py --src src/bosque-do-enxame.html
 python3 tools/gen_assets.py                  # se dist/icons ainda não existir
+
+# áudio (Chromium headless; ~40 s)
+python3 tools/sfx_levels.py                  # tabela de volume; --json arq.json para guardar, --only id1,id2
+python3 tools/build_sound_lab.py --out lab.html [--levels arq.json]
 ```
 
 Para refatorações que não devem mudar o jogo: rode `smoke.py --json` antes e depois e compare com `--compare`. A seção `det` (simulação com `Math.random` semeado e áudio desligado) precisa sair **IDENTICAL**.
