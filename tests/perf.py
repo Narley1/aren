@@ -63,9 +63,12 @@ window.__keepAlive = () => { const d = __d(); d.P.hp = d.P.maxHp; d.G.need = 1e1
   for (const e of (d.G.guard || [])) if (e.m && e.m.st !== 'intro' && e.hp > e.max*.45 || e.m && e.hp < e.max*.3) e.hp = e.max*.45; };
 window.__steer = i => { const k = __d().keys; for (const q of ['w','a','s','d']) k[q] = false;
   const m = [['d'],['d','s'],['s'],['s','a'],['a'],['a','w'],['w'],['w','d']][Math.floor(i/150) % 8]; for (const q of m) k[q] = true; };
+// since 09/11/2026 a living mid-boss holds the run clock (G.t), so fast-forward by real time (G.t + G.hold); a mid-boss
+// whose fight is not the scenario's (spawned more than 60 s before T) is removed at once, without its relic
 window.__ff = (T, sched) => { let i = 0, maxE = 0;
-  while (__d().G.t < T){
+  while (__d().G.t + (__d().G.hold || 0) < T){
     const d = __d();
+    for (const e of (d.G.guard || []).slice()) if (T - e.born > 60){ e.dead = true; d.G.guard.splice(d.G.guard.indexOf(e), 1); }
     for (const [t, lv] of sched) if (d.G.t >= t) Object.assign(d.W, lv);
     __keepAlive(); __steer(i++); __u(1/60); __amb(1/60);
     if (__d().state !== 'play') return 'state ' + __d().state;
