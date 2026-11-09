@@ -13,7 +13,9 @@ Runs:
   milestones -- Paladino (5:00) and Lich (10:00): spawn at their time with bar and
              title card, phase 2 at 50%, death drops the relic after the collapse
              (not offered before pickup, offered after), lich skeletons and strike
-             circles, a boss left alive flees and its relic is lost.
+             circles; the run clock is held while a mid-boss lives (no flee since
+             09/11/2026), resumes after its death, and the game-over panel then
+             shows the real time too; boss hp values.
   normal  -- 120 s with a simple kiting bot (hero can die).
   races   -- die / win and restart immediately: the stale game-over screen must
              not pop over the new run; keys are cleared on blur.
@@ -91,7 +93,7 @@ STRESS = r'''
   let at120 = null, bossSeen = false, fightSeen = false, forced = false;
   for (const k of ['sword','boom','orb','fire','boots','magnet','hammer','thorns','bow','gauntlets','grimoire']) if (k in T.W) T.W[k] = 5;
   let guards = 0;
-  for (; steps < 1000*30; steps++){
+  for (; steps < 1100*30; steps++){
     T.P.inv = 5; T.P.hp = T.P.maxHp;
     if (T.G.t >= 300) T.W.holy = 3;
     if (T.G.t >= 600) T.W.storm = 3;
@@ -167,13 +169,17 @@ MILESTONES = r'''
   step(30);
   const g = T.G.guard[0];
   r.guard = g ? {type: g.type, mb: g.mb, hp: Math.round(g.hp), relic: g.relic, t: +T.G.t.toFixed(2), born: +g.born.toFixed(2)} : null;
+  r.hpBal = {paladin: T.BAL.paladin.hp, lich: T.BAL.lich.hp};
   r.barShown = (T.hud(), !document.querySelector('#bossBar').hidden);
+  r.heldHud = {cls: document.querySelector('#timer').classList.contains('held'), label: document.querySelector('#hold').hidden ? null : document.querySelector('#hold').textContent, timer: document.querySelector('#timer').textContent};
+  const clk0 = {t: T.G.t, rt: T.G.rt};
   r.barName = document.querySelector('#bossName').textContent;
   r.card = document.querySelector('#bossCard').hidden ? null : document.querySelector('#bossCard b').textContent;
   // spawning while the boss lives: count spawns over 20 s
   let spawnedCalm = 0;
   for (let i = 0; i < 20*30; i++){ const n = T.E.length; T.update(1/30); spawnedCalm += Math.max(0, T.E.length - n); if (T.G.pending) T.G.pending = 0; }
   r.spawnedCalm = spawnedCalm;
+  r.clockHeld = {dt: +(T.G.t - clk0.t).toFixed(4), drt: +(T.G.rt - clk0.rt).toFixed(2), mi: T.G.mi};
   if (!g || !g.m) return r;
   // phase 2: damage stops at the threshold, the transition is invulnerable, then phase 2
   step(30*6, () => g.m.st === 'walk' || g.m.st === 'recover');
@@ -186,9 +192,11 @@ MILESTONES = r'''
   g.hp = 1;
   for (let i = 0; i < 90 && !g.dead; i++){ for (const e of T.E) if (e !== g) e.dead = true; g.x = T.P.x + 14; g.y = T.P.y; g.untouch = false; g.m.st = 'recover'; T.update(1/30); }
   r.guardDead = g.dead; r.guardsLeft = T.G.guard.length;
+  const tDeath = T.G.t;
   r.corpse = T.CORPSES.length; r.relicAtDeath = T.ITEMS.some(it => it.kind === 'relic');
   T.P.x += 200;   // stay away so the relic is not picked up yet
   step(30*2.2);
+  r.clockResumed = {dt: +(T.G.t - tDeath).toFixed(2), held: (T.hud(), document.querySelector('#timer').classList.contains('held')), label: !document.querySelector('#hold').hidden};
   const rel = T.ITEMS.find(it => it.kind === 'relic');
   r.relicDropped = rel ? rel.rk : null;
   r.holyAfterDropNotPicked = T.avail().includes('holy');
@@ -199,7 +207,7 @@ MILESTONES = r'''
   // the lich at 10:00: spawns, summons skeletons that climb out of the ground, phase 2, death drops the storm relic
   T.G.t = 599.5; step(30);
   const l = T.G.guard[0];
-  r.lich = l ? {mb: l.mb, relic: l.relic, name: (T.hud(), document.querySelector('#bossName').textContent)} : null;
+  r.lich = l ? {mb: l.mb, relic: l.relic, hp: Math.round(l.hp), name: (T.hud(), document.querySelector('#bossName').textContent)} : null;
   if (l){
     step(30*6, () => l.m.st === 'float');
     T.lichStart(l, 'summon');
@@ -218,10 +226,18 @@ MILESTONES = r'''
     T.P.x += 200; step(30*2.2);
     r.lichRelic = (T.ITEMS.find(it => it.kind === 'relic') || {}).rk || null;
   }
-  // a boss left alive flees after BAL.<id>.flee s and its relic is lost
-  T.start(); T.P.inv = 1e9; T.G.t = 299.5; step(30*4);
+  // a boss kept alive for 250 real s (the old flee limit was 240) never leaves and the clock stays at 5:00;
+  // dying there shows 5:00 survived plus the real time on the game-over panel
+  T.start(); T.P.inv = 1e9; T.G.t = 299.5; step(30*2);
   const f = T.G.guard[0];
-  if (f){ f.born = T.G.t - T.BAL.paladin.flee - 1; step(30*3, () => f.dead); r.fled = {dead: f.dead, guards: T.G.guard.length, relic: T.ITEMS.some(it => it.kind === 'relic')}; }
+  if (f){
+    const t0 = T.G.t, rt0 = T.G.rt;
+    for (let i = 0; i < 250*15; i++){ f.hp = f.max; T.update(1/15); if (T.G.pending) T.G.pending = 0; if (T.state !== 'play') T.state = 'play'; }
+    r.noFlee = {alive: !f.dead && T.G.guard.includes(f), dt: +(T.G.t - t0).toFixed(4), drt: +(T.G.rt - rt0).toFixed(1), mi: T.G.mi, relic: T.ITEMS.some(it => it.kind === 'relic'), lich: T.E.some(e => e.type === 'lich')};
+    T.P.inv = 0; T.hurt(999);
+    const rr = document.querySelector('#rReal');
+    r.overTimes = {state: T.state, time: document.querySelector('#rTime').textContent, real: rr.hidden ? null : rr.textContent};
+  }
   T.goTitle();
   return r;
 }
@@ -417,7 +433,14 @@ def checks(r):
         ok('paladin: death -> collapse, relic drops after it; not offered before pickup', m.get('guardDead') and m.get('corpse') == 1 and not m.get('relicAtDeath') and m.get('relicDropped') == 'holy' and not m.get('holyBefore') and not m.get('holyAfterDropNotPicked'), json.dumps({k: m.get(k) for k in ('guardDead', 'corpse', 'relicAtDeath', 'relicDropped')}))
         ok('milestones: picking the relic grants level 1 and opens it to picks', m.get('holyLevel') == 1 and m.get('holyAvailAfter') and m.get('relicGone'), json.dumps(m))
         ok('lich: spawns at 10:00 with the bar, summons rising skeletons, strike circles, phase 2, drops the storm relic', (m.get('lich') or {}).get('name') == 'Lich Ancião' and (m.get('skeletons') or {}).get('n', 0) >= 3 and m['skeletons']['rising'] and m.get('skeletonsWalk', 0) >= 3 and m.get('zaps', 0) >= 5 and m.get('lichP2') == 2 and m.get('lichRelic') == 'storm', json.dumps({k: m.get(k) for k in ('lich', 'skeletons', 'skeletonsWalk', 'zaps', 'lichP2', 'lichRelic')}))
-        ok('boss left alive flees after BAL.flee s and the relic is lost', (m.get('fled') or {}).get('dead') and m['fled']['guards'] == 0 and not m['fled']['relic'], json.dumps(m.get('fled')))
+        ch, cr, hh = m.get('clockHeld') or {}, m.get('clockResumed') or {}, m.get('heldHud') or {}
+        ok('run clock held while the paladin lives (20 s: G.t still, real time runs, next boss not due), HUD shows it', ch.get('dt') == 0 and abs(ch.get('drt', 0) - 20) < .1 and ch.get('mi') == 1 and hh.get('cls') and hh.get('label') == 'Derrote o chefe!' and hh.get('timer') == '5:00', json.dumps({'clockHeld': ch, 'heldHud': hh}))
+        ok('run clock resumes after the boss dies (HUD back to normal)', abs(cr.get('dt', 0) - 2.2) < .1 and not cr.get('held') and not cr.get('label'), json.dumps(cr))
+        nf, ot = m.get('noFlee') or {}, m.get('overTimes') or {}
+        ok('boss kept alive 250 s does not flee: clock stays, no lich, no relic', nf.get('alive') and nf.get('dt') == 0 and nf.get('drt', 0) >= 249 and nf.get('mi') == 1 and not nf.get('lich') and not nf.get('relic'), json.dumps(nf))
+        ok('death during the fight: panel shows 5:00 survived and the real time', ot.get('state') == 'over' and ot.get('time') == '5:00' and (ot.get('real') or '').startswith('Tempo real: 9:'), json.dumps(ot))
+        hb = m.get('hpBal') or {}
+        ok('boss hp +25%: paladin 2875, lich 9500 (spawned with it)', hb.get('paladin') == 2875 and hb.get('lich') == 9500 and (m.get('guard') or {}).get('hp') == 2875 and (m.get('lich') or {}).get('hp') == 9500, json.dumps({'hpBal': hb, 'pal': (m.get('guard') or {}).get('hp'), 'lich': (m.get('lich') or {}).get('hp')}))
         ok('stress: both mid-bosses spawned (mi reached 3)', s.get('mi') == 3, f"mi={s.get('mi')} guards={s.get('guards')}")
     pw = r.get('powers') or {}
     if not pw.get('skipped'):
