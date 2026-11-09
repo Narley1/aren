@@ -19,7 +19,7 @@
 ## Pendências conhecidas
 
 - [ ] Publicar no `main` — **aguarda aprovação do Narley** (o site no ar ainda é o build de 26/10)
-- [ ] Rodar `tools/gen_assets.py` + `build_web.py` e conferir o `dist/` antes de publicar
+- [x] Rodar `tools/gen_assets.py` + `build_web.py` e conferir o `dist/` antes de publicar — feito na revisão final (09/11/2026): ícones idênticos aos do `main`, pré-cache do `sw.js` confere com os arquivos
 - [ ] Testar em aparelho real: wake lock, áudio ao trocar de app, foco do painel de pausa com leitor de tela (só testado em Chromium headless)
 - [ ] `tests/test.html`, `tests/shot*.py` e `tests/legacy/` são cópias/scripts antigos; `test.html` está desatualizado em relação ao fonte — decidir se gera a partir do `src` ou remove
 - [ ] `G.since` é inicializado e nunca usado (inofensivo; não removido na Etapa 2 para não misturar limpeza com desempenho)
@@ -191,3 +191,18 @@ Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r5`):
 - [ ] Vida baixa: agora aparece no notebook/celular? Continua suave? (eu só medi energia e espectro; sem nota na rodada 5)
 - [x] Orc, elfo e esqueleto por perto, e as asas da serpe sem o grasnido — aprovados pelo Narley ("Gostei", 09/11/2026)
 - [ ] Ainda acima do limite e sem pedido: morte do dragão (+18,1 dB, pico −3,6 dBFS; ele gostou). Picos aleatórios de sons não mexidos: `zapWarn` (−5,0 a −9,2 dBFS entre medições) e `lichP2` (−5,4 a −13,2)
+
+## Revisão final (09/11/2026): correções aprovadas pelo Narley
+
+- [x] `tools/gen_assets.py` volta a funcionar com o jogo atual (gancho dentro do IIFE, como `sprite_sheet.py`): ícones e og-image idênticos pixel a pixel aos do `main`; `--from-main`/`--fallback-main` copiam os do `origin/main`
+- [x] `tools/build_web.py` falha (código 1, mensagem em PT-BR) quando falta um ícone; lista do pré-cache do `sw.js` tirada de uma constante; README do site atualizado (15 min, três chefes, poderes por estilo, súcubos)
+- [x] Seta na borda da tela para chefe vivo (Paladino, Lich, dragão), chefe caindo antes de soltar a relíquia e relíquia no chão fora da vista: seta em pixel art + plaquinha com elmo/caveira/ícone da relíquia, dentro da área livre do HUD, sem tremer com movimento reduzido; só desenho (determinismo IDENTICAL)
+- [x] Caixa do relógio com largura fixa: botões do HUD num único arranjo de 0:00 a 59:59 e com "Derrote o chefe!" (medido em 390×844, 360×740 e 1366×768)
+- [x] "Succubus" → "Súcubo" em todo texto visível (Wyvern mantido); chaves do código iguais
+- [x] `SFX.dragonDeath` confere se o áudio está rodando antes de sortear (o `stinger` já conferia)
+- [x] Documentação: ROADMAP (relógio parado no lugar da fuga), linhas do ARCHITECTURE, comentários de decisões já tomadas
+- [x] `smoke.py` 48/48 (8 novas verificações)
+- [ ] Narley: a ordem dos comandos de build no `CLAUDE.md` (build antes de `gen_assets.py`) ficou desatualizada — agora o `gen_assets.py` vem antes, senão o build para com erro. Não mexi no `CLAUDE.md`
+- [ ] Narley: testar a seta num celular real (só vista em capturas do Chromium headless); com o cartão de apresentação do chefe aberto, uma seta para cima pode ficar atrás dele por ~3 s
+- [ ] Publicar no `main` continua aguardando o pedido do Narley
+
