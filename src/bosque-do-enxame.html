@@ -2132,18 +2132,17 @@ const SFX = (() => {
     seq.forEach((m, i) => syl(bus, t0 + .39 + i*.155, {f0:base*m, f1:base*m*.84, dur:.12, vow:'a', asp:.05, aspAmp:.7, amp:.95 - i*.13, shift:sh, breath:.2}));
     const n = noise(t0 + 1.02, .36), nl = filt('lowpass', 1100), ng = ac.createGain(); env(ng, t0 + 1.02, .05, .08, .36); n.connect(nl); nl.connect(ng); route(ng, .4);
   }
-  /* ---------- SUCCUBUS (round 3): feline, feminine, sultry - a rolled purr "mrrr", a meow-shaped "nyaa~" (rises, then
-     falls), three light breathy giggles and a soft exhaled "hmm"; a short echo and a faint sparkle. Lower and breathier than
-     the curse burst's "nya-ha-ha" (hex), and no longer the loudest sound of the game (was ~+10 dB over the explosion) ---------- */
+  /* ---------- SUCCUBUS (round 3): feline, feminine, sultry - a meow-shaped "nyaa~" (rises, then falls), three light
+     breathy giggles and a soft exhaled "hmm"; a short echo and a faint sparkle. Lower and breathier than the curse burst's
+     "nya-ha-ha" (hex), and no longer the loudest sound of the game (was ~+10 dB over the explosion).
+     Round 4: the opening purr "mrrr" removed (owner: "tire o ronronar e mantenha o resto"); everything after it is unchanged,
+     only moved 0.3 s earlier so the laugh does not start with the purr's silence ---------- */
   function succubusLaugh(){
     if (!ready('succ', 3)) return;
-    const t0 = ac.currentTime + .03, bus = G_(.13), hs = filt('highshelf', 3000, 0, 3);
+    const t0 = ac.currentTime + .03 - .3, bus = G_(.13), hs = filt('highshelf', 3000, 0, 3);   // -.3: where the purr was
     const dl = ac.createDelay(); dl.delayTime.value = .13; const fbk = G_(.22); bus.connect(hs); hs.connect(dl); dl.connect(fbk); fbk.connect(dl);
     route(hs, .5); const dlo = G_(.28); dl.connect(dlo); route(dlo, .55);
     const b = 365*jit(.04), sh = 1.16;
-    // "mrrr": closed, low, rolled (amplitude flutter at ~27 Hz = the purr)
-    const purr = flutter(t0, .36, 27*jit(.05), .85, 1); purr.connect(bus);
-    syl(purr, t0, {f0:b*.6, f1:b*.68, dur:.32, vow:'u', vow2:'e', morph:.26, asp:.015, aspAmp:.12, amp:.75, shift:sh, breath:.3});
     // "nyaa~": nasal onset, then the vowel opens and glides up, and falls back like a meow
     tone(t0 + .3, 'sine', b*.9, b*.95, .2, .07, 0, .012, bus);
     syl(bus, t0 + .34, {f0:b*.95, f1:b*1.32, dur:.17, vow:'i', vow2:'a', morph:.08, asp:.004, aspAmp:.03, amp:.72, vib:.02, vibR:6, shift:sh, breath:.3});
@@ -2503,11 +2502,12 @@ const SFX = (() => {
     if (!ready('elite', 1.5)) return; const t = ac.currentTime + .02;
     tone(t, 'triangle', 196, 196, .08, .9, .6, .01); tone(t, 'triangle', 207.65, 207.65, .057, .9, .6, .01); metal(t, 392, .015, .8);
   }
-  // low health: a soft heartbeat (lub-dub), at most every 2.4 s while it is called (round 3: +4.5 dB, "Baixo demais")
+  // low health: a soft heartbeat (lub-dub), at most every 2.4 s while it is called (round 3: +4.5 dB, "Baixo demais";
+  // round 4: another +4 dB, still "Baixo demais" - same shape, all three parts x1.585)
   function lowHp(){
     if (!ready('lowhp', 2.4)) return; const t = ac.currentTime + .01;
-    tone(t, 'sine', 110, 60, .168, .14, 0, .006); nz(t, noise(t, .08), 'lowpass', 520, 300, .8, .168, .08, 0, .003);
-    tone(t + .18, 'sine', 95, 55, .126, .14, 0, .006);
+    tone(t, 'sine', 110, 60, .266, .14, 0, .006); nz(t, noise(t, .08), 'lowpass', 520, 300, .8, .266, .08, 0, .003);
+    tone(t + .18, 'sine', 95, 55, .2, .14, 0, .006);
   }
   // enemy death: one pitched blip + one filtered noise tick, timbre by type; elites lower, longer, a little louder.
   // [osc type, f0, f1, osc amp, noise filter, noise f, q, noise amp, dur]. 5 nodes, dry, 50 ms cooldown shared by all types.
@@ -2528,14 +2528,31 @@ const SFX = (() => {
       tone(t, 'triangle', 240*p, 105*p, .36*a, .09*d, 0, .001);
       nz(t + .012, play(crackBuf, t + .012, .3*d, 2.4*p), 'bandpass', 2600*p, 1000*p, 1.1, 2.2*a, .3*d, 0, .004);
     },
-    // wyvern: a short raspy screech that breaks off into a body thud and the wings flopping down
+    // wyvern (round 4, third try: a small dragon): a compact, high-ish dragon death cry - the timbre of roar() shrunk to
+    // ~0.2 s (a saw rising then falling, roughened by a fast flutter, through the hard waveshaper and one sweeping resonant
+    // throat filter) - then a heavy body hitting the ground (low sine drop + dull earth noise). 12 nodes
     wyvern: (t, p, a, d) => {
-      const bp = filt('bandpass', 1900*p, 3.5); bp.frequency.setValueAtTime(1900*p, t); bp.frequency.exponentialRampToValueAtTime(1300*p, t + .11); route(bp, 0);
-      tone(t, 'sawtooth', 820*p, 560*p, .12*a, .12*d, 0, .006, bp);
-      tone(t + .1, 'sine', 115*p, 42, .11*a, .16*d, 0, .003);
-      nz(t + .095, noise(t + .095, .17*d), 'lowpass', 1100*p, 280, .8, .14*a, .17*d, 0, .006);
+      const L = .2*d, o = ac.createOscillator(), am = flutter(t, L, 39*p, .6, .55), ws = ac.createWaveShaper(), lp = filt('lowpass', 1200*p, 6), g = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(175*p, t); o.frequency.linearRampToValueAtTime(250*p, t + L*.3); o.frequency.exponentialRampToValueAtTime(105*p, t + L);
+      ws.curve = hardCurve(); lp.frequency.setValueAtTime(1200*p, t); lp.frequency.linearRampToValueAtTime(2300*p, t + L*.3); lp.frequency.exponentialRampToValueAtTime(800*p, t + L);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.014*a, t + .02); g.gain.setValueAtTime(.014*a, t + L*.55); g.gain.exponentialRampToValueAtTime(.0001, t + L);
+      o.connect(am); am.connect(ws); ws.connect(lp); lp.connect(g); route(g, 0); o.start(t); o.stop(t + L + .05);
+      const tb = t + L*.9;   // the body lands as the cry dies
+      tone(tb, 'sine', 92*p, 32, .12*a, .26*d, 0, .003);
+      nz(tb, noise(tb, .16*d), 'lowpass', 650*p, 170, .8, .085*a, .16*d, 0, .004);
+    },
+    // Sound Lab only (not used by the game; the owner picks A or B): a reptile hiss-shriek, the flame inside sputtering
+    // out (sparse crackles fading) and a lighter thud. 11 nodes
+    wyvern_b: (t, p, a, d) => {
+      const L = .17*d, am = flutter(t, L, 47*p, .7, .6), bp = filt('bandpass', 2700*p, 2.2), g = ac.createGain();
+      bp.frequency.setValueAtTime(2700*p, t); bp.frequency.exponentialRampToValueAtTime(1500*p, t + L);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.3*a, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + L);
+      noise(t, L).connect(am); am.connect(bp); bp.connect(g); route(g, 0);
+      nz(t + .06, play(crackBuf, t + .06, .35*d, 1.3*p), 'bandpass', 1800*p, 700*p, .9, 1*a, .35*d, 0, .01);
+      tone(t + L*.9, 'sine', 120*p, 45, .17*a, .16*d, 0, .003);
     }
   };
+  let HARD = null; const hardCurve = () => HARD || (HARD = curve(28));   // roar()'s waveshaper curve, built once
   function kill(type, isElite){
     if (!ready('kill', .05)) return;
     if (KILL_FX[type]){ const t = ac.currentTime + .004; KILL_FX[type](t, jit(.05)*(isElite ? .8 : 1), isElite ? 1.2 : 1, isElite ? 1.4 : 1); return; }
@@ -2577,16 +2594,17 @@ const SFX = (() => {
       rough.connect(rg); rg.connect(am.gain); o.connect(am); am.connect(sb); sb.connect(sg); route(sg, 0); o.start(ts); o.stop(ts + .35);
     }
   }
-  // hobgoblin: a low throaty grunt "hrrngh" (saw through a resonant low-pass, rolled by a ~30 Hz flutter) after a breath;
-  // the snarl variant is longer, rises then falls and is rougher
-  function vHob(t, v){
-    const snarl = v === 1 || (v === undefined && Math.random() < .45), p = jit(.06), L = snarl ? .46 : .26;
-    const o = ac.createOscillator(), am = flutter(t + .03, L, (snarl ? 33 : 27)*p, snarl ? .8 : .55, .7), lp = filt('lowpass', 850*p, 5), g = ac.createGain();
+  // hobgoblin: a rough snarl after a breath (saw through a resonant low-pass, rolled by a ~33 Hz flutter; rises, then
+  // falls). Round 4: the short grunt is gone (owner: nota 1, the snarl nota 5); every call is the approved snarl, with small
+  // variations so it never repeats identically: pitch +-6%, length 0.40-0.52 s, peak position, flutter rate
+  function vHob(t){
+    const p = jit(.06), L = .46*jit(.13), pk = .35*jit(.15);
+    const o = ac.createOscillator(), am = flutter(t + .03, L, 33*p*jit(.06), .8, .7), lp = filt('lowpass', 850*p, 5), g = ac.createGain();
     o.type = 'sawtooth'; const f = 105*p;
     o.frequency.setValueAtTime(f, t + .03);
-    if (snarl){ o.frequency.linearRampToValueAtTime(f*1.35, t + .03 + L*.35); lp.frequency.setValueAtTime(700*p, t + .03); lp.frequency.linearRampToValueAtTime(1300*p, t + .03 + L*.35); lp.frequency.exponentialRampToValueAtTime(600*p, t + .03 + L); }
+    o.frequency.linearRampToValueAtTime(f*1.35, t + .03 + L*pk); lp.frequency.setValueAtTime(700*p, t + .03); lp.frequency.linearRampToValueAtTime(1300*p, t + .03 + L*pk); lp.frequency.exponentialRampToValueAtTime(600*p, t + .03 + L);
     o.frequency.exponentialRampToValueAtTime(f*.78, t + .03 + L);
-    const ga = snarl ? .045 : .06; g.gain.setValueAtTime(.0001, t + .03); g.gain.exponentialRampToValueAtTime(ga, t + .06); g.gain.setValueAtTime(ga, t + .03 + L*.5); g.gain.exponentialRampToValueAtTime(.0001, t + .03 + L);
+    const ga = .045; g.gain.setValueAtTime(.0001, t + .03); g.gain.exponentialRampToValueAtTime(ga, t + .06); g.gain.setValueAtTime(ga, t + .03 + L*.5); g.gain.exponentialRampToValueAtTime(.0001, t + .03 + L);
     o.connect(am); am.connect(lp); lp.connect(g); route(g, .15); o.start(t + .03); o.stop(t + L + .1);
     nz(t, noise(t, .08), 'bandpass', 900*p, 600*p, 1, .08, .08, 0, .01);   // the breath before it
   }

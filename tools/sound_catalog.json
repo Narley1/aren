@@ -12,11 +12,11 @@
       {"id": "holy", "nome": "Onda da Espada Sagrada", "quando": "Ondas de luz saindo com o golpe (relíquia do Paladino).", "call": "S.holy()"},
       {"id": "boomThrow", "nome": "Arremesso da Shuriken Gigante", "quando": "Cada arremesso (todas as shurikens juntas).", "call": "S.boomThrow()"},
       {"id": "wisp", "nome": "Fogo-fátuo acerta", "quando": "Quando um fogo-fátuo acerta um inimigo (no máximo a cada 0,4 s).", "call": "S.wisp()"},
-      {"id": "storm", "nome": "Raio do Cajado da Tempestade", "quando": "Cada raio do Cajado (relíquia do Lich). Mais leve que o raio do Lich. Rodada 3: ganhou um zumbido elétrico (\"bzzzt\").", "call": "S.storm()", "estado": "refeito"}
+      {"id": "storm", "nome": "Raio do Cajado da Tempestade", "quando": "Cada raio do Cajado (relíquia do Lich). Mais leve que o raio do Lich. Rodada 3: ganhou um zumbido elétrico (\"bzzzt\").", "call": "S.storm()"}
     ]},
     {"id": "heroi", "nome": "Aren: dano e vida", "sounds": [
       {"id": "hurt", "nome": "Aren leva dano", "quando": "Cada golpe que tira vida de Aren.", "call": "S.hurt()"},
-      {"id": "lowHp", "nome": "Vida baixa", "quando": "Batida de coração suave a cada 2,4 s enquanto Aren tem 1 coração ou menos. Rodada 3: +4,5 dB.", "call": "S.lowHp()", "estado": "volume"}
+      {"id": "lowHp", "nome": "Vida baixa", "quando": "Batida de coração suave a cada 2,4 s enquanto Aren tem 1 coração ou menos. Rodada 3: +4,5 dB. Rodada 4: mais +4 dB, o mesmo jeito suave.", "call": "S.lowHp()", "estado": "volume"}
     ]},
     {"id": "prog", "nome": "Progressão e coleta", "sounds": [
       {"id": "levelup", "nome": "Subir de nível", "quando": "Nível com escolha de poder (abre as 3 cartas).", "call": "S.levelup()"},
@@ -27,13 +27,12 @@
       {"id": "heart2", "nome": "Pegar coração inteiro", "quando": "Maçã/coração inteiro (vitória sobre o dragão).", "call": "S.heart(true)"}
     ]},
     {"id": "inimigos", "nome": "Inimigos", "sounds": [
-      {"id": "demon", "nome": "Risada do demônio", "quando": "De vez em quando, com um demônio a menos de 150 px de Aren. Rodada 3: a mesma risada, cerca de 30% mais curta (4 \"ha\" em vez de 6).", "call": "S.giggle('demon')", "secs": 3, "estado": "refeito"},
-      {"id": "v_goblin", "nome": "Goblin por perto", "quando": "De vez em quando, com um goblin a menos de 150 px de Aren: risadinha curta (\"he-he-he\"). No máximo uma a cada 2,5–6,5 s, mesmo com muitos goblins.", "call": "S.voice('goblin')", "estado": "novo"},
-      {"id": "v_gargoyle", "nome": "Gárgula por perto (asas)", "quando": "De vez em quando, com uma gárgula a menos de 150 px: bater de asas de pedra. No máximo um a cada 3–7 s.", "call": "S.voice('gargoyle', 0)", "estado": "novo"},
-      {"id": "v_gargoyle2", "nome": "Gárgula por perto (grito)", "quando": "Às vezes (cerca de 1 em 3) as asas terminam com um guincho de pedra rouco.", "call": "S.voice('gargoyle', 1)", "estado": "novo"},
-      {"id": "v_hobgoblin", "nome": "Hobgoblin por perto (grunhido)", "quando": "De vez em quando, com um hobgoblin a menos de 150 px: grunhido curto e grave. No máximo um a cada 3–7,5 s.", "call": "S.voice('hobgoblin', 0)", "estado": "novo"},
-      {"id": "v_hobgoblin2", "nome": "Hobgoblin por perto (rosnado)", "quando": "Às vezes (quase metade das vezes) o grunhido vira um rosnado mais longo.", "call": "S.voice('hobgoblin', 1)", "estado": "novo"},
-      {"id": "succubus", "nome": "Risada da súcubo", "quando": "Quando a súcubo lança o círculo de maldição. Rodada 3: refeita mais felina e feminina (ronronar \"mrrr\", um \"nyaa\" de gato, risinhos soprados e um \"hmm\") e mais baixa.", "call": "S.giggle('succubus')", "secs": 3, "estado": "refeito"},
+      {"id": "demon", "nome": "Risada do demônio", "quando": "De vez em quando, com um demônio a menos de 150 px de Aren. Rodada 3: a mesma risada, cerca de 30% mais curta (4 \"ha\" em vez de 6).", "call": "S.giggle('demon')", "secs": 3},
+      {"id": "v_goblin", "nome": "Goblin por perto", "quando": "De vez em quando, com um goblin a menos de 150 px de Aren: risadinha curta (\"he-he-he\"). No máximo uma a cada 2,5–6,5 s, mesmo com muitos goblins.", "call": "S.voice('goblin')"},
+      {"id": "v_gargoyle", "nome": "Gárgula por perto (asas)", "quando": "De vez em quando, com uma gárgula a menos de 150 px: bater de asas de pedra. No máximo um a cada 3–7 s.", "call": "S.voice('gargoyle', 0)"},
+      {"id": "v_gargoyle2", "nome": "Gárgula por perto (grito)", "quando": "Às vezes (cerca de 1 em 3) as asas terminam com um guincho de pedra rouco.", "call": "S.voice('gargoyle', 1)"},
+      {"id": "v_hobgoblin2", "nome": "Hobgoblin por perto (rosnado)", "quando": "De vez em quando, com um hobgoblin a menos de 150 px: o rosnado que você aprovou. Rodada 4: o grunhido curto saiu; agora é sempre o rosnado, com pequenas variações de altura e duração para não repetir igual. No máximo um a cada 3–7,5 s. Toque várias vezes para ouvir as variações.", "call": "S.voice('hobgoblin', 1)", "estado": "refeito"},
+      {"id": "succubus", "nome": "Risada da súcubo", "quando": "Quando a súcubo lança o círculo de maldição. Rodada 3: refeita mais felina e feminina (\"nyaa\" de gato, risinhos soprados e um \"hmm\"). Rodada 4: sem o ronronar \"mrrr\" do começo; o resto é o mesmo, só começa 0,3 s antes (onde estava o ronronar).", "call": "S.giggle('succubus')", "secs": 3, "estado": "refeito"},
       {"id": "hex", "nome": "Maldição estourando", "quando": "O círculo de maldição explode. Na rodada 2 ganhou um risinho felino (\"nya-ha-ha\"), no máximo a cada 1,4 s.", "call": "S.hex()"},
       {"id": "elfArrow", "nome": "Flecha dos elfos", "quando": "Cada flecha de um elfo perto de Aren. Ajuda a desviar.", "call": "S.elfArrow()"},
       {"id": "wyvernFire", "nome": "Fogo da serpe-dragão", "quando": "Cada rajada de fogo de uma serpe.", "call": "S.wyvernFire()"},
@@ -41,13 +40,14 @@
     ]},
     {"id": "mortes", "nome": "Inimigos morrendo", "sounds": [
       {"id": "kill_goblin", "nome": "Morte: Goblin", "quando": "Cada inimigo desse tipo que morre (no máximo um som a cada 50 ms).", "call": "S.kill('goblin', false)"},
-      {"id": "kill_gargoyle", "nome": "Morte: Gárgula", "quando": "Cada gárgula que morre (no máximo um som de morte a cada 50 ms). Rodada 3: pedra rachando e se esfarelando.", "call": "S.kill('gargoyle', false)", "estado": "refeito"},
+      {"id": "kill_gargoyle", "nome": "Morte: Gárgula", "quando": "Cada gárgula que morre (no máximo um som de morte a cada 50 ms). Rodada 3: pedra rachando e se esfarelando.", "call": "S.kill('gargoyle', false)"},
       {"id": "kill_hobgoblin", "nome": "Morte: Hobgoblin", "quando": "Cada inimigo desse tipo que morre (no máximo um som a cada 50 ms).", "call": "S.kill('hobgoblin', false)"},
       {"id": "kill_orc", "nome": "Morte: Orc", "quando": "Cada inimigo desse tipo que morre (no máximo um som a cada 50 ms).", "call": "S.kill('orc', false)"},
       {"id": "kill_elf", "nome": "Morte: Elfo", "quando": "Cada inimigo desse tipo que morre (no máximo um som a cada 50 ms).", "call": "S.kill('elf', false)"},
       {"id": "kill_demon", "nome": "Morte: Demônio", "quando": "Cada inimigo desse tipo que morre (no máximo um som a cada 50 ms).", "call": "S.kill('demon', false)"},
       {"id": "kill_succubus", "nome": "Morte: Súcubo", "quando": "Cada inimigo desse tipo que morre (no máximo um som a cada 50 ms).", "call": "S.kill('succubus', false)"},
-      {"id": "kill_wyvern", "nome": "Morte: Serpe-dragão", "quando": "Cada serpe-dragão que morre (no máximo um som de morte a cada 50 ms). Rodada 3: guincho curto cortado por um baque e as asas caindo.", "call": "S.kill('wyvern', false)", "estado": "refeito"},
+      {"id": "kill_wyvern", "nome": "Morte: Serpe-dragão", "quando": "Cada serpe-dragão que morre (no máximo um som de morte a cada 50 ms). Rodada 4 (terceira tentativa): grito curto de dragão pequeno (o timbre do rugido novo, bem curto e mais agudo) e o corpo pesado caindo no chão. Esta é a versão que está no jogo (A).", "call": "S.kill('wyvern', false)", "estado": "refeito"},
+      {"id": "kill_wyvern_b", "nome": "Morte: Serpe-dragão (opção B, só no laboratório)", "quando": "Alternativa para você comparar com a A acima; não está no jogo. Chiado de réptil, o fogo de dentro apagando em estalos e um baque mais leve. Se preferir esta, diga e eu troco.", "call": "S.kill('wyvern_b', false)", "estado": "novo"},
       {"id": "kill_skeleton", "nome": "Morte: Esqueleto", "quando": "Cada inimigo desse tipo que morre (no máximo um som a cada 50 ms).", "call": "S.kill('skeleton', false)"},
       {"id": "kill_elite", "nome": "Morte: Orc elite", "quando": "Elites soam mais graves e um pouco mais fortes.", "call": "S.kill('orc', true)"}
     ]},
@@ -60,7 +60,7 @@
       {"id": "bash", "nome": "Pancada do escudo", "quando": "A investida acerta Aren ou termina.", "call": "S.boss('bash')"},
       {"id": "windup", "nome": "Preparar o giro", "quando": "Aviso do giro da espada (anel enchendo).", "call": "S.boss('windup')"},
       {"id": "spin", "nome": "Giro da espada", "quando": "O giro de 360° acontece.", "call": "S.boss('spin')"},
-      {"id": "jump", "nome": "Salto", "quando": "Ele salta em direção a Aren. Rodada 3: +5 dB (a proposta que você escolheu).", "call": "S.boss('jump')", "estado": "volume"},
+      {"id": "jump", "nome": "Salto", "quando": "Ele salta em direção a Aren. Rodada 3: +5 dB (a proposta que você escolheu).", "call": "S.boss('jump')"},
       {"id": "blades", "nome": "Lâminas fantasmas surgem", "quando": "As lâminas aparecem em volta dele.", "call": "S.boss('blades')"},
       {"id": "bladeGo", "nome": "Lâmina disparada", "quando": "Cada lâmina voa em direção a Aren.", "call": "S.boss('bladeGo')"},
       {"id": "shriek", "nome": "Espírito sai (fase 2)", "quando": "Com metade da vida, o espírito emerge da armadura.", "call": "S.boss('shriek')", "secs": 4},
