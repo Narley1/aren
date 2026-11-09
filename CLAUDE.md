@@ -28,8 +28,8 @@ python3 tests/smoke.py --json /tmp/a.json    # guarda os números
 python3 tests/smoke.py --compare /tmp/antes.json /tmp/depois.json   # determinismo
 
 # build (de qualquer pasta; dist/ é criado na pasta atual)
-python3 tools/build_web.py --src src/bosque-do-enxame.html
-python3 tools/gen_assets.py                  # se dist/icons ainda não existir
+python3 tools/gen_assets.py                  # ícones e og-image em ./dist (antes do build; --fallback-main copia do main se falhar)
+python3 tools/build_web.py --src src/bosque-do-enxame.html   # para com erro se faltar ícone
 
 # áudio (Chromium headless; ~40 s)
 python3 tools/sfx_levels.py                  # tabela de volume; --json arq.json para guardar, --only id1,id2
