@@ -2017,6 +2017,7 @@ const store = {
 /* ---------------- sound ---------------- */
 const SFX = (() => {
   let ac = null, master, sfxDry, sfxWet, musDry, musWet, rev, noiseBuf, VW8 = null;
+  const MUS = .17;   // music bus level (round 2: -6 dB from .34, the owner's pick in the Sound Lab)
   let on = true, musicOn = true;
   try { on = localStorage.getItem('bosque-enxame-som') !== '0'; musicOn = localStorage.getItem('bosque-enxame-musica') !== '0'; } catch {}
   const last = {};
@@ -2035,8 +2036,8 @@ const SFX = (() => {
     rev = ac.createConvolver(); rev.buffer = impulse(2.8, 2.6); rev.connect(master);
     sfxDry = ac.createGain(); sfxDry.gain.value = on ? .8 : 0; sfxDry.connect(master);
     sfxWet = ac.createGain(); sfxWet.gain.value = on ? .8 : 0; sfxWet.connect(rev);
-    musDry = ac.createGain(); musDry.gain.value = musicOn ? .34 : 0; musDry.connect(master);
-    musWet = ac.createGain(); musWet.gain.value = musicOn ? .34 : 0; musWet.connect(rev);
+    musDry = ac.createGain(); musDry.gain.value = musicOn ? MUS : 0; musDry.connect(master);
+    musWet = ac.createGain(); musWet.gain.value = musicOn ? MUS : 0; musWet.connect(rev);
     noiseBuf = ac.createBuffer(1, ac.sampleRate*2, ac.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
     const n = 48, re = new Float32Array(n), im = new Float32Array(n);
@@ -2198,7 +2199,7 @@ const SFX = (() => {
       env(g, t, .006, vol, .5); o.connect(g); route(g, .5); o.start(t); o.stop(t + .55); o2.start(t); o2.stop(t + .55); });
   }
   function levelup(){ chime('lvl', [523.25, 659.25, 783.99, 1046.5], .075, .26); }
-  function enhance(){ chime('enh', [783.99, 987.77, 1174.66, 1567.98, 2093], .05, .22); }
+  function enhance(){ chime('enh', [783.99, 987.77, 1174.66, 1567.98, 2093], .05, .156); }   // round 2: -3 dB ("Alto demais")
   function explode(){
     if (!ready('expl', .09)) return; const t = ac.currentTime + .01;
     const n = noise(t, .55), lp = filt('lowpass', 1800, .7), g = ac.createGain();
@@ -2260,7 +2261,7 @@ const SFX = (() => {
     palFall: t => { sweep(t, 1.1, 300, 1600, .35); wail(t + .1, 1, 300, .05); },
     land:    t => { boom(t, 95, 28, .32, .55); metal(t + .01, 210, .1, .7); clatter(t + .06, 6, .3, .14); },
     roarP:   t => { wail(t, 1.2, 240, .12); metal(t, 150, .12, 1.1); sweep(t, .9, 500, 1400, .18, 1.2, .6); },
-    scrape:  t => { sweep(t, .7, 1800, 3600, .16, 6, .25); metal(t, 320, .08, .4); },
+    scrape:  t => { sweep(t, .7, 1800, 3600, .27, 6, .25); metal(t, 320, .134, .4); },   // round 2: +4.5 dB
     charge:  t => { sweep(t, .5, 300, 900, .4, 1.5); boom(t, 70, 40, .25, .3); },
     bash:    t => { metal(t, 180, .15, .6); boom(t, 120, 40, .22, .25); },
     windup:  t => { sweep(t, .6, 400, 1200, .14, 3); metal(t + .45, 400, .06, .3); },
@@ -2427,7 +2428,7 @@ const SFX = (() => {
     }
   }
   function setOn(v){ on = v; try { localStorage.setItem('bosque-enxame-som', v ? '1' : '0'); } catch {} if (sfxDry){ sfxDry.gain.value = v ? .8 : 0; sfxWet.gain.value = v ? .8 : 0; } }
-  function setMusic(v){ musicOn = v; try { localStorage.setItem('bosque-enxame-musica', v ? '1' : '0'); } catch {} if (musDry){ musDry.gain.value = v ? .34 : 0; musWet.gain.value = v ? .34 : 0; } }
+  function setMusic(v){ musicOn = v; try { localStorage.setItem('bosque-enxame-musica', v ? '1' : '0'); } catch {} if (musDry){ musDry.gain.value = v ? MUS : 0; musWet.gain.value = v ? MUS : 0; } }
   function pause(p){ if (!ac) return; if (p) ac.suspend().catch(() => {}); else ac.resume().catch(() => {}); }
   function moodFn(fn){ M.fn = fn; }
   return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, slam, bow: bowShot, boss: bossSfx, setOn, setMusic, pause, moodFn,
