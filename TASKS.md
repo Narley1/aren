@@ -184,6 +184,6 @@ Feito (medido com `tools/sfx_levels.py`; volume = rms150 em relação à explos�
 - [x] Laboratório da rodada 5: Antes = commit 9e732e4, notas em `avaliacoes_r5`, nota anterior de `avaliacoes_r4` (ou r3, r2, rodada 1)
 
 Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r5`):
-- [ ] Vida baixa: agora aparece no notebook/celular? Continua suave? (eu só medi energia e espectro)
-- [ ] Orc, elfo e esqueleto por perto, e as asas da serpe sem o grasnido
+- [ ] Vida baixa: agora aparece no notebook/celular? Continua suave? (eu só medi energia e espectro; sem nota na rodada 5)
+- [x] Orc, elfo e esqueleto por perto, e as asas da serpe sem o grasnido — aprovados pelo Narley ("Gostei", 09/11/2026)
 - [ ] Ainda acima do limite e sem pedido: morte do dragão (+18,1 dB, pico −3,6 dBFS; ele gostou). Picos aleatórios de sons não mexidos: `zapWarn` (−5,0 a −9,2 dBFS entre medições) e `lichP2` (−5,4 a −13,2)
