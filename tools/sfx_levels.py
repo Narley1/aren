@@ -8,6 +8,7 @@ Nada no jogo é alterado: os ganchos de teste (__sched/__now) só existem na có
     python3 tools/sfx_levels.py                      # tabela
     python3 tools/sfx_levels.py --json /tmp/l.json   # também grava JSON (usado pelo laboratório)
     python3 tools/sfx_levels.py --only bow,explode   # só alguns ids
+    python3 tools/sfx_levels.py --rev 01c5ba5        # mede uma versão antiga do jogo (git)
 
 Leitura dos números (dBFS, 0 = máximo digital):
   pico      maior amostra; acima de -6 o som está perto de estourar
@@ -30,7 +31,7 @@ HOOKS = r"""
   function __now(m){ M.fn = () => m; if (!ac) return; const t = ac.currentTime + .06; M.step = 0; M.bar = 0; M.next = t; setMood(m, t); }
   let __kv = 1;   // gain applied by route() while __play runs one sound (A/B of a proposed level)
   function __play(fn, k){ __kv = k || 1; try { fn(); } finally { __kv = 1; } }
-  function __mus(k){ if (musDry){ const v = musicOn ? .34*k : 0; musDry.gain.value = v; musWet.gain.value = v; } }
+  function __mus(k){ if (musDry){ const v = musicOn ? (typeof MUS === 'number' ? MUS : .34)*k : 0; musDry.gain.value = v; musWet.gain.value = v; } }
   function __st(){ return ac ? ac.state : 'none'; }
   function __clr(){ for (const k in last) delete last[k]; }
 """
@@ -52,6 +53,11 @@ def extract_sfx(src_text):
     mod = (mod.replace(anchor, anchor + HOOKS).replace(ROUTE_OLD, ROUTE_NEW)
               .replace(ret, '  return {__sched, __now, __play, __mus, __st, __clr, init,'))
     return mod
+
+
+def git_src(rev):
+    import subprocess
+    return subprocess.check_output(['git', '-C', ROOT, 'show', f'{rev}:src/bosque-do-enxame.html'], text=True)
 
 
 def load_catalog():
@@ -105,10 +111,11 @@ def db(v):
     return round(20*math.log10(max(v, 1e-9)), 1)
 
 
-async def measure(only=None):
+async def measure(only=None, src_text=None):
+    """Measure the catalog sounds (only = set of ids). src_text: another version of the game (e.g. from git) instead of SRC."""
     from playwright.async_api import async_playwright
     cat = load_catalog()
-    mod = extract_sfx(open(SRC, encoding='utf-8').read())
+    mod = extract_sfx(src_text if src_text is not None else open(SRC, encoding='utf-8').read())
     tmp = tempfile.mkdtemp(prefix='sfxlv-')
     page_path = os.path.join(tmp, 'm.html')
     with open(page_path, 'w', encoding='utf-8') as f:
@@ -135,9 +142,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--json', help='grava os números neste arquivo JSON')
     ap.add_argument('--only', help='ids separados por vírgula')
+    ap.add_argument('--rev', help='mede o jogo deste commit do git (ids que não existem nele dão erro: use --only)')
     a = ap.parse_args()
     only = set(a.only.split(',')) if a.only else None
-    res = asyncio.run(measure(only))
+    src = git_src(a.rev) if a.rev else None
+    res = asyncio.run(measure(only, src))
     ref = res.get('explode', {}).get('rms150_db')
     print(f"{'id':14s} {'pico':>7s} {'rms150':>7s} {'rms':>7s} {'dur.':>6s} {'nós':>5s}" + ('  vs explosão' if ref is not None else ''))
     for k, v in res.items():
