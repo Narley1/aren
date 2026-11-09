@@ -28,6 +28,11 @@
     ]},
     {"id": "inimigos", "nome": "Inimigos", "sounds": [
       {"id": "demon", "nome": "Risada do demônio", "quando": "De vez em quando, com um demônio a menos de 150 px de Aren. Rodada 3: a mesma risada, cerca de 30% mais curta (4 \"ha\" em vez de 6).", "call": "S.giggle('demon')", "secs": 3, "estado": "refeito"},
+      {"id": "v_goblin", "nome": "Goblin por perto", "quando": "De vez em quando, com um goblin a menos de 150 px de Aren: risadinha curta (\"he-he-he\"). No máximo uma a cada 2,5–6,5 s, mesmo com muitos goblins.", "call": "S.voice('goblin')", "estado": "novo"},
+      {"id": "v_gargoyle", "nome": "Gárgula por perto (asas)", "quando": "De vez em quando, com uma gárgula a menos de 150 px: bater de asas de pedra. No máximo um a cada 3–7 s.", "call": "S.voice('gargoyle', 0)", "estado": "novo"},
+      {"id": "v_gargoyle2", "nome": "Gárgula por perto (grito)", "quando": "Às vezes (cerca de 1 em 3) as asas terminam com um guincho de pedra rouco.", "call": "S.voice('gargoyle', 1)", "estado": "novo"},
+      {"id": "v_hobgoblin", "nome": "Hobgoblin por perto (grunhido)", "quando": "De vez em quando, com um hobgoblin a menos de 150 px: grunhido curto e grave. No máximo um a cada 3–7,5 s.", "call": "S.voice('hobgoblin', 0)", "estado": "novo"},
+      {"id": "v_hobgoblin2", "nome": "Hobgoblin por perto (rosnado)", "quando": "Às vezes (quase metade das vezes) o grunhido vira um rosnado mais longo.", "call": "S.voice('hobgoblin', 1)", "estado": "novo"},
       {"id": "succubus", "nome": "Risada da súcubo", "quando": "Quando a súcubo lança o círculo de maldição. Rodada 3: refeita mais felina e feminina (ronronar \"mrrr\", um \"nyaa\" de gato, risinhos soprados e um \"hmm\") e mais baixa.", "call": "S.giggle('succubus')", "secs": 3, "estado": "refeito"},
       {"id": "hex", "nome": "Maldição estourando", "quando": "O círculo de maldição explode. Na rodada 2 ganhou um risinho felino (\"nya-ha-ha\"), no máximo a cada 1,4 s.", "call": "S.hex()"},
       {"id": "elfArrow", "nome": "Flecha dos elfos", "quando": "Cada flecha de um elfo perto de Aren. Ajuda a desviar.", "call": "S.elfArrow()"},

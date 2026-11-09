@@ -2543,6 +2543,56 @@ const SFX = (() => {
     tone(t, K[0], K[1]*p, K[2]*p, K[3]*a, d, 0, .002);
     nz(t, noise(t, d), K[4], K[5]*p, K[5]*p*.6, K[6], K[7]*a, d*.8, 0, .001);
   }
+  /* ================= round 3: enemy presence voices (batch 1: goblin, gargoyle, hobgoblin) =================
+     Quiet ambient cues for a monster near Aren. The game decides WHEN (a per-type timer with its own tiny generator, never
+     Math.random); everything random (pitch, syllables, variant) happens here, after ready(). <= 12 nodes each, dry-ish.
+     v: optional variant for the Sound Lab (gargoyle 1 = with screech, hobgoblin 1 = snarl); omitted = picked at random. */
+  // goblin: a quick nasal "heh-heh-heh" chatter - one square voice through two formants, 3-5 syllables gated on one gain
+  function vGoblin(t){
+    const p = jit(.07), n = 3 + ((Math.random()*3) | 0), gap = .075*jit(.1), f = 540*p;
+    const o = ac.createOscillator(), b1 = filt('bandpass', 760*p, 3), b2 = filt('bandpass', 2100*p, 4), g2 = G_(.7), g = ac.createGain();
+    o.type = 'square'; g.gain.setValueAtTime(.0001, t);
+    for (let i = 0; i < n; i++){
+      const ts = t + i*gap, m = [1, 1.13, 1.04, 1.2, .96][i]*jit(.03), a = .15*(1 - i*.12);
+      o.frequency.setValueAtTime(f*m*1.06, ts); o.frequency.exponentialRampToValueAtTime(f*m*.9, ts + gap*.8);
+      b2.frequency.setValueAtTime(2300*p, ts); b2.frequency.exponentialRampToValueAtTime(1700*p, ts + gap*.8);   // "e" -> "eh"
+      g.gain.setValueAtTime(.0001, ts); g.gain.exponentialRampToValueAtTime(a, ts + .008); g.gain.exponentialRampToValueAtTime(.0001, ts + gap*.85);
+    }
+    o.connect(b1); o.connect(b2); b1.connect(g); b2.connect(g2); g2.connect(g); route(g, .12); o.start(t); o.stop(t + n*gap + .05);
+  }
+  // gargoyle: 2-3 heavy stone wing flaps (a low air "whump" + gritty sand clicks on the same rhythm); sometimes a gravelly
+  // screech (a falling saw, roughened by crunchy sample-and-hold noise on its gain)
+  function vGargoyle(t, v){
+    const p = jit(.06), n = 2 + (Math.random() < .5 ? 1 : 0), gap = .2*jit(.08), L = n*gap + .1;
+    const ga = ac.createGain(), gg = ac.createGain(); ga.gain.setValueAtTime(.0001, t); gg.gain.setValueAtTime(.0001, t);
+    for (let i = 0; i < n; i++){ const ts = t + i*gap, a = 1 - i*.18;
+      ga.gain.setValueAtTime(.0001, ts); ga.gain.exponentialRampToValueAtTime(.45*a, ts + .05); ga.gain.exponentialRampToValueAtTime(.0001, ts + gap*.9);
+      gg.gain.setValueAtTime(.0001, ts); gg.gain.exponentialRampToValueAtTime(.75*a, ts + .03); gg.gain.exponentialRampToValueAtTime(.0001, ts + gap*.7); }
+    const air = noise(t, L), lp = filt('lowpass', 320*p, .9); air.connect(lp); lp.connect(ga); route(ga, 0);
+    const grit = play(dustBuf, t, L, .7*p), bp = filt('bandpass', 1300*p, 1); grit.connect(bp); bp.connect(gg); route(gg, 0);
+    if (v === 1 || (v === undefined && Math.random() < .35)){
+      const ts = t + n*gap - .05, o = ac.createOscillator(), am = G_(.6), rough = play(crunchBuf, ts, .3), rg = G_(.4), sb = filt('bandpass', 1500*p, 2), sg = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(640*p, ts); o.frequency.linearRampToValueAtTime(700*p, ts + .05); o.frequency.exponentialRampToValueAtTime(430*p, ts + .28);
+      sg.gain.setValueAtTime(.0001, ts); sg.gain.exponentialRampToValueAtTime(.12, ts + .03); sg.gain.exponentialRampToValueAtTime(.0001, ts + .3);
+      rough.connect(rg); rg.connect(am.gain); o.connect(am); am.connect(sb); sb.connect(sg); route(sg, 0); o.start(ts); o.stop(ts + .35);
+    }
+  }
+  // hobgoblin: a low throaty grunt "hrrngh" (saw through a resonant low-pass, rolled by a ~30 Hz flutter) after a breath;
+  // the snarl variant is longer, rises then falls and is rougher
+  function vHob(t, v){
+    const snarl = v === 1 || (v === undefined && Math.random() < .45), p = jit(.06), L = snarl ? .46 : .26;
+    const o = ac.createOscillator(), am = flutter(t + .03, L, (snarl ? 33 : 27)*p, snarl ? .8 : .55, .7), lp = filt('lowpass', 850*p, 5), g = ac.createGain();
+    o.type = 'sawtooth'; const f = 105*p;
+    o.frequency.setValueAtTime(f, t + .03);
+    if (snarl){ o.frequency.linearRampToValueAtTime(f*1.35, t + .03 + L*.35); lp.frequency.setValueAtTime(700*p, t + .03); lp.frequency.linearRampToValueAtTime(1300*p, t + .03 + L*.35); lp.frequency.exponentialRampToValueAtTime(600*p, t + .03 + L); }
+    o.frequency.exponentialRampToValueAtTime(f*.78, t + .03 + L);
+    const ga = snarl ? .045 : .06; g.gain.setValueAtTime(.0001, t + .03); g.gain.exponentialRampToValueAtTime(ga, t + .06); g.gain.setValueAtTime(ga, t + .03 + L*.5); g.gain.exponentialRampToValueAtTime(.0001, t + .03 + L);
+    o.connect(am); am.connect(lp); lp.connect(g); route(g, .15); o.start(t + .03); o.stop(t + L + .1);
+    nz(t, noise(t, .08), 'bandpass', 900*p, 600*p, 1, .08, .08, 0, .01);   // the breath before it
+  }
+  const VOICE = {goblin: [vGoblin, 1.5], gargoyle: [vGargoyle, 1.5], hobgoblin: [vHob, 1.5]};   // [function, safety cooldown s]
+  function voice(kind, v){ const V = VOICE[kind]; if (!V || !ready('v_' + kind, V[1])) return; V[0](ac.currentTime + .01, v); }
+
   // interface: a small click for buttons, two notes when a level-up card is chosen
   function ui(kind){
     if (!ready('ui', .06)) return; const t = ac.currentTime + .003;
@@ -2711,7 +2761,7 @@ const SFX = (() => {
   function pause(p, grace){ if (!ac) return; clearTimeout(susT); if (p){ if (grace) susT = setTimeout(() => ac.suspend().catch(() => {}), grace*1000); else ac.suspend().catch(() => {}); } else ac.resume().catch(() => {}); }
   function moodFn(fn){ M.fn = fn; }
   return {init, roar, fireBreath, whoosh, thud, rattle, giggle, hex, dragonDeath, stinger, levelup, enhance, explode, slam, bow: bowShot, boss: bossSfx, setOn, setMusic, pause, moodFn,
-    hurt, gem, heart, lvlSmall, sword, boomThrow, fireCast, wisp, storm, holy, elfArrow, wyvernFire, elite, lowHp, kill, ui, pauseCue,
+    hurt, gem, heart, lvlSmall, sword, boomThrow, fireCast, wisp, storm, holy, elfArrow, wyvernFire, elite, lowHp, kill, voice, ui, pauseCue,
     get on(){ return on; }, get music(){ return musicOn; }};
 })();
 
@@ -2725,7 +2775,7 @@ function reset(){
   P = {x:0, y:0, hp:BAL.hero.hp, maxHp:BAL.hero.hp, slow:0, frost:0, kx:0, ky:0, inv:BAL.hero.invStart, dir:'down', moving:false, anim:0, faceA:Math.PI/2};
   W = {sword:1, boom:0, orb:0, fire:0, boots:0, magnet:0, heart:0, holy:0, storm:0, gauntlets:0, grimoire:0, hammer:0, thorns:0, bow:0};
   E = []; B = []; EB = []; GEMS = []; ITEMS = []; FX = []; NUMS = []; ORBS = []; MARKS = []; CURSES = []; DECALS = []; BURNS = []; ZAPS = []; CORPSES = [];
-  hideBossCard(); renderGear(); lastHearts = '';
+  hideBossCard(); renderGear(); lastHearts = ''; voxReset();
 }
 
 /* spatial grid */
@@ -2809,6 +2859,23 @@ function hit(e, dmg, nx, ny, kb = 70){
   e.kx += nx*k; e.ky += ny*k;
   NUMS.push({x:e.x + (Math.random()*6-3), y:e.y - e.d.h - (e.d.fly?6:0), v:Math.max(1, Math.round(dmg)), t:0, col: dmg >= 15 ? '#ffd94a' : '#ffffff'});
   if (e.hp <= 0) kill(e);
+}
+/* enemy presence voices (audio round 3): one timer per TYPE, not per enemy, so a swarm never spams. When it runs out it
+   waits until one of that type is within 150 px of Aren, plays SFX.voice(type) and restarts with a gap from a tiny generator
+   of its own. Math.random is never used here: seeded runs stay identical with or without sound */
+const VOX = {goblin:[2.5, 4], gargoyle:[3, 4], hobgoblin:[3, 4.5]};   // [minimum gap s, extra random gap s]
+let voxT = {}, voxNear = {}, voxSeed = 1;
+function voxRnd(){ voxSeed = (Math.imul(voxSeed, 1664525) + 1013904223) >>> 0; return voxSeed/4294967296; }
+function voxReset(){ voxSeed = 1; voxNear = {}; voxT = {}; for (const k in VOX) voxT[k] = 1 + voxRnd()*2; }
+function voxTick(dt){
+  for (const k in VOX){
+    voxT[k] = Math.max(0, voxT[k] - dt);
+    if (voxNear[k] && voxT[k] === 0){
+      SFX.voice(k); voxT[k] = VOX[k][0] + voxRnd()*VOX[k][1];
+      for (const o in VOX) if (o !== k) voxT[o] = Math.max(voxT[o], .5);   // two types never speak in the same instant
+    }
+    voxNear[k] = false;
+  }
 }
 function kill(e){
   e.dead = true; G.kills++;
@@ -4312,6 +4379,7 @@ function update(dt){
     }
     e.anim += dt * (d.fly ? 8 : sp/6);
     if (e.type === 'demon'){ e.gig = (e.gig ?? 1 + Math.random()*5) - dt; if (e.gig <= 0){ e.gig = 6 + Math.random()*8; if (dist < 150) SFX.giggle('demon'); } }
+    if (dist < 150 && VOX[e.type]) voxNear[e.type] = true;   // presence voices: see voxTick()
     e.x += (mx*sp + e.kx) * dt; e.y += (my*sp + e.ky) * dt;
     const damp = Math.max(0, 1 - dt*9); e.kx *= damp; e.ky *= damp;
     // separation
@@ -4324,6 +4392,7 @@ function update(dt){
     if (dist > farR){ e.x = P.x + dx*.85; e.y = P.y + dy*.85; }
   }
   dropDead(E);
+  voxTick(dt);
 
   // enemy projectiles
   for (const b of EB){
