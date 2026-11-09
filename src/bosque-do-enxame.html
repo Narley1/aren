@@ -2016,7 +2016,7 @@ const store = {
 
 /* ---------------- sound ---------------- */
 const SFX = (() => {
-  let ac = null, master, sfxDry, sfxWet, musDry, musWet, rev, noiseBuf, VW8 = null;
+  let ac = null, master, sfxDry, sfxWet, musDry, musWet, rev, noiseBuf, dustBuf, crackBuf, crunchBuf, VW8 = null;
   const MUS = .17;   // music bus level (round 2: -6 dB from .34, the owner's pick in the Sound Lab)
   let on = true, musicOn = true;
   try { on = localStorage.getItem('bosque-enxame-som') !== '0'; musicOn = localStorage.getItem('bosque-enxame-musica') !== '0'; } catch {}
@@ -2025,6 +2025,18 @@ const SFX = (() => {
   function impulse(sec, decay){
     const len = Math.floor(ac.sampleRate*sec), b = ac.createBuffer(2, len, ac.sampleRate);
     for (let ch = 0; ch < 2; ch++){ const d = b.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random()*2 - 1)*Math.pow(1 - i/len, decay); }
+    return b;
+  }
+  // 2 s of random clicks (rate per second, each decaying over dec samples): dense = sand/dust, sparse = crackles
+  function clicks(rate, dec){
+    const sr = ac.sampleRate, b = ac.createBuffer(1, sr*2, sr), d = b.getChannelData(0), p = rate/sr, n = dec*5;
+    for (let i = 0; i < d.length; i++) if (Math.random() < p){ const a = (.25 + Math.random()*.75)*(Math.random() < .5 ? -1 : 1); for (let j = 0; j < n && i + j < d.length; j++) d[i + j] += a*Math.exp(-j/dec); }
+    return b;
+  }
+  // sample-and-hold noise quantized to a few levels: the crunchy grit of old handheld consoles (retro thunder)
+  function holdNoise(hold, levels){
+    const sr = ac.sampleRate, b = ac.createBuffer(1, sr*2, sr), d = b.getChannelData(0), h = levels/2; let v = 0;
+    for (let i = 0; i < d.length; i++){ if (i % hold === 0) v = Math.round((Math.random()*2 - 1)*h)/h; d[i] = v; }
     return b;
   }
   function init(){
@@ -2040,6 +2052,7 @@ const SFX = (() => {
     musWet = ac.createGain(); musWet.gain.value = musicOn ? MUS : 0; musWet.connect(rev);
     noiseBuf = ac.createBuffer(1, ac.sampleRate*2, ac.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+    dustBuf = clicks(900, 5); crackBuf = clicks(32, 40); crunchBuf = holdNoise(22, 6);
     const n = 48, re = new Float32Array(n), im = new Float32Array(n);
     for (let k = 1; k < n; k++) im[k] = Math.pow(k, -1.15)*(k % 2 ? 1 : .8);
     VW8 = ac.createPeriodicWave(re, im);
@@ -2054,6 +2067,24 @@ const SFX = (() => {
   const env = (g, t0, a, peak, dur) => { g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(.0002, peak), t0 + a); g.gain.exponentialRampToValueAtTime(.0001, t0 + Math.max(a + .01, dur)); };
   const noise = (t0, dur) => { const n = ac.createBufferSource(); n.buffer = noiseBuf; n.start(t0, Math.random()*1.5); n.stop(t0 + dur + .05); return n; };
   const route = (node, wet, dry = sfxDry, wetBus = sfxWet) => { node.connect(dry); if (wet){ const w = G_(wet); node.connect(w); w.connect(wetBus); } };
+  /* round 2 helpers. Call them only after ready() (they use Math.random through jit/play) */
+  const jit = (p = .04) => 1 + (Math.random()*2 - 1)*p;   // pitch variation
+  const play = (b, t0, dur, rate = 1) => { const n = ac.createBufferSource(); n.buffer = b; n.playbackRate.value = rate; n.start(t0, Math.random()*Math.max(0, b.duration - dur*rate - .05)); n.stop(t0 + dur + .05); return n; };
+  // oscillator with an exponential glide f0 -> f1 and env(); type 'vw' = the bright VW8 wave; dest skips route()
+  function tone(t, type, f0, f1, amp, dur, wet = .2, atk = .003, dest){
+    const o = ac.createOscillator(), g = ac.createGain(); if (type === 'vw') o.setPeriodicWave(VW8); else o.type = type;
+    o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur*.8);
+    env(g, t, atk, amp, dur); o.connect(g); if (dest) g.connect(dest); else route(g, wet); o.start(t); o.stop(t + dur + .05); return o;
+  }
+  // a source (noise(), play(), any node) through one filter gliding f0 -> f1, with env()
+  function nz(t, src, type, f0, f1, q, amp, dur, wet = .2, atk = .002, dest){
+    const bq = filt(type, f0, q), g = ac.createGain(); bq.frequency.setValueAtTime(f0, t); if (f1 !== f0) bq.frequency.exponentialRampToValueAtTime(f1, t + dur*.8);
+    env(g, t, atk, amp, dur); src.connect(bq); bq.connect(g); if (dest) g.connect(dest); else route(g, wet); return g;
+  }
+  // amplitude flutter: returns a gain whose level wobbles at rate Hz (depth 0..1); connect a source into it
+  function flutter(t, len, rate, depth, base = .6){
+    const am = G_(base), l = ac.createOscillator(), lg = G_(depth*base); l.frequency.value = rate; l.connect(lg); lg.connect(am.gain); l.start(t); l.stop(t + len + .05); return am;
+  }
 
   /* ---------- voice: glottal source + formants ---------- */
   const VOW = {
@@ -2086,22 +2117,20 @@ const SFX = (() => {
     const hp = filt('highpass', 500); n.connect(hp); hp.connect(ng); ng.connect(fb);
   }
 
-  /* ---------- DEMON: deep, distorted "MUAH-HA-HA-HA-HA" ---------- */
+  /* ---------- DEMON: distorted "MUAH-HA-HA-HA-HA" (round 2: higher voice, no sub, quieter) ---------- */
   function demonLaugh(){
     if (!ready('demon', 4.5)) return;
-    const t0 = ac.currentTime + .03, bus = G_(.4);
+    const t0 = ac.currentTime + .03, bus = G_(.042);
     const ws = ac.createWaveShaper(); ws.curve = curve(5); ws.oversample = '2x';
-    const lp = filt('lowpass', 2600, .7);
-    const rm = ac.createGain(); rm.gain.value = 0; const car = ac.createOscillator(); car.frequency.value = 47; const cg = G_(1); car.connect(cg); cg.connect(rm.gain); car.start(t0); car.stop(t0 + 2);
-    bus.connect(ws); ws.connect(lp); bus.connect(rm); const rmg = G_(.6); rm.connect(rmg); rmg.connect(lp);
-    route(lp, .45);
-    const base = 88 + Math.random()*10, sh = .8;
+    const lp = filt('lowpass', 3600, .7), hp = filt('highpass', 140);
+    const rm = ac.createGain(); rm.gain.value = 0; const car = ac.createOscillator(); car.frequency.value = 68; const cg = G_(1); car.connect(cg); cg.connect(rm.gain); car.start(t0); car.stop(t0 + 2);
+    bus.connect(ws); ws.connect(lp); bus.connect(rm); const rmg = G_(.5); rm.connect(rmg); rmg.connect(lp); lp.connect(hp);
+    route(hp, .45);
+    const base = 132 + Math.random()*14, sh = .96;
     syl(bus, t0, {f0:base*1.05, f1:base*1.3, dur:.34, vow:'u', vow2:'a', morph:.12, asp:.01, aspAmp:.05, amp:.9, vib:.02, vibR:5, shift:sh, breath:.12});
     const seq = [1.32, 1.22, 1.13, 1.03, .94, .85];
     seq.forEach((m, i) => syl(bus, t0 + .44 + i*.17, {f0:base*m, f1:base*m*.84, dur:.12, vow:'a', asp:.05, aspAmp:.7, amp:.95 - i*.1, shift:sh, breath:.2}));
-    const sub = ac.createOscillator(); sub.type = 'sine'; sub.frequency.setValueAtTime(base/2, t0); sub.frequency.linearRampToValueAtTime(base*.4, t0 + 1.5);
-    const sg = ac.createGain(); env(sg, t0, .08, .35, 1.55); sub.connect(sg); route(sg, .2); sub.start(t0); sub.stop(t0 + 1.6);
-    const n = noise(t0 + 1.4, .5), nl = filt('lowpass', 500), ng = ac.createGain(); env(ng, t0 + 1.4, .05, .3, .5); n.connect(nl); nl.connect(ng); route(ng, .4);
+    const n = noise(t0 + 1.4, .5), nl = filt('lowpass', 1100), ng = ac.createGain(); env(ng, t0 + 1.4, .05, .08, .5); n.connect(nl); nl.connect(ng); route(ng, .4);
   }
   /* ---------- SUCCUBUS: breathy feminine "hi-hi-hi-hi... mmm" + sparkle ---------- */
   function succubusLaugh(){
@@ -2117,12 +2146,22 @@ const SFX = (() => {
       env(g, t, .004, .07, .5); o.connect(g); route(g, .9); o.start(t); o.stop(t + .55);
     });
   }
-  /* curse circle bursting */
+  /* curse circle bursting (round 2): a softer swirl, a sparkle and a short feline "nya-ha-ha" (voice at most every 1.4 s) */
   function hex(){
     if (!ready('hex', .3)) return;
-    const t = ac.currentTime + .01, n = noise(t, .6), bp = filt('bandpass', 600, 3), g = ac.createGain();
-    bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(3200, t + .25); env(g, t, .02, .4, .5); n.connect(bp); bp.connect(g); route(g, .6);
-    for (const f of [587, 740, 880]){ const o = ac.createOscillator(), og = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(f*1.5, t); o.frequency.exponentialRampToValueAtTime(f, t + .3); env(og, t, .01, .12, .7); o.connect(og); route(og, .7); o.start(t); o.stop(t + .75); }
+    const t = ac.currentTime + .01;
+    nz(t, noise(t, .5), 'bandpass', 450, 3000, 3, .26, .45, .6, .02);
+    chimes(t + .02, [2349, 2794, 3520, 4186].map(f => f*jit(.02)), .035, .035, .35);
+    if (ready('hexV', 1.4)) nyahaha(t + .05);
+  }
+  function nyahaha(t0){
+    const bus = G_(.11), hs = filt('highshelf', 2800, 0, 3), dl = ac.createDelay(); dl.delayTime.value = .11;
+    const fbk = G_(.22); bus.connect(hs); hs.connect(dl); dl.connect(fbk); fbk.connect(dl); route(hs, .45); const dlo = G_(.3); dl.connect(dlo); route(dlo, .5);
+    const b = 430*jit(.04), sh = 1.2;
+    tone(t0, 'sine', b*.96, b, .22, .075, 0, .012, bus);   // "n": closed-mouth nasal hum before the vowel opens
+    syl(bus, t0 + .045, {f0:b, f1:b*1.3, dur:.17, vow:'i', vow2:'a', morph:.07, asp:.004, aspAmp:.03, amp:.8, vib:.025, vibR:7, shift:sh, breath:.14});
+    syl(bus, t0 + .27, {f0:b*1.38, f1:b*1.12, dur:.09, vow:'a', asp:.04, aspAmp:.85, amp:.66, shift:sh, breath:.38});
+    syl(bus, t0 + .43, {f0:b*1.26, f1:b*.94, dur:.14, vow:'a', vow2:'e', morph:.1, asp:.04, aspAmp:.8, amp:.56, vib:.035, vibR:7, shift:sh, breath:.38});
   }
 
   /* ---------- SKELETON DRAGON: hollow bone roar, jaw clatter, ghost wail ---------- */
@@ -2139,7 +2178,33 @@ const SFX = (() => {
       const l = ac.createOscillator(), lg = G_(f*.025); l.frequency.value = 4.3; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + len + .1);
       o.connect(out); o.start(t); o.stop(t + len + .1); }
   }
+  /* round 2: angrier, more draconic roar. Detuned saws + a sub-octave growl, made rough by two fast AM rates (31 and 47 Hz
+     beat irregularly), pushed through a hard waveshaper into three sweeping throat formants; breathy throat noise rides the same
+     roughness; pitch rises for the first quarter, then falls. A few jaw clacks keep the skeleton character. */
   function roar({len = 1.2, pitch = 1, vol = .9, force = false} = {}){
+    if (!ready('roar', .45, force)) return;
+    const t = ac.currentTime + .02, ts = t + .07, te = ts + len, v = vol*.105*Math.min(1.6, Math.max(.75, len/1.3)), fs = Math.pow(pitch, .35);   // longer roars (arrival, rage) are bigger
+    clatter(t, 4, .09, .16);
+    const out = ac.createGain(); out.gain.setValueAtTime(.0001, ts); out.gain.exponentialRampToValueAtTime(v, ts + .08);
+    out.gain.setValueAtTime(v, ts + len*.5); out.gain.exponentialRampToValueAtTime(.0001, te);
+    const lpo = filt('lowpass', 1400, .7); lpo.frequency.setValueAtTime(1400, ts); lpo.frequency.linearRampToValueAtTime(4200, ts + len*.25); lpo.frequency.exponentialRampToValueAtTime(900, te);
+    out.connect(lpo); route(lpo, .5);
+    const rough = G_(.55), r1 = ac.createOscillator(), r2 = ac.createOscillator(), g1 = G_(.35), g2 = G_(.22);
+    r1.frequency.value = 31; r2.frequency.value = 47; r1.connect(g1); r2.connect(g2); g1.connect(rough.gain); g2.connect(rough.gain); r1.start(ts); r2.start(ts); r1.stop(te + .1); r2.stop(te + .1);
+    const ws = ac.createWaveShaper(); ws.curve = curve(28); ws.oversample = '2x'; rough.connect(ws);
+    [[620, 4, 1, 820], [1180, 5, .7, 900], [2550, 7, .38, 2300]].forEach(([f, q, a, f2]) => {
+      const bp = filt('bandpass', f*fs, q), g = G_(a*3); bp.frequency.setValueAtTime(f*fs, ts); bp.frequency.linearRampToValueAtTime(f2*fs, ts + len*.4); bp.frequency.linearRampToValueAtTime(f*fs*.8, te);
+      ws.connect(bp); bp.connect(g); g.connect(out); });
+    const body = filt('lowpass', 420), bg = G_(.6); ws.connect(body); body.connect(bg); bg.connect(out);
+    for (const [dt, m, a] of [[-25, 1, .5], [0, 1, .5], [21, 1, .5], [0, .5, .45]]){
+      const o = ac.createOscillator(), g = G_(a); o.type = 'sawtooth'; o.detune.value = dt;
+      o.frequency.setValueAtTime(78*pitch*m, ts); o.frequency.linearRampToValueAtTime(138*pitch*m, ts + len*.25); o.frequency.exponentialRampToValueAtTime(52*pitch*m, te);
+      o.connect(g); g.connect(rough); o.start(ts); o.stop(te + .1);
+    }
+    const n = noise(ts, len), nb = filt('bandpass', 1500*fs, .6), ng = G_(.55); n.connect(nb); nb.connect(ng); ng.connect(rough);
+  }
+  /* the round-1 roar, kept only for dragonDeath (the owner liked its character) */
+  function boneRoar({len = 1.2, pitch = 1, vol = .9, force = false} = {}){
     vol *= .62;
     if (!ready('roar', .45, force)) return;
     const t = ac.currentTime + .02;
@@ -2177,18 +2242,20 @@ const SFX = (() => {
     env(g, t, .2, .5, len); n.connect(bp); bp.connect(g); route(g, .4);
     wail(t + .3, len*.8, 380, .06);
   }
+  /* dive impact (round 2): massive body slam, ground thump, crack, dust and stones, bones rattling */
   function thud(){
-    if (!ready('thud', .2)) return;
-    const t = ac.currentTime + .01, o = ac.createOscillator(), g = ac.createGain();
-    o.type = 'sine'; o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(26, t + .5);
-    env(g, t, .005, 1, .6); o.connect(g); route(g, .3); o.start(t); o.stop(t + .65);
-    const n = noise(t, .35), lp = filt('lowpass', 700), ng = ac.createGain(); env(ng, t, .005, .6, .35); n.connect(lp); lp.connect(ng); route(ng, .3);
-    clatter(t + .08, 12, .7, .3);
+    if (!ready('thud', .2)) return; const t = ac.currentTime + .01, p = jit(.04);
+    tone(t, 'sine', 78*p, 22, .39, .8, .3, .004);
+    nz(t, noise(t, .45), 'lowpass', 900*p, 150, .8, .32, .45, .35, .003);
+    nz(t, noise(t, .03), 'bandpass', 1800*p, 1200, .8, .25, .03, .1, .001);
+    nz(t + .02, play(dustBuf, t + .02, .8), 'bandpass', 1600*p, 700, .6, .28, .8, .4, .02);
+    nz(t + .05, play(crackBuf, t + .05, .9, .5), 'bandpass', 900*p, 500, 1, .5, .9, .3, .03);
+    clatter(t + .08, 8, .6, .13);
   }
   function rattle(){ if (!ready('rattle', .25)) return; clatter(ac.currentTime + .01, 16, .6, .4); }
   function dragonDeath(){
     if (!ac || !on) return;
-    roar({len:3, pitch:.5, vol:1, force:true});
+    boneRoar({len:3, pitch:.5, vol:1, force:true});
     const t = ac.currentTime + .4; wail(t, 3.2, 520, .14); clatter(t + 1.2, 40, 2.2, .45);
   }
   function giggle(kind){ if (kind === 'succubus') succubusLaugh(); else demonLaugh(); }
@@ -2200,30 +2267,34 @@ const SFX = (() => {
   }
   function levelup(){ chime('lvl', [523.25, 659.25, 783.99, 1046.5], .075, .26); }
   function enhance(){ chime('enh', [783.99, 987.77, 1174.66, 1567.98, 2093], .05, .156); }   // round 2: -3 dB ("Alto demais")
+  /* fireball burst (round 2): a whoomp of air, a rough roaring flame body and crackles; +-5% pitch */
   function explode(){
-    if (!ready('expl', .09)) return; const t = ac.currentTime + .01;
-    const n = noise(t, .55), lp = filt('lowpass', 1800, .7), g = ac.createGain();
-    lp.frequency.setValueAtTime(2600, t); lp.frequency.exponentialRampToValueAtTime(240, t + .5);
-    env(g, t, .004, .32, .55); n.connect(lp); lp.connect(g); route(g, .35);
-    const o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(38, t + .32);
-    env(og, t, .004, .38, .36); o.connect(og); route(og, .2); o.start(t); o.stop(t + .4);
+    if (!ready('expl', .09)) return; const t = ac.currentTime + .01, v = jit(.05);
+    tone(t, 'sine', 150*v, 42*v, .38, .32, .2, .004);
+    nz(t, noise(t, .3), 'lowpass', 1300*v, 220, .9, .38, .28, .25, .006);
+    const am = flutter(t + .03, .65, 13*v, .6); noise(t + .03, .65).connect(am);
+    nz(t + .03, am, 'bandpass', 950*v, 420*v, .7, .53, .62, .45, .05);
+    nz(t + .05, play(crackBuf, t + .05, .55), 'highpass', 2200*v, 2200*v, .7, .69, .55, .3, .02);
   }
-  /* seismic hammer: low thump + crunching earth + a few pebbles; the aftershock is softer and lower */
+  /* seismic hammer (round 2): earthy, sandy impact - low thump, dull earth body, sand hiss and gravel bits, no ring;
+     the aftershock is softer and lower */
   function slam(after){
-    if (!ready(after ? 'slam2' : 'slam', .25)) return; const t = ac.currentTime + .01, v = after ? .6 : 1;
-    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(after ? 80 : 110, t); o.frequency.exponentialRampToValueAtTime(32, t + .28);
-    env(g, t, .004, .5*v, .34); o.connect(g); route(g, .25); o.start(t); o.stop(t + .4);
-    const n = noise(t, .3), lp = filt('lowpass', 1400, .8), ng = ac.createGain(); lp.frequency.setValueAtTime(1800, t); lp.frequency.exponentialRampToValueAtTime(200, t + .25);
-    env(ng, t, .003, .3*v, .3); n.connect(lp); lp.connect(ng); route(ng, .3);
-    for (let i = 0; i < 4; i++){ const tt = t + .05 + i*.045, c = noise(tt, .02), bp = filt('bandpass', 700 + i*260, 5), cg = ac.createGain(); env(cg, tt, .001, .1*v, .03); c.connect(bp); bp.connect(cg); route(cg, .2); }
+    if (!ready(after ? 'slam2' : 'slam', .25)) return; const t = ac.currentTime + .01, v = after ? .55 : 1, p = jit(.04)*(after ? .78 : 1);
+    tone(t, 'sine', 95*p, 30*p, .5*v, .32, .15, .003);
+    nz(t, noise(t, .22), 'lowpass', 700*p, 160, .8, .42*v, .22, .2, .002);
+    nz(t + .01, play(dustBuf, t + .01, .45), 'bandpass', 2600*p, 1300*p, .8, .55*v, .45, .25, .01);
+    nz(t + .03, play(crackBuf, t + .03, .5, .6), 'bandpass', 1100*p, 650*p, 1.2, .8*v, .5, .2, .02);
   }
-  /* elven bow: short airy "fwip" + a soft string twang */
+  /* elven bow (round 2): the string released (a short plucked twang dropping a hair) and one noise band that starts as the
+     string slap and sweeps up into the arrow hiss leaving; 6 nodes, +-4.5% pitch */
   function bowShot(){
-    if (!ready('bow', .09)) return; const t = ac.currentTime + .005;
-    const n = noise(t, .09), bp = filt('bandpass', 1800, 2.2), g = ac.createGain(); bp.frequency.setValueAtTime(1300, t); bp.frequency.exponentialRampToValueAtTime(5200, t + .08);
-    env(g, t, .004, .7, .09); n.connect(bp); bp.connect(g); route(g, .15);
-    const o = ac.createOscillator(), og = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(230, t); o.frequency.exponentialRampToValueAtTime(190, t + .12);
-    env(og, t, .002, .3, .14); o.connect(og); route(og, .1); o.start(t); o.stop(t + .16);
+    if (!ready('bow', .09)) return; const t = ac.currentTime + .005, v = jit(.045);
+    tone(t, 'vw', 208*v, 196*v, .2, .16, 0, .0015);
+    const n = noise(t, .17), bp = filt('bandpass', 900*v, 1.6), g = ac.createGain();
+    bp.frequency.setValueAtTime(900*v, t); bp.frequency.exponentialRampToValueAtTime(4200*v, t + .035); bp.frequency.exponentialRampToValueAtTime(1500*v, t + .16);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.8, t + .003); g.gain.exponentialRampToValueAtTime(.22, t + .02);
+    g.gain.linearRampToValueAtTime(.42, t + .05); g.gain.exponentialRampToValueAtTime(.0001, t + .17);
+    n.connect(bp); bp.connect(g); route(g, .12);
   }
 
   /* ---------- Etapa 5 bosses: armour clanks, ghost shrieks, ice, thunder ---------- */
@@ -2257,30 +2328,82 @@ const SFX = (() => {
     env(g, t, len*.7, amp, len); o.connect(bp); bp.connect(g); route(g, .3); o.start(t); o.stop(t + len + .05);
     for (let i = 0; i < 8; i++){ const tt = t + Math.random()*len, c = noise(tt, .01), ch = filt('highpass', 4000), cg = ac.createGain(); env(cg, tt, .001, amp*1.2, .012); c.connect(ch); ch.connect(cg); route(cg, .2); }
   }
+  // swelling metallic "shiing": detuned sine pair + inharmonic partials + a breath of high noise, slow attack, quick release
+  function shing(t, f, amp, atk, dur, wet = .8){
+    const out = ac.createGain(); out.gain.setValueAtTime(.0001, t); out.gain.exponentialRampToValueAtTime(amp, t + atk); out.gain.exponentialRampToValueAtTime(.0001, t + dur); route(out, wet);
+    for (const [m, a, dt] of [[1, 1, 0], [1, .7, 11], [2.76, .35, 0], [5.4, .16, 0]]){ const o = ac.createOscillator(), g = G_(a); o.type = 'sine'; o.detune.value = dt;
+      o.frequency.setValueAtTime(f*m*.96, t); o.frequency.exponentialRampToValueAtTime(f*m, t + atk); o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + .05); }
+    const n = noise(t, dur), hp = filt('highpass', 6000), ng = G_(.3); n.connect(hp); hp.connect(ng); ng.connect(out);
+  }
+  // original retro (handheld-console flavoured) thunder: square zap crack, crunchy sample-and-hold noise, stepped low rumble
+  function retroThunder(t, amp){
+    const p = jit(.06);
+    tone(t, 'square', 1800*p, 120, amp*.22, .05, .1, .001);
+    nz(t, play(crunchBuf, t, .5, p), 'lowpass', 7000, 900, .5, amp*.85, .5, .4, .001);
+    nz(t + .03, play(crunchBuf, t + .03, .8, .12), 'lowpass', 520, 160, .7, amp*.9, .8, .5, .02);
+  }
+  // the Paladin's possessed scream: distorted, ring-modulated formant voice ("AAAH" doubled an octave below, then a laugh)
+  // inside a hollow helmet (short comb resonance) with a metallic ring
+  function possessedScream(t0){
+    const bus = G_(.17), ws = ac.createWaveShaper(); ws.curve = curve(8); ws.oversample = '2x';
+    const comb = ac.createDelay(); comb.delayTime.value = .0042; const fb = G_(.55), cl = filt('lowpass', 3000), lp = filt('lowpass', 3800, .7), mix = G_(1);
+    bus.connect(ws); ws.connect(mix); mix.connect(comb); comb.connect(fb); fb.connect(cl); cl.connect(comb); comb.connect(lp); mix.connect(lp);
+    const rm = ac.createGain(); rm.gain.value = 0; const car = ac.createOscillator(); car.frequency.value = 73; const cg = G_(1); car.connect(cg); cg.connect(rm.gain); car.start(t0); car.stop(t0 + 2.2);
+    ws.connect(rm); const rmg = G_(.5); rm.connect(rmg); rmg.connect(lp); const og = G_(.13); lp.connect(og); route(og, .5);
+    const b = 150*jit(.03);
+    syl(bus, t0, {f0:b*1.4, f1:b*2.1, dur:.85, vow:'a', vow2:'o', morph:.7, asp:.03, aspAmp:.4, amp:.9, vib:.035, vibR:9, shift:.95, breath:.35});
+    syl(bus, t0, {f0:b*.7, f1:b*1.02, dur:.85, vow:'a', vow2:'o', morph:.7, asp:.03, aspAmp:.1, amp:.5, vib:.03, vibR:6, shift:.8, breath:.1});
+    [1.55, 1.42, 1.3, 1.18].forEach((m, i) => syl(bus, t0 + .95 + i*.15, {f0:b*m, f1:b*m*.85, dur:.1, vow:'a', asp:.04, aspAmp:.6, amp:.8 - i*.12, shift:.95, breath:.25}));
+    metal(t0, 150, .07, 1.3);
+  }
   const BOSS_SFX = {
     palFall: t => { sweep(t, 1.1, 300, 1600, .35); wail(t + .1, 1, 300, .05); },
-    land:    t => { boom(t, 95, 28, .32, .55); metal(t + .01, 210, .1, .7); clatter(t + .06, 6, .3, .14); },
-    roarP:   t => { wail(t, 1.2, 240, .12); metal(t, 150, .12, 1.1); sweep(t, .9, 500, 1400, .18, 1.2, .6); },
+    // round 2: heavy armour crashing down - deep boom, plate clangs, plates rattling as they settle, dirt
+    land:    t => { boom(t, 80, 24, .27, .7);
+                    [[300, .056, .55], [455, .045, .45], [620, .034, .35]].forEach(([f, a, d], i) => metal(t + .012 + i*.035, f*jit(.03), a, d));
+                    for (let i = 0; i < 5; i++) metal(t + .14 + i*.06 + Math.random()*.02, 700 + Math.random()*700, .022*(1 - i/6), .18);
+                    nz(t + .01, play(dustBuf, t + .01, .5), 'lowpass', 1800, 500, .7, .3, .5, .25, .01); },
+    roarP:   t => possessedScream(t),
     scrape:  t => { sweep(t, .7, 1800, 3600, .27, 6, .25); metal(t, 320, .134, .4); },   // round 2: +4.5 dB
     charge:  t => { sweep(t, .5, 300, 900, .4, 1.5); boom(t, 70, 40, .25, .3); },
-    bash:    t => { metal(t, 180, .15, .6); boom(t, 120, 40, .22, .25); },
+    // round 2: a clear metallic "bonk" (a struck plate whose pitch drops)
+    bash:    t => { const p = jit(.03); tone(t, 'sine', 640*p, 300*p, .27, .3, .3, .002); tone(t, 'triangle', 1766*p, 828*p, .055, .16, .3, .002);
+                    metal(t, 300*p, .1, .5); boom(t, 110, 45, .2, .2); },
     windup:  t => { sweep(t, .6, 400, 1200, .14, 3); metal(t + .45, 400, .06, .3); },
-    spin:    t => { for (let i = 0; i < 3; i++) sweep(t + i*.22, .24, 600, 2400, .32, 2); },
+    // round 2: louder, with a sharp metallic edge on each pass
+    spin:    t => { for (let i = 0; i < 3; i++){ const p = jit(.03), tt = t + i*.22; sweep(tt, .24, 600, 2400, .75, 2);
+                    tone(tt + .09, 'sine', 3100*p, 3700*p, .05, .15, .3, .008); tone(tt + .09, 'sine', 4650*p, 5500*p, .03, .12, .3, .008); } },
     jump:    t => { sweep(t, .35, 300, 1200, .3); metal(t, 260, .08, .3); },
-    blades:  t => { chimes(t, [1318, 1568, 1976, 2349], .09, .07, .6); sweep(t, .7, 2000, 5000, .1, 4, .7); },
-    bladeGo: t => { sweep(t, .16, 1600, 4800, .35, 2.5, .15); },
-    shriek:  t => { wail(t, 1.6, 560, .12); sweep(t, 1.4, 900, 3000, .14, 1.6, .7); boom(t, 80, 30, .16, .6); },
+    // round 2: spectral blades materializing - ghostly metallic "shiing" swells
+    blades:  t => { [1318, 1568, 1976, 2349].forEach((f, i) => shing(t + i*.1, f*jit(.01), .046, .16, .75)); sweep(t, .8, 2000, 5000, .046, 4, .8); },
+    bladeGo: t => { sweep(t, .16, 1600, 4800, .35, 2.5, .15); const p = jit(.04); tone(t, 'sine', 5200*p, 6900*p, .05, .1, .15, .002);   // round 2: sharper edge
+                    nz(t, noise(t, .03), 'highpass', 7000, 7000, .7, .3, .03, .1, .001); },
+    shriek:  t => { wail(t, 2.6, 560, .12); sweep(t, 2.4, 900, 3000, .14, 1.6, .7); boom(t, 80, 30, .16, .6); },   // round 2: +1 s
     clank:   t => { metal(t, 240 + Math.random()*180, .12, .35); },
-    palDie:  t => { for (let i = 0; i < 9; i++) metal(t + i*.11 + Math.random()*.04, 160 + Math.random()*260, .09*(1 - i/12), .45); wail(t + .2, 1.8, 620, .12); sweep(t + .2, 1.6, 1200, 300, .1, 1.4, .8); },
+    // round 2: brighter, longer-ringing plates that bounce once; the spirit's wail lasts 1 s longer
+    palDie:  t => { for (let i = 0; i < 7; i++){ const tt = t + i*.13 + Math.random()*.04, f = 280 + Math.random()*420, a = .064*(1 - i/10); metal(tt, f, a, .9); metal(tt + .09 + Math.random()*.03, f*1.02, a*.4, .5); }
+                    wail(t + .2, 2.8, 620, .1); sweep(t + .2, 2.6, 1200, 300, .085, 1.4, .8); },
     lichIntro: t => { wail(t, 2, 180, .1); wail(t + .3, 1.8, 270, .06); sweep(t, 1.6, 200, 700, .2, 1.2, .8); clatter(t + .9, 8, .5, .2); },
     lichP2:  t => { wail(t, 1.4, 400, .1); thunder(t + .2, .16); chimes(t, [2093, 1760, 1397, 1175], .07, .06, .5); },
-    tele:    t => { sweep(t, .45, 3000, 600, .26, 3, .6); chimes(t, [1760, 1397], .08, .05, .3); },
-    iceCast: t => { chimes(t, [1568, 1865, 2217, 2637], .1, .06, .5); },
+    // round 2: an instant blink - a very short zip up, a "shk" and a quick tonal ping
+    tele:    t => { const p = jit(.03); tone(t, 'sine', 380*p, 3400*p, .25, .07, .3, .002); tone(t, 'square', 190*p, 1700*p, .05, .06, .2, .002);
+                    nz(t + .04, noise(t + .04, .05), 'bandpass', 2600, 5200, 2, .57, .05, .3, .002);
+                    tone(t + .06, 'sine', 1760*p, 1760*p, .14, .2, .2, .002); tone(t + .06, 'sine', 2637*p, 2637*p, .055, .14, .2, .002); },
+    // round 2: crystalline ice forming - glassy tinkles rising over a cold hiss
+    iceCast: t => { [1976, 2349, 2637, 3136, 3520, 4186].forEach((f, i) => { const tt = t + i*.07 + Math.random()*.02, ff = f*jit(.015);
+                      tone(tt, 'sine', ff, ff, .028, .35, .8, .002); tone(tt, 'sine', ff*2.76, ff*2.76, .009, .12, .8, .001); });
+                    nz(t, noise(t, .7), 'highpass', 5500, 7500, .7, .08, .7, .5, .35); },
     iceGo:   t => { sweep(t, .25, 2400, 900, .3, 2, .4); },
-    iceHit:  t => { const n = noise(t, .15), hp = filt('highpass', 2500), g = ac.createGain(); env(g, t, .002, .4, .15); n.connect(hp); hp.connect(g); route(g, .4); chimes(t, [2637, 3136], .03, .07, .4); },
-    zapWarn: t => { buzz(t, .5, 120, 300, .11); },
+    // round 2: ice shattering - crack, knock, glassy shards and fine ice dust
+    iceHit:  t => { nz(t, noise(t, .04), 'highpass', 2500, 2500, .7, .78, .04, .3, .001); tone(t, 'triangle', 1400, 380, .22, .05, .2, .001);
+                    for (let i = 0; i < 8; i++){ const tt = t + .005 + Math.random()*Math.random()*.22, f = 2400 + Math.random()*4200; tone(tt, 'sine', f, f*.98, .078*(1 - i/10), .12 + Math.random()*.12, .6, .001); }
+                    nz(t, play(dustBuf, t, .3), 'highpass', 4000, 4000, .7, .7, .3, .4, .002); },
+    // round 2: static building up - crackles thickening and a faint rising whine
+    zapWarn: t => { const L = .75; nz(t, play(crackBuf, t, L, 3), 'highpass', 2500, 2500, .7, 1.1, L, .25, L*.6);
+                    const o = ac.createOscillator(), og = ac.createGain(), bp = filt('bandpass', 1000, 3); o.type = 'sawtooth'; o.frequency.setValueAtTime(500, t); o.frequency.exponentialRampToValueAtTime(1400, t + L);
+                    env(og, t, L*.85, .08, L); o.connect(bp); bp.connect(og); route(og, .3); o.start(t); o.stop(t + L + .05); },
     chainCharge: t => { buzz(t, .95, 70, 420, .14); },
-    bolt:    t => { thunder(t, .5); },
+    bolt:    t => retroThunder(t, .18),   // round 2
     summon:  t => { clatter(t + .2, 14, .7, .18); boom(t, 60, 35, .12, .9); wail(t, 1, 210, .05); },
     lichDie: t => { const n = 18; for (let i = 0; i < n; i++){ const tt = t + .25 + Math.random()*.35, o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = 2200 + Math.random()*3000; env(g, tt, .001, .05, .25); o.connect(g); route(g, .7); o.start(tt); o.stop(tt + .3); }
                    sweep(t, 1.6, 900, 150, .26, .8, .5); wail(t, 1.8, 300, .12); }
