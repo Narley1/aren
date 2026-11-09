@@ -2503,12 +2503,24 @@ const SFX = (() => {
     if (!ready('elite', 1.5)) return; const t = ac.currentTime + .02;
     tone(t, 'triangle', 196, 196, .08, .9, .6, .01); tone(t, 'triangle', 207.65, 207.65, .057, .9, .6, .01); metal(t, 392, .015, .8);
   }
-  // low health: a soft heartbeat (lub-dub), at most every 2.4 s while it is called (round 3: +4.5 dB, "Baixo demais";
-  // round 4: another +4 dB, still "Baixo demais" - same shape, all three parts x1.585)
+  // low health: a soft heartbeat (lub-dub), at most every 2.4 s while it is called (round 3: +4.5 dB, round 4: +4 dB, both
+  // "Baixo demais"). Round 5: the thump is almost all below 200 Hz, which small laptop/phone speakers barely play and the music
+  // masks, so each beat also gets a soft knock (a short band of noise around 1.3 kHz, like a knuckle on wood through a
+  // pillow) and a triangle an octave above the thump (its overtones sit at 0.6-1.5 kHz); thump x1.2. Measured: +2.9 dB, and +16 dB above 500 Hz. 12 nodes
   function lowHp(){
-    if (!ready('lowhp', 2.4)) return; const t = ac.currentTime + .01;
-    tone(t, 'sine', 110, 60, .266, .14, 0, .006); nz(t, noise(t, .08), 'lowpass', 520, 300, .8, .266, .08, 0, .003);
-    tone(t + .18, 'sine', 95, 55, .2, .14, 0, .006);
+    if (!ready('lowhp', 2.4)) return; const t = ac.currentTime + .01, t2 = t + .18, k = 1.2;
+    tone(t, 'sine', 110, 60, .266*k, .14, 0, .006); nz(t, noise(t, .08), 'lowpass', 520, 300, .8, .266*k, .08, 0, .003);
+    tone(t2, 'sine', 95, 55, .2*k, .14, 0, .006);
+    // upper layer, one oscillator and one noise band gated twice (lub, then a softer dub)
+    const o = ac.createOscillator(), og = ac.createGain(); o.type = 'triangle';
+    o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(130, t + .1); o.frequency.setValueAtTime(190, t2); o.frequency.exponentialRampToValueAtTime(115, t2 + .1);
+    og.gain.setValueAtTime(.0001, t); og.gain.exponentialRampToValueAtTime(.2, t + .005); og.gain.exponentialRampToValueAtTime(.0001, t + .11);
+    og.gain.setValueAtTime(.0001, t2); og.gain.exponentialRampToValueAtTime(.15, t2 + .005); og.gain.exponentialRampToValueAtTime(.0001, t2 + .11);
+    o.connect(og); route(og, 0); o.start(t); o.stop(t2 + .15);
+    const n = noise(t, .25), bp = filt('bandpass', 1300, 1.4), ng = ac.createGain(); ng.gain.setValueAtTime(.0001, t);
+    ng.gain.exponentialRampToValueAtTime(.6, t + .002); ng.gain.exponentialRampToValueAtTime(.0001, t + .05);
+    ng.gain.setValueAtTime(.0001, t2); ng.gain.exponentialRampToValueAtTime(.42, t2 + .002); ng.gain.exponentialRampToValueAtTime(.0001, t2 + .05);
+    n.connect(bp); bp.connect(ng); route(ng, 0);
   }
   // enemy death: one pitched blip + one filtered noise tick, timbre by type; elites lower, longer, a little louder.
   // [osc type, f0, f1, osc amp, noise filter, noise f, q, noise amp, dur]. 5 nodes, dry, 50 ms cooldown shared by all types.
@@ -2541,16 +2553,6 @@ const SFX = (() => {
       const tb = t + L*.9;   // the body lands as the cry dies
       tone(tb, 'sine', 92*p, 32, .12*a, .26*d, 0, .003);
       nz(tb, noise(tb, .16*d), 'lowpass', 650*p, 170, .8, .085*a, .16*d, 0, .004);
-    },
-    // Sound Lab only (not used by the game; the owner picks A or B): a reptile hiss-shriek, the flame inside sputtering
-    // out (sparse crackles fading) and a lighter thud. 11 nodes
-    wyvern_b: (t, p, a, d) => {
-      const L = .17*d, am = flutter(t, L, 47*p, .7, .6), bp = filt('bandpass', 2700*p, 2.2), g = ac.createGain();
-      bp.frequency.setValueAtTime(2700*p, t); bp.frequency.exponentialRampToValueAtTime(1500*p, t + L);
-      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.3*a, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + L);
-      noise(t, L).connect(am); am.connect(bp); bp.connect(g); route(g, 0);
-      nz(t + .06, play(crackBuf, t + .06, .35*d, 1.3*p), 'bandpass', 1800*p, 700*p, .9, 1*a, .35*d, 0, .01);
-      tone(t + L*.9, 'sine', 120*p, 45, .17*a, .16*d, 0, .003);
     }
   };
   let HARD = null; const hardCurve = () => HARD || (HARD = curve(28));   // roar()'s waveshaper curve, built once
@@ -2564,7 +2566,7 @@ const SFX = (() => {
   /* ================= round 3: enemy presence voices (batch 1: goblin, gargoyle, hobgoblin) =================
      Quiet ambient cues for a monster near Aren. The game decides WHEN (a per-type timer with its own tiny generator, never
      Math.random); everything random (pitch, syllables, variant) happens here, after ready(). <= 12 nodes each, dry-ish.
-     v: optional variant for the Sound Lab (gargoyle 1 = with screech, hobgoblin 1 = snarl); omitted = picked at random. */
+     v: optional variant for the Sound Lab (gargoyle 1 = with screech, succubus 1 = with sigh); omitted = picked at random. */
   // goblin: a quick nasal "heh-heh-heh" chatter - one square voice through two formants, 3-5 syllables gated on one gain
   function vGoblin(t){
     const p = jit(.07), n = 3 + ((Math.random()*3) | 0), gap = .075*jit(.1), f = 540*p;
@@ -2631,27 +2633,19 @@ const SFX = (() => {
     growlEnd = tg + L;
   }
   let SOFT = null; const softCurve = () => SOFT || (SOFT = curve(4));
-  // wyvern: 2-3 big leathery wing beats, slower and lower than the gargoyle's stone flaps (a deep air "whoomf" on the
-  // downstroke + a short taut membrane snap at its end, no sand grit); sometimes a nasal two-part squawk "kraa-ak" -
-  // higher, shorter and cleaner than any dragon roar. Flaps 5 nodes, + squawk 7 = 12
-  function vWyvern(t, v){
-    const p = jit(.06), n = 2 + (Math.random() < .5 ? 1 : 0), gap = .34*jit(.08), L = n*gap + .1;
+  // wyvern: big leathery wing beats, slower and lower than the gargoyle's stone flaps (a deep air "whoomf" on the downstroke
+  // + a short taut membrane snap at its end, no sand grit). Round 5: the "kraa-ak" squawk is gone (owner: "Nao combina"); only
+  // the approved beats, varied: 2-4 beats, base tempo +-12%, and the beats slowly speed up or slow down. 5 nodes
+  function vWyvern(t){
+    const p = jit(.06), r = Math.random(), n = r < .4 ? 2 : r < .85 ? 3 : 4, g0 = .34*jit(.12), drift = 1 + (Math.random()*2 - 1)*.12;
     const ga = ac.createGain(), gs = ac.createGain(); ga.gain.setValueAtTime(.0001, t); gs.gain.setValueAtTime(.0001, t);
-    for (let i = 0; i < n; i++){ const ts = t + i*gap, a = 1 - i*.15;
+    let ts = t, gap = g0;
+    for (let i = 0; i < n; i++){ const a = 1 - i*(n > 3 ? .12 : .15);
       ga.gain.setValueAtTime(.0001, ts); ga.gain.exponentialRampToValueAtTime(.7*a, ts + .09); ga.gain.exponentialRampToValueAtTime(.0001, ts + gap*.85);
-      gs.gain.setValueAtTime(.0001, ts + .1); gs.gain.exponentialRampToValueAtTime(.32*a, ts + .112); gs.gain.exponentialRampToValueAtTime(.0001, ts + .17); }
-    const air = noise(t, L), lp = filt('lowpass', 210*p, 1.1), bp = filt('bandpass', 780*p, 1.6);
+      gs.gain.setValueAtTime(.0001, ts + .1); gs.gain.exponentialRampToValueAtTime(.32*a, ts + .112); gs.gain.exponentialRampToValueAtTime(.0001, ts + .17);
+      ts += gap; gap *= drift; }
+    const L = ts - t + .1, air = noise(t, L), lp = filt('lowpass', 210*p, 1.1), bp = filt('bandpass', 780*p, 1.6);
     air.connect(lp); lp.connect(ga); ga.connect(sfxDry); air.connect(bp); bp.connect(gs); gs.connect(sfxDry);
-    if (v === 1 || (v === undefined && Math.random() < .3)){
-      const ts = t + n*gap - .08, o = ac.createOscillator(), am = flutter(ts, .34, 55*p, .45, .7), fb = filt('bandpass', 1100*p, 3), sg = ac.createGain();
-      o.type = 'sawtooth'; o.frequency.setValueAtTime(400*p, ts); o.frequency.linearRampToValueAtTime(520*p, ts + .06); o.frequency.exponentialRampToValueAtTime(360*p, ts + .17);
-      o.frequency.setValueAtTime(470*p, ts + .21); o.frequency.exponentialRampToValueAtTime(330*p, ts + .3);
-      fb.frequency.setValueAtTime(1100*p, ts); fb.frequency.linearRampToValueAtTime(1600*p, ts + .06); fb.frequency.exponentialRampToValueAtTime(950*p, ts + .17);
-      fb.frequency.setValueAtTime(1350*p, ts + .21); fb.frequency.exponentialRampToValueAtTime(900*p, ts + .3);
-      sg.gain.setValueAtTime(.0001, ts); sg.gain.exponentialRampToValueAtTime(.1, ts + .02); sg.gain.exponentialRampToValueAtTime(.0001, ts + .17);   // "kraa"
-      sg.gain.setValueAtTime(.0001, ts + .2); sg.gain.exponentialRampToValueAtTime(.075, ts + .215); sg.gain.exponentialRampToValueAtTime(.0001, ts + .3);   // "ak"
-      o.connect(am); am.connect(fb); fb.connect(sg); route(sg, .12); o.start(ts); o.stop(ts + .35);
-    }
   }
   // succubus: light, soft, quick wing flutters (4-6 airy beats, one noise band) and sometimes a breathy feminine sigh
   // "haah~" (whispered: noise through two vowel formants a -> e, with a faint voiced tone sliding down, same register as her
