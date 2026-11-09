@@ -1018,13 +1018,13 @@ const BAL = {
      touch = contact damage (none while recovering: the melee window), phase2 = hp fraction where phase 2 starts (damage in
      phase 1 cannot go below it, so phase 2 always plays), transT = invulnerable transition; p2 = phase 2 multipliers.
      A mid-boss never leaves: while it lives the run clock G.t is held (Narley, 09/11/2026: "o jogo só prossegue quando o
-     boss for derrotado").
+     boss for derrotado"). hp +25% by the same decision (Paladin 2300 -> 2875, Lich 7600 -> 9500).
      Paladin: walks at speed, between attacks waits gap s; leash = farther than this it leaps or charges at once.
        charge: lane telegraph tele s (locked direction), then runs len px at speed; hit = dmg + knockback kb; recover s dazed.
        spin: ring telegraph windup s, then spins dur s; hit inside R (ground ellipse). leap: crouch s, flies air s to the spot
        Aren stood on at take-off (landing circle shown while airborne), hit inside R; recover s with the sword in the ground.
        blades: cast s (n blades appear), then fires one every gap s at speed px/s (dmg each). */
-  paladin: {hp:2300, gem:60, enter:92, r:14, touch:1, speed:34, gap:1.6, leash:150, phase2:.5, transT:1.8,
+  paladin: {hp:2875, gem:60, enter:92, r:14, touch:1, speed:34, gap:1.6, leash:150, phase2:.5, transT:1.8,
             p2:{speed:1.2, tele:.85, gap:.6, cd:.8},
             intro:{fall:1.15, R:30, dmg:2, roar:.8},
             charge:{tele:.85, speed:250, len:175, w:13, dmg:2, kb:160, recover:1.15, minD:46, maxD:200},
@@ -1038,7 +1038,7 @@ const BAL = {
        chain: charge s with a line that follows Aren, locked for the last lock s, then a bolt len px long (hit within w px);
        phase 2 forks into 3 (fork rad apart). summon: cast s showing graves, then n skeletons rise in rise s (at most max alive,
        not again before every s). After each spell: recover s, tired and still (no contact damage). */
-  lich:    {hp:7600, gem:120, enter:105, r:11, touch:2, speed:36, keep:130, gap:1.1, phase2:.5, transT:1.6,
+  lich:    {hp:9500, gem:120, enter:105, r:11, touch:2, speed:36, keep:130, gap:1.1, phase2:.5, transT:1.6,
             p2:{speed:1.15, cast:.8, gap:.6, recover:.7},
             intro:{mist:.9, rise:.9},
             tele:{out:.45, in:.4, d:[90, 125], near:75, nearT:.6, every:7},
