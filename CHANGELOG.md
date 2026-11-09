@@ -1,5 +1,17 @@
 # Changelog
 
+## Áudio — rodada 5 (09/11/2026, branch `dev`, não publicado)
+
+Notas do Narley no laboratório da rodada 4 e o lote 2, o último, dos sons dos monstros. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta, comparado com a explosão do fogo, ~−29,7 dBFS). Eu não ouço: a aprovação é do Narley, no laboratório.
+
+- **Vida baixa (terceiro "baixo demais"):** subir o ganho não resolvia porque 98% da energia da batida ficava abaixo de 200 Hz, que alto-falante de notebook e celular mal reproduz e a música cobre. Cada batida (lub e dub) ganhou um toque abafado (ruído numa banda em ~1,3 kHz, ~50 ms) e um triângulo uma oitava acima do baque (220→130 Hz e 190→115 Hz, harmônicos em 0,6–1,5 kHz); o baque ×1,2. Medido: volume −2,8 → +0,0 dB (rms150 −32,6 → −29,7 dBFS, +2,9 dB), pico −11,8 dBFS, 12 nós (eram 7); energia acima de 500 Hz +16 dB (0,19% → 3,9% da energia); depois de um passa-altas de 500 Hz (simulando alto-falante pequeno) o rms150 foi de −60,6 para −43,8 dBFS (a explosão dá −37,5).
+- **Serpe-dragão por perto:** o grasnido "kraa-ak" saiu ("Não combina"); só as asas aprovadas, agora de 2 a 4 batidas (40/45/15%), andamento ±12% e as batidas acelerando ou desacelerando até 12% cada; −9,4 dB, 5 nós. Linha `v_wyvern2` removida.
+- **Morte da serpe:** ele escolheu a A; a receita B (`kill_wyvern_b`) saiu do jogo e do catálogo.
+- **Monstros, lote 2 (vozes de presença):** orc (fungada pelo nariz em 60% das vezes, depois uma bufada longa por um passa-baixas ressonante com grunhido gutural de 74 Hz por baixo, os dois com um rolado de ~38 Hz; −8,4 dB, 10 nós), elfo ("hah!" ou, 1 em 3, "hy-ah!": um "h" soprado e uma sílaba curta com dois formantes, altura subindo e caindo; −10,6 dB, 9 nós; se uma flecha de elfo soou há menos de 0,22 s, o grito espera ela terminar — conferido no espectrograma: flecha até ~0,12 s, grito a partir de ~0,23 s) e esqueleto (6–9 estalinhos secos de 1,8–3,6 kHz e a mandíbula "clac-clac" em ~560 Hz, em qualquer ordem, sem reverb; −7 a −12 dB conforme a ordem e a densidade, 7 nós). Intervalos: orc 3,5–8 s, elfo 6–12 s, esqueleto 3–6,5 s. Todos os monstros comuns agora têm voz de presença.
+- **Desempenho:** 25 orcs + 25 elfos + 20 esqueletos perto de Aren por ~10 s: 15 vozes (com goblins do spawn normal), 115 nós de voz, no máximo 16 em meio segundo, 46 flechas; com os 9 tipos juntos (45 goblins, 10 gárgulas, 10 hobgoblins, 15 orcs, 15 elfos, 10 demônios, 8 súcubos, 8 serpes, 15 esqueletos): 28 vozes, 216 nós de voz, no máximo 22 em meio segundo.
+- **Determinismo:** `smoke.py --compare` IDENTICAL; `smoke.py` 0 falhas.
+- **Laboratório:** "Antes" = commit 9e732e4 (rodada 4), notas em `avaliacoes_r5`, nota anterior de `avaliacoes_r4`, depois r3, r2 e a rodada 1; as coleções antigas só são lidas. A cena ganhou orc, elfo e esqueleto e usa as asas da serpe no lugar do grasnido.
+
 ## Áudio — rodada 4 (09/11/2026, branch `dev`, não publicado)
 
 Notas do Narley no laboratório da rodada 3 e o lote 3 de sons dos monstros. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta, comparado com a explosão do fogo, ~−29,7 dBFS). Eu não ouço: a aprovação é do Narley, no laboratório.

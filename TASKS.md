@@ -168,11 +168,22 @@ Feito (medido com `tools/sfx_levels.py`; volume = rms150 em relação à explos�
 
 Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r4`):
 - [ ] Todos os sons da rodada 4 (eu não ouço: medi nível, duração, nós e olhei espectrogramas)
-- [ ] Morte da serpe: A (no jogo) ou B (só no laboratório)
+- [x] Morte da serpe: A (no jogo) ou B (só no laboratório) — escolheu a A (B removida na rodada 5)
 - [ ] Ainda acima do limite e sem pedido: morte do dragão (+18,4 dB, pico −3 dBFS; ele gostou). O aviso dos relâmpagos (`zapWarn`, não mexido) tem estalos aleatórios: numa medição o pico foi −5,0 dBFS (nas outras, −7,8 a −10,6)
 
-### Áudio — próximo lote de monstros (proposta, não feito)
+### Áudio — rodada 5 (09/11/2026): notas do Narley na rodada 4 + monstros, lote 2 (o último)
 
-- [ ] **Lote 2:** orc (bufada/rugido curto e pesado), elfo (voz curta ao atirar ou ao chegar perto, aguda e limpa), esqueleto (chacoalhar de ossos e mandíbula batendo)
-- [x] ~~Lote 3~~ feito na rodada 4
-- Mesmas regras: temporizador por tipo em `VOX`, nada de `Math.random` no jogo, −12 a −6 dB, até ~12 nós
+Feito (medido com `tools/sfx_levels.py`; volume = rms150 em relação à explosão; picos dos sons novos e mudados entre −11,8 e −26,7 dBFS):
+- [x] Vida baixa refeita para alto-falante pequeno: toque abafado (~1,3 kHz) e tom uma oitava acima em cada batida; −2,8 → +0,0 dB (+2,9 dB), energia acima de 500 Hz +16 dB; pico −11,8 dBFS
+- [x] Serpe por perto: sem o grasnido; só as asas, 2 a 4 batidas com andamento variado (−9,4 dB, 5 nós); `v_wyvern2` removido
+- [x] Morte da serpe: opção B removida (ele escolheu a A)
+- [x] Vozes de presença, lote 2: orc (bufada e grunhido gutural, −8,4 dB, 10 nós), elfo (grito "hah!"/"hy-ah!", raro, espera a flecha; −10,6 dB, 9 nós), esqueleto (ossinhos e mandíbula, −7 a −12 dB, 7 nós)
+- [x] **Lotes de monstros completos:** todos os monstros comuns (goblin, gárgula, hobgoblin, orc, elfo, demônio, súcubo, serpe, esqueleto) têm voz de presença
+- [x] Rajada: 25 orcs + 25 elfos + 20 esqueletos: 115 nós de voz em 10 s, no máximo 16 em meio segundo; 9 tipos juntos: 28 vozes, 216 nós, no máximo 22 em meio segundo
+- [x] Determinismo IDENTICAL; `smoke.py` 0 falhas
+- [x] Laboratório da rodada 5: Antes = commit 9e732e4, notas em `avaliacoes_r5`, nota anterior de `avaliacoes_r4` (ou r3, r2, rodada 1)
+
+Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r5`):
+- [ ] Vida baixa: agora aparece no notebook/celular? Continua suave? (eu só medi energia e espectro)
+- [ ] Orc, elfo e esqueleto por perto, e as asas da serpe sem o grasnido
+- [ ] Ainda acima do limite e sem pedido: morte do dragão (+18,1 dB, pico −3,6 dBFS; ele gostou). Picos aleatórios de sons não mexidos: `zapWarn` (−5,0 a −9,2 dBFS entre medições) e `lichP2` (−5,4 a −13,2)
