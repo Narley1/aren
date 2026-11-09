@@ -3,14 +3,17 @@
 
 A página usa o MESMO módulo SFX de src/bosque-do-enxame.html (copiado no build, com ganchos de teste
 só na cópia), o catálogo tools/sound_catalog.json e os volumes medidos por tools/sfx_levels.py.
-Rodada 2: também embute o módulo de som da rodada anterior (commit BEFORE_REV, como SFX_OLD), para os
-botões "Antes" e "Agora" dos sons com 'estado' no catálogo. As notas vão para a coleção `avaliacoes_r2`
-do armazenamento `db` do artifact; as da rodada 1 (`avaliacoes`) aparecem só para leitura em cada linha.
+Também embute o módulo de som da rodada anterior (commit BEFORE_REV, como SFX_OLD), para os botões
+"Antes" e "Agora" dos sons com 'estado' no catálogo. Rodada 3: as notas vão para a coleção STORE
+(`avaliacoes_r3`) do armazenamento `db` do artifact; a nota anterior de cada som aparece só para leitura,
+vinda de PREV_STORE (`avaliacoes_r2`) ou, se o som não tiver nota lá, de FIRST_STORE (`avaliacoes`).
+As três coleções e o commit "Antes" podem ser trocados por opções (--before, --store, --prev-store).
 A saída é um fragmento HTML (sem doctype): o publicador do artifact põe o cabeçalho.
 
     python3 tools/build_sound_lab.py --out /caminho/laboratorio-som.html
     python3 tools/build_sound_lab.py --out lab.html --levels /tmp/levels.json   # reaproveita medição
     python3 tools/build_sound_lab.py --out lab.html --levels l.json --levels-old antes.json
+    python3 tools/build_sound_lab.py --out lab.html --before 10da437 --store avaliacoes_r3 --prev-store avaliacoes_r2
 """
 import argparse, asyncio, datetime, json, os, subprocess, sys
 
@@ -25,9 +28,14 @@ BIG_MOMENT_CAP_DB = 8.0 # dragon arrival, rage and death may stay a little loude
 BIG_MOMENTS = {'roarIntro', 'roarRage', 'dragonDeath'}
 WARN_FLOOR_DB = -8.0    # attack warnings (and the bow, heard all the time) come up to this
 WARN_IDS = {'scrape', 'windup', 'jump', 'zapWarn', 'chainCharge', 'bow'}
-BEFORE_REV = '01c5ba5'  # the game as the owner heard it in round 1 ("Antes")
-STORE = 'avaliacoes_r2' # this round's ratings; round 1 stays in 'avaliacoes' (read-only here)
-# round-1 "silent moment" rows -> the round-2 sounds that answer them (to show what he asked)
+# Round 3 defaults (each can be overridden on the command line)
+ROUND = 3
+BEFORE_REV = '10da437'       # "Antes": the game as the owner approved it in round 2
+STORE = 'avaliacoes_r3'      # this round's ratings
+PREV_STORE = 'avaliacoes_r2' # previous round's notes, shown read-only under each row
+FIRST_STORE = 'avaliacoes'   # round 1, the fallback when a sound has no note in PREV_STORE
+DECIDED = {'windup'}         # volume proposals the owner already answered ("igual"): no Proposta button
+# round-1 "silent moment" rows -> the sounds that answer them (for the round-1 fallback note)
 R1_MAP = {'x_hurt': ['hurt'], 'x_gem': ['gem'], 'x_heart': ['heart', 'heart2'], 'x_lvl': ['lvlSmall'], 'x_sword': ['sword', 'sword5'],
           'x_boom': ['boomThrow'], 'x_fire': ['fireCast'], 'x_wisp': ['wisp'], 'x_storm': ['storm'], 'x_holy': ['holy'],
           'x_arrow': ['elfArrow'], 'x_wfire': ['wyvernFire'], 'x_elite': ['elite'], 'x_lowhp': ['lowHp'], 'x_ui': ['ui', 'uiPick'],
@@ -45,7 +53,7 @@ def proposals(levels):
         cap = BIG_MOMENT_CAP_DB if k in BIG_MOMENTS else LOUD_CAP_DB
         if rel > cap:
             g, why = cap - rel, f'Fica {fmt(rel)} dB acima da explosão de fogo; a proposta deixa em {fmt(cap)}.'
-        elif k in WARN_IDS and rel < WARN_FLOOR_DB:
+        elif k in WARN_IDS and rel < WARN_FLOOR_DB and k not in DECIDED:
             g, why = WARN_FLOOR_DB - rel, (f'Fica {fmt(rel)} dB abaixo da explosão; some no meio da luta. '
                                            f'A proposta sobe para {fmt(WARN_FLOOR_DB)}.')
         g = round(g*2)/2
@@ -75,7 +83,8 @@ def git(*a):
         return '?'
 
 
-def build(out_path, levels_path=None, old_levels_path=None):
+def build(out_path, levels_path=None, old_levels_path=None, before_rev=None, store=None, prev_store=None):
+    before_rev, store, prev_store = before_rev or BEFORE_REV, store or STORE, prev_store or PREV_STORE
     cat = sfx_levels.load_catalog()
     if levels_path:
         with open(levels_path, encoding='utf-8') as f:
@@ -85,7 +94,7 @@ def build(out_path, levels_path=None, old_levels_path=None):
     missing = [s['id'] for _, s in sfx_levels.items(cat) if s['id'] not in levels]
     if missing:
         raise SystemExit('erro: medição sem estes ids (rode sfx_levels.py de novo): ' + ', '.join(missing))
-    old_src = sfx_levels.git_src(BEFORE_REV)
+    old_src = sfx_levels.git_src(before_rev)
     before = {s['id'] for _, s in sfx_levels.items(cat) if s.get('estado') in ('refeito', 'volume')} | {'explode'}
     if old_levels_path:
         with open(old_levels_path, encoding='utf-8') as f:
@@ -102,8 +111,8 @@ def build(out_path, levels_path=None, old_levels_path=None):
         'groups': cat['groups'], 'mudos': cat['mudos'], 'levels': levels, 'proposals': proposals(levels),
         'ref': levels['explode']['rms150_db'], 'levelsOld': old_levels, 'refOld': old_levels['explode']['rms150_db'],
         'before': sorted(i for _, x in sfx_levels.items(cat) if x.get('estado') in ('refeito', 'volume') for i in [x['id']]),
-        'r1map': r1map, 'store': STORE,
-        'meta': {'commit': git('rev-parse', '--short', 'HEAD'), 'before': BEFORE_REV, 'date': datetime.date.today().strftime('%d/%m/%Y')},
+        'r1map': r1map, 'store': store, 'prevStore': prev_store, 'firstStore': FIRST_STORE, 'round': ROUND,
+        'meta': {'commit': git('rev-parse', '--short', 'HEAD'), 'before': before_rev, 'date': datetime.date.today().strftime('%d/%m/%Y')},
     }
     js_data = json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
     html = (TEMPLATE.replace('%DATA%', js_data).replace('%CALLS%', calls_js(cat))
@@ -220,8 +229,8 @@ footer{margin-top:40px;font-size:13px;color:var(--mute);display:grid;gap:6px;max
 </style>
 
 <div class="wrap">
-  <h1>Laboratório de Som do Aren · rodada 2</h1>
-  <p class="lead">Fiz o que você pediu na primeira rodada. Cada som que mudou tem dois botões: <b>Antes</b> (como estava) e <b>Agora</b> (a versão nova). Os sons novos só têm <b>Agora</b>. Ouça, dê uma nota e diga o que ainda falta.</p>
+  <h1>Laboratório de Som do Aren · rodada 3</h1>
+  <p class="lead">Fiz os ajustes que você pediu na rodada 2 e o primeiro lote de sons dos monstros: goblin, gárgula e hobgoblin agora fazem barulho quando estão perto de Aren. Cada som que mudou tem <b>Antes</b> (a versão que você aprovou na rodada 2) e <b>Agora</b>. Os sons novos só têm <b>Agora</b>. Use <b>Só o que mudou</b> para ver só eles.</p>
   <p class="small" id="meta"></p>
 </div>
 
@@ -243,7 +252,7 @@ footer{margin-top:40px;font-size:13px;color:var(--mute);display:grid;gap:6px;max
 
   <h2>Cena de teste</h2>
   <div class="scene">
-    <p>Treze segundos de luta: música de combate, espada, fogo, arco, martelo, inimigos morrendo, joias, flecha de elfo, demônio, súcubo, relâmpago, dano e subir de nível. <b>Antes</b> toca como era (sem os sons que não existiam); <b>Agora</b> toca tudo com a mixagem nova.</p>
+    <p>Treze segundos de luta: música de combate, espada, fogo, arco, martelo, goblins, gárgula e hobgoblin por perto, inimigos morrendo, joias, flecha de elfo, demônio, súcubo, relâmpago, Cajado da Tempestade, dano e subir de nível. <b>Antes</b> toca como estava na rodada 2 (sem as vozes novas); <b>Agora</b> toca tudo como está hoje.</p>
     <div class="row-btns">
       <button class="btn" type="button" id="sceneOld"><span class="tri"></span>Antes</button>
       <button class="btn alt" type="button" id="sceneNew"><span class="tri"></span>Agora</button>
@@ -316,9 +325,10 @@ function playSound(s, ver, btn){
   const go = () => { M.__clr(); try { M.__play(() => CALLS[s.id](M), k); } catch (e) { console.warn(e); } markPlaying(btn, len); };
   if (M.__st() === 'running') go(); else setTimeout(go, 150);   // first click: let the context start
 }
-const SCENE = [[.5,'sword'],[.8,'explode'],[.9,'kill_goblin'],[1.1,'gem'],[1.25,'gem'],[1.5,'bow'],[1.7,'kill_orc'],[1.9,'bow'],[2.1,'gem'],[2.4,'slam'],
-  [2.9,'sword'],[3.2,'explode'],[3.3,'kill_hobgoblin'],[3.6,'bow'],[4.0,'elfArrow'],[4.3,'demon'],[4.9,'hurt'],[5.4,'gem'],[5.55,'gem'],[6.0,'levelup'],
-  [7.0,'succubus'],[8.15,'hex'],[9.0,'bolt'],[9.6,'explode'],[9.7,'kill_demon'],[10.1,'bow'],[10.4,'sword'],[11.0,'enhance'],[11.6,'heart']];
+const SCENE = [[.3,'v_goblin'],[.5,'sword'],[.8,'explode'],[.9,'kill_goblin'],[1.1,'gem'],[1.25,'gem'],[1.5,'bow'],[1.7,'kill_orc'],[1.9,'bow'],[2.1,'gem'],[2.4,'slam'],
+  [2.6,'v_gargoyle2'],[2.9,'sword'],[3.2,'explode'],[3.3,'kill_hobgoblin'],[3.6,'bow'],[3.75,'kill_gargoyle'],[4.0,'elfArrow'],[4.3,'demon'],[4.9,'hurt'],[5.4,'gem'],[5.55,'gem'],
+  [5.8,'v_hobgoblin2'],[6.3,'levelup'],[7.0,'succubus'],[8.15,'hex'],[8.6,'v_goblin'],[9.0,'bolt'],[9.6,'explode'],[9.7,'kill_demon'],[10.1,'bow'],[10.4,'storm'],[10.8,'kill_wyvern'],
+  [11.2,'enhance'],[11.8,'heart']];
 function playScene(old, btn){
   audioOn(old); stopAll(); const M = old ? SFX_OLD : SFX; M.__clr();
   setMood(old ? 'silent' : 'combat'); if (old) setMoodOld('combat');
@@ -330,10 +340,11 @@ function playScene(old, btn){
   sceneTimers.push(setTimeout(() => { setMood(backMood()); setMoodOld('silent'); }, 13500));
 }
 
-/* ---------- ratings store (db capability): this round in DATA.store, round 1 read-only ---------- */
-const ST = {}, R1 = {}, rows = {}, Q = {};
+/* ---------- ratings store (db capability): this round in DATA.store; previous round (DATA.prevStore) and round 1
+   (DATA.firstStore, the fallback) read-only ---------- */
+const ST = {}, R1 = {}, R2 = {}, rows = {}, Q = {};
 let db = null;
-const LS = 'aren-lab-r2-rascunho';
+const LS = 'aren-lab-r' + DATA.round + '-rascunho';
 try { Object.assign(ST, JSON.parse(localStorage.getItem(LS) || '{}')); } catch {}
 function draft(){ try { localStorage.setItem(LS, JSON.stringify(ST)); } catch {} }
 function status(s, t){ const e = $('#status'); e.dataset.s = s; $('#statusT').textContent = t; }
@@ -365,9 +376,9 @@ async function connect(){
     }
     draft();
   }, e => { clearTimeout(timer); status('err', 'Armazenamento indisponível (' + (e && e.code || 'erro') + ')'); });
-  try {
-    db.collection('avaliacoes').onSnapshot(snap => { for (const d of snap.docs) R1[d.id] = Object.assign({}, d.data()); for (const id in rows) rows[id].prev?.(); }, () => {});
-  } catch {}
+  for (const [name, T] of [[DATA.prevStore, R2], [DATA.firstStore, R1]]){
+    try { db.collection(name).onSnapshot(snap => { for (const d of snap.docs) T[d.id] = Object.assign({}, d.data()); for (const id in rows) rows[id].prev?.(); }, () => {}); } catch {}
+  }
 }
 
 /* ---------- UI pieces ---------- */
@@ -401,22 +412,27 @@ function comment(id, ph){
   const sync = () => { if (document.activeElement !== ta) ta.value = (ST[id] || {}).comentario || ''; };
   return {box: ta, sync};
 }
-// what he said in round 1 (read-only)
+// what he said before (read-only): the previous round's note, or round 1's when this sound has none there
+const PREFTXT = {antes: 'preferiu o Antes', agora: 'preferiu o Agora', igual: 'tanto faz', proposta: 'preferiu a proposta', atual: 'preferiu o atual'};
+const hasNote = r => r && (r.nota || (r.tags || []).length || r.comentario || r.pref || r.prefVol || r.precisa);
 function prevText(id){
-  const src = DATA.r1map[id] || id, r = R1[src]; if (!r) return null;
+  const prevR = DATA.round - 1;
+  let r = R2[id], label = `Sua nota na rodada ${prevR}: `;
+  if (!hasNote(r)){ const src = DATA.r1map[id] || id; r = R1[src]; label = DATA.r1map[id] ? 'Na rodada 1 (momento sem som): ' : 'Sua nota na rodada 1: '; }
+  if (!hasNote(r)) return null;
   const parts = [];
   if (r.precisa) parts.push('precisa de som: ' + (NEEDTXT[r.precisa] || r.precisa));
   if (r.nota) parts.push('nota ' + r.nota);
   if ((r.tags || []).length) parts.push(r.tags.join(', '));
-  if (r.pref) parts.push('preferiu ' + (r.pref === 'proposta' ? 'a proposta' : r.pref === 'atual' ? 'o atual' : 'tanto faz'));
-  if (!parts.length && !r.comentario) return null;
-  const p = el('div', {class: 'prev'}, [el('b', {text: DATA.r1map[id] ? 'Na rodada 1 (momento sem som): ' : 'Sua nota anterior: '}), parts.join(' · ')]);
+  if (r.pref) parts.push(PREFTXT[r.pref] || r.pref);
+  if (r.prefVol) parts.push('volume: ' + (r.prefVol === 'proposta' ? 'a proposta' : r.prefVol === 'atual' ? 'o atual' : 'tanto faz'));
+  const p = el('div', {class: 'prev'}, [el('b', {text: label}), parts.join(' · ')]);
   if (r.comentario) p.append(el('span', {text: (parts.length ? ' · ' : '') + '“' + r.comentario + '”'}));
   return p;
 }
 function band(id){
-  const rel = L[id].rms150_db - REF;
-  return rel > 6 ? 'hi' : rel < -10 ? 'lo' : 'ok';
+  const rel = L[id].rms150_db - REF, lo = id.startsWith('v_') ? -12 : -10;   // presence voices are meant to be quiet (-12..-6)
+  return rel > 6 ? 'hi' : rel < lo ? 'lo' : 'ok';
 }
 function meter(id){
   const v = L[id]; if (!v) return el('div');
@@ -465,31 +481,26 @@ function mudoRow(m){
   return row;
 }
 
-/* ---------- findings: what changed in round 2 (numbers from the measurements) ---------- */
+/* ---------- findings: what changed in round 3 (numbers from the measurements) ---------- */
 function findings(){
-  const rel = id => L[id].rms150_db - REF, all = Object.values(SOUND).filter(s => !s.mood);
+  const rel = id => L[id].rms150_db - REF, relO = id => LO[id].rms150_db - REFO, all = Object.values(SOUND).filter(s => !s.mood);
   const cnt = k => Object.values(SOUND).filter(s => s.estado === k).length;
-  const MUS = ['m_calm', 'm_combat', 'm_bossM', 'm_boss'].filter(k => L[k] && LO[k]);
-  const avg = (T, ks) => ks.reduce((a, k) => a + T[k].rms_db, 0)/ks.length;
-    const loud = all.filter(s => P[s.id] && P[s.id].db < 0).sort((a, b) => rel(b.id) - rel(a.id));   // same rule as the Proposta buttons
-  const warn = ['scrape', 'windup', 'jump', 'zapWarn', 'chainCharge', 'iceCast'].filter(k => L[k]);
-  const warnLow = warn.filter(k => rel(k) < -8 && !SOUND[k].estado);   // the ones he did not ask to change
-  const freq = ['bow', 'sword', 'sword5', 'gem', 'elfArrow', ...all.filter(s => s.id.startsWith('kill_') && s.id !== 'kill_elite').map(s => s.id)].filter(k => L[k]);
-  const fr = freq.map(rel), maxNodes = Math.max(...freq.map(k => L[k].nodes));
+  const loud = all.filter(s => P[s.id] && P[s.id].db < 0).sort((a, b) => rel(b.id) - rel(a.id));   // same rule as the Proposta buttons
+  const vox = all.filter(s => s.id.startsWith('v_')), vr = vox.map(s => rel(s.id)), vn = Math.max(...vox.map(s => L[s.id].nodes));
+  const was = (id, t) => LO[id] ? `${t} (${num(relO(id))} → <b>${num(rel(id))} dB</b>)` : `${t} (<b>${num(rel(id))} dB</b>)`;
   const F = [
-    ['Rodada 2', `${cnt('refeito')} sons refeitos, ${cnt('novo')} sons novos`, `Refiz os sons que você marcou para refazer e criei som para os ${cnt('novo') ? 'momentos que eram mudos' : ''}. Mais ${cnt('volume')} itens só mudaram de volume (as músicas e dois efeitos). Use o filtro <b>Só o que mudou</b> no topo para ver só eles.`],
-    ['Mixagem', 'Música 6 dB mais baixa, como você escolheu', MUS.length ? `As músicas tinham volume médio de <b>${dbs(avg(LO, MUS))} dBFS</b>; agora ficam em <b>${dbs(avg(L, MUS))} dBFS</b>. Isso vale também para as vinhetas de vitória e derrota.` : ''],
-    ['Referência', 'A explosão de fogo mudou, o volume não', `Ela é a régua dos outros sons. Refiz o som (agora tem sopro, chama e estalos) e deixei o volume perto do antigo: antes <b>${dbs(REFO)}</b>, agora <b>${dbs(REF)} dBFS</b>. O tom varia um pouco a cada explosão.`],
-    ['Volume', loud.length ? 'Sons que ainda passam do limite' : 'Nenhum som acima do limite', loud.length ? `${loud.map(s => `<b>${s.nome}</b> (${num(rel(s.id))} dB)`).join(', ')}. Não mexi neles porque você disse que gostou ou não marcou o volume; o botão <b>Proposta</b> mostra como ficaria mais baixo.` : 'Todos os efeitos estão no máximo 6 dB acima da explosão (8 para chegadas e fúria de chefe).'],
-    ['Avisos de ataque', 'Aviso dos relâmpagos refeito, escudo mais alto', `Aviso da chuva de relâmpagos agora em ${num(rel('zapWarn'))} dB (antes ${num(LO.zapWarn.rms150_db - REFO)}); escudo raspando subiu os 4,5 dB que você escolheu (${num(rel('scrape'))} dB); preparar orbes de gelo ${num(rel('iceCast'))} dB.` + (warnLow.length ? ` Ainda abaixo de −8, sem pedido seu: ${warnLow.map(k => `<b>${nameOf(k)}</b> (${num(rel(k))})`).join(', ')}; veja a Proposta.` : '')],
-    ['Sons frequentes', 'Curtos, leves e variados', `Arco, espada, joia, flecha de elfo e mortes de inimigo ficam entre <b>${num(Math.min(...fr))}</b> e <b>${num(Math.max(...fr))} dB</b> em relação à explosão, com no máximo ${maxNodes} nós de áudio cada e pequena variação de tom a cada vez. Mortes e joias têm limite de repetição para não virar barulho.`],
-    ['Silêncio', DATA.mudos.length ? `${DATA.mudos.length} momentos ainda sem som` : 'Nenhum momento sem som', DATA.mudos.length ? '' : 'Todos os 18 momentos da rodada 1 ganharam som, inclusive vitória e derrota com a Música desligada (tocam pelos Efeitos).'],
+    ['Rodada 3', `${cnt('refeito')} refeitos, ${cnt('volume')} com volume novo, ${cnt('novo')} sons novos`, `Mudei só o que você pediu na rodada 2; o resto ficou como você aprovou. A <b>Shuriken</b> não faz mais som na volta, só no arremesso. Use <b>Só o que mudou</b> no topo para ver só os sons desta rodada.`],
+    ['Monstros · lote 1', 'Goblin, gárgula e hobgoblin por perto', vox.length ? `Risadinha do goblin, asas de pedra da gárgula (às vezes com um guincho rouco) e grunhido ou rosnado do hobgoblin. Tocam de vez em quando, com um deles a menos de 150 px de Aren: cada tipo fala no máximo uma vez a cada 2,5 a 7,5 s, mesmo com 40 goblins na tela. Ficam baixos, entre <b>${num(Math.min(...vr))}</b> e <b>${num(Math.max(...vr))} dB</b> em relação à explosão, com até ${vn} nós de áudio, e cada vez sai um pouco diferente.` : ''],
+    ['Refeitos', 'O que você marcou para refazer', `${was('kill_gargoyle', 'Morte da gárgula: pedra rachando e esfarelando')}; ${was('kill_wyvern', 'morte da serpe: guincho curto, baque e asas caindo')}; ${was('storm', 'Cajado da Tempestade com zumbido elétrico')}; ${was('succubus', 'risada da súcubo mais felina e feminina, bem mais baixa')}.`],
+    ['Ajustes', 'Mais curto e mais alto', `Risada do demônio: o mesmo som com 4 "ha" em vez de 6 (uns 30% mais curta). ${was('lowHp', 'Vida baixa')}. ${was('jump', 'Salto do Paladino')}, a proposta que você escolheu. O preparar do giro ficou igual, como você pediu.`],
+    ['Volume', loud.length ? 'Sons que ainda passam do limite' : 'Nenhum som acima do limite', loud.length ? `${loud.map(s => `<b>${s.nome}</b> (${num(rel(s.id))} dB)`).join(', ')}. Não mexi neles porque você não pediu; o botão <b>Proposta</b> mostra como ficaria mais baixo.` : 'Todos os efeitos estão no máximo 6 dB acima da explosão (8 para chegadas e fúria de chefe).'],
+    ['Próximos lotes', 'Monstros que ainda vou fazer', 'Lote 2: orc, voz do elfo e esqueleto. Lote 3: demônio e serpe-dragão (sons além da risada e do fogo), súcubo voando. Diga se quer outra ordem.'],
   ];
   $('#finds').append(...F.map(([tag, h, p]) => { const d = el('div', {class: 'find'}, [el('span', {class: 'tag', text: tag}), el('h3', {text: h})]); const pp = el('p'); pp.innerHTML = p; d.append(pp); return d; }));
 }
 
 /* ---------- build page ---------- */
-$('#meta').textContent = `Agora: código de som do jogo no commit ${DATA.meta.commit}. Antes: commit ${DATA.meta.before} (o que você ouviu na rodada 1). Gerado em ${DATA.meta.date}. Use fones ou caixa de som num volume confortável.`;
+$('#meta').textContent = `Agora: código de som do jogo no commit ${DATA.meta.commit}. Antes: commit ${DATA.meta.before} (o que você aprovou na rodada ${DATA.round - 1}). Gerado em ${DATA.meta.date}. Use fones ou caixa de som num volume confortável.`;
 findings();
 for (const g of DATA.groups){
   const sec = el('section', {}, [el('h2', {text: g.nome})]);
@@ -505,8 +516,9 @@ if (DATA.mudos.length){ $('#mudosSec').hidden = false; for (const m of DATA.mudo
   ta.addEventListener('input', () => { (ST[id] || (ST[id] = {})).comentario = ta.value; saveSoon(id); });
   rows[id] = {sync: () => { ch.sync(); if (document.activeElement !== ta) ta.value = (ST[id] || {}).comentario || ''; },
               saved: t => { $('#sceneSaved').textContent = t; },
-              prev: () => { const r = R1.cena, box = $('#scenePrev'); if (!r || !(r.pref || r.comentario)) { box.hidden = true; return; }
-                box.hidden = false; box.replaceChildren(el('b', {text: 'Na rodada 1: '}), (r.pref ? 'preferiu ' + (r.pref === 'proposta' ? 'o mix proposto' : r.pref === 'atual' ? 'o mix atual' : 'tanto faz') : '') + (r.comentario ? (r.pref ? ' · ' : '') + '“' + r.comentario + '”' : '')); }};
+              prev: () => { let r = R2.cena, n = DATA.round - 1; if (!r || !(r.pref || r.comentario)){ r = R1.cena; n = 1; } const box = $('#scenePrev'); if (!r || !(r.pref || r.comentario)) { box.hidden = true; return; }
+                const pt = r.pref === 'proposta' ? 'o mix proposto' : r.pref === 'atual' ? 'o mix atual' : r.pref === 'antes' ? 'o Antes' : r.pref === 'agora' ? 'o Agora' : 'tanto faz';
+                box.hidden = false; box.replaceChildren(el('b', {text: `Na rodada ${n}: `}), (r.pref ? (r.pref === 'igual' ? 'tanto faz' : 'preferiu ' + pt) : '') + (r.comentario ? (r.pref ? ' · ' : '') + '“' + r.comentario + '”' : '')); }};
 }
 rows.cena.sync();
 for (const b of document.querySelectorAll('[data-f]')) b.addEventListener('click', () => {
@@ -519,7 +531,7 @@ $('#sceneOld').addEventListener('click', e => playScene(true, e.currentTarget));
 $('#sceneNew').addEventListener('click', e => playScene(false, e.currentTarget));
 $('#stopAll').addEventListener('click', () => { audioOn(false); stopAll(); });
 $('#backing').addEventListener('change', e => { audioOn(false); if (!musicRow) setMood(backMood()); });
-$('#foot').innerHTML = `<p>Volumes medidos com <span class="mono">tools/sfx_levels.py</span>: cada som tocado sozinho pelo mixer do jogo. "Volume" é o trecho de 150 ms mais alto; a marca dourada na barra é a explosão da Magia de Fogo. "Nós" é quantas peças de áudio o som cria (custo para o celular).</p><p>O botão <b>Proposta</b> só aparece onde ainda vale a regra da rodada 1: efeitos mais de 6 dB acima da explosão descem para 6 (8 para a chegada, a fúria e a morte do dragão); avisos de ataque mais de 8 dB abaixo sobem para −8. Nada disso muda o jogo até você aprovar.</p><p>Eu não ouço os sons: desenhei cada um pela síntese e conferi com medições. Quem decide se ficou bom é você.</p>`;
+$('#foot').innerHTML = `<p>Volumes medidos com <span class="mono">tools/sfx_levels.py</span>: cada som tocado sozinho pelo mixer do jogo. "Volume" é o trecho de 150 ms mais alto; a marca dourada na barra é a explosão da Magia de Fogo. "Nós" é quantas peças de áudio o som cria (custo para o celular).</p><p>O botão <b>Proposta</b> só aparece onde ainda vale a regra da rodada 1 e você ainda não respondeu: efeitos mais de 6 dB acima da explosão descem para 6 (8 para a chegada, a fúria e a morte do dragão); avisos de ataque mais de 8 dB abaixo sobem para −8. Nada disso muda o jogo até você aprovar.</p><p>Eu não ouço os sons: desenhei cada um pela síntese e conferi com medições. Quem decide se ficou bom é você.</p>`;
 connect();
 </script>
 """
@@ -529,9 +541,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--out', required=True, help='arquivo HTML de saída')
     ap.add_argument('--levels', help='JSON de tools/sfx_levels.py --json (senão mede agora)')
-    ap.add_argument('--levels-old', help=f'JSON da medição do commit {BEFORE_REV} (senão mede agora; só os sons com estado)')
+    ap.add_argument('--levels-old', help='JSON da medição do commit "Antes" (senão mede agora; só os sons com estado)')
+    ap.add_argument('--before', default=BEFORE_REV, help=f'commit do "Antes" (padrão {BEFORE_REV})')
+    ap.add_argument('--store', default=STORE, help=f'coleção onde as notas desta rodada são gravadas (padrão {STORE})')
+    ap.add_argument('--prev-store', default=PREV_STORE, help=f'coleção da rodada anterior, só leitura (padrão {PREV_STORE})')
     a = ap.parse_args()
-    d = build(a.out, a.levels, a.levels_old)
+    d = build(a.out, a.levels, a.levels_old, a.before, a.store, a.prev_store)
     print(f"gravado {a.out}: {sum(len(g['sounds']) for g in d['groups'])} sons, {len(d['mudos'])} momentos sem som, "
           f"{len(d['proposals'])} propostas de volume")
     for k, v in d['proposals'].items():
