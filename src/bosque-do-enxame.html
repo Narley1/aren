@@ -2566,7 +2566,8 @@ const SFX = (() => {
   /* ================= round 3: enemy presence voices (batch 1: goblin, gargoyle, hobgoblin) =================
      Quiet ambient cues for a monster near Aren. The game decides WHEN (a per-type timer with its own tiny generator, never
      Math.random); everything random (pitch, syllables, variant) happens here, after ready(). <= 12 nodes each, dry-ish.
-     v: optional variant for the Sound Lab (gargoyle 1 = with screech, succubus 1 = with sigh); omitted = picked at random. */
+     v: optional variant for the Sound Lab (gargoyle 1 = with screech, succubus 1 = with sigh); omitted = picked at random.
+     Round 5 (batch 2: orc, elf, skeleton) completes the set: every regular monster type now has a presence voice. */
   // goblin: a quick nasal "heh-heh-heh" chatter - one square voice through two formants, 3-5 syllables gated on one gain
   function vGoblin(t){
     const p = jit(.07), n = 3 + ((Math.random()*3) | 0), gap = .075*jit(.1), f = 540*p;
@@ -2665,7 +2666,61 @@ const SFX = (() => {
       tone(ts + .05, 'sine', b*.85, b*.68, .0085, S*.85, .45, S*.35);   // the faint voice under the breath
     }
   }
-  const VOICE = {goblin: [vGoblin, 1.5], gargoyle: [vGargoyle, 1.5], hobgoblin: [vHob, 1.5], demon: [vDemon, 2], wyvern: [vWyvern, 1.8], succubus: [vSuccubus, 2]};   // [function, safety cooldown s]
+  /* ---- round 5, batch 2 (the last one): orc, elf, skeleton ---- */
+  // orc: a heavy brute's breath - a short nasal snort in (sometimes skipped), then a long huff out with a low guttural grunt
+  // under it. Lower, slower and much breathier than the hobgoblin's snarl: the noise goes through a resonant low-pass (a nasal peak at 300-620 Hz, little above ~1.5 kHz) and
+  // the grunt is a 74 Hz saw behind a dark low-pass; both share one ~38 Hz flutter (the wet, rough "hrrnf"). 10 nodes
+  function vOrc(t){
+    const p = jit(.07), sn = Math.random() < .6, th = t + (sn ? .2*jit(.1) : 0), H = .46*jit(.15);
+    const n = noise(t, th - t + H), bp = filt('lowpass', 420*p, 3.5), gn = ac.createGain();
+    gn.gain.setValueAtTime(.0001, t);
+    if (sn){ bp.frequency.setValueAtTime(520*p, t); bp.frequency.exponentialRampToValueAtTime(380*p, t + .12);
+      gn.gain.exponentialRampToValueAtTime(.09, t + .025); gn.gain.exponentialRampToValueAtTime(.0001, t + .13); gn.gain.setValueAtTime(.0001, th); }
+    bp.frequency.setValueAtTime(620*p, th); bp.frequency.exponentialRampToValueAtTime(300*p, th + H);
+    gn.gain.exponentialRampToValueAtTime(.105, th + .04); gn.gain.setValueAtTime(.105, th + H*.35); gn.gain.exponentialRampToValueAtTime(.0001, th + H);
+    const o = ac.createOscillator(), lp = filt('lowpass', 420*p, 3), go = ac.createGain(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(74*p, th); o.frequency.linearRampToValueAtTime(82*p, th + H*.3); o.frequency.exponentialRampToValueAtTime(58*p, th + H);
+    go.gain.setValueAtTime(.0001, th); go.gain.exponentialRampToValueAtTime(.032, th + .05); go.gain.setValueAtTime(.032, th + H*.4); go.gain.exponentialRampToValueAtTime(.0001, th + H*.95);
+    const am = flutter(t, th - t + H, 38*p, .75, .8);
+    n.connect(bp); bp.connect(gn); gn.connect(am); o.connect(lp); lp.connect(go); go.connect(am); route(am, .1); o.start(th); o.stop(th + H + .05);
+  }
+  // elf: a short, high, clean battle shout - "hah!" or (1 in 3) "hy-ah!" - a breathy "h" then one quick voiced syllable through
+  // two vowel formants, pitch jumping up and falling. Elves are common, so it is rare (VOX) and quiet. If an elf arrow
+  // twang was just heard (elfArrow), the shout waits until it is over, so the two never stack. 9 nodes
+  function vElf(t){
+    const dA = ac.currentTime - (last.elfA ?? -9); if (dA < .22) t += .22 - dA;
+    const p = jit(.07), hy = Math.random() < .33, ta = t + .035, D = .13*jit(.12), f = 300*p, s = 1.18*p;
+    const n = noise(t, .06), nb = filt('bandpass', 1700*s, .9), ng = ac.createGain(); env(ng, t, .012, .36, .05); n.connect(nb); nb.connect(ng); route(ng, 0);
+    const o = ac.createOscillator(), b1 = filt('bandpass', 800*s, 5), b2 = filt('bandpass', (hy ? 2200 : 1250)*s, 7), g2 = G_(.7), g = ac.createGain();
+    o.setPeriodicWave(VW8); o.frequency.setValueAtTime(f*.95, ta); o.frequency.exponentialRampToValueAtTime(f*1.25, ta + .035); o.frequency.exponentialRampToValueAtTime(f*.82, ta + D);
+    if (hy) b2.frequency.exponentialRampToValueAtTime(1250*s, ta + .05);
+    g.gain.setValueAtTime(.0001, ta); g.gain.exponentialRampToValueAtTime(.19, ta + .012); g.gain.setValueAtTime(.19, ta + D*.4); g.gain.exponentialRampToValueAtTime(.0001, ta + D);
+    o.connect(b1); o.connect(b2); b1.connect(g); b2.connect(g2); g2.connect(g); route(g, .12); o.start(ta); o.stop(ta + D + .05);
+  }
+  // skeleton: dry and clicky - a quick rattle of loose small bones (6-9 tiny high clicks, 1.8-3.6 kHz, irregular) and a
+  // hollow jaw "clack-clack" (2, sometimes 3, short low-wood knocks ~560 Hz with a click on top), in either order. No reverb.
+  // Higher, tighter and drier than the dragon's rattle (16 tonal knocks at 0.5-1.1 kHz with reverb) and than the skeleton
+  // death blip. One noise source feeds both click bands; the jaw is one oscillator gated per clack. 8 nodes
+  function vSkel(t){
+    const p = jit(.06), jawFirst = Math.random() < .4, nr = 6 + ((Math.random()*4) | 0), nj = Math.random() < .3 ? 3 : 2;
+    const tr = jawFirst ? t + (nj - 1)*.085 + .05 : t, tj = jawFirst ? t : t + .045 + nr*.034;
+    const n = noise(t, .6), br = filt('bandpass', 2600*p, 6), gr = ac.createGain(), bj = filt('bandpass', 1500*p, 3), gj = ac.createGain();
+    gr.gain.setValueAtTime(.0001, t); gj.gain.setValueAtTime(.0001, t);
+    let tc = tr;
+    for (let i = 0; i < nr; i++){ const a = (.7 + Math.random()*.3)*(1 - i*.06);
+      br.frequency.setValueAtTime((1800 + Math.random()*1800)*p, tc);
+      gr.gain.setValueAtTime(.0001, tc); gr.gain.exponentialRampToValueAtTime(.62*a, tc + .002); gr.gain.exponentialRampToValueAtTime(.0001, tc + .018);
+      tc += .022 + Math.random()*.024; }
+    const o = ac.createOscillator(), go = ac.createGain(); o.type = 'triangle'; go.gain.setValueAtTime(.0001, t);
+    for (let i = 0; i < nj; i++){ const tk = tj + i*.085*jit(.08), f = 560*p*(i % 2 ? .9 : 1), a = 1 - i*.15;
+      o.frequency.setValueAtTime(f*1.3, tk); o.frequency.exponentialRampToValueAtTime(f, tk + .012);
+      go.gain.setValueAtTime(.0001, tk); go.gain.exponentialRampToValueAtTime(.2*a, tk + .0015); go.gain.exponentialRampToValueAtTime(.0001, tk + .04);
+      gj.gain.setValueAtTime(.0001, tk); gj.gain.exponentialRampToValueAtTime(.62*a, tk + .001); gj.gain.exponentialRampToValueAtTime(.0001, tk + .012); }
+    n.connect(br); br.connect(gr); gr.connect(sfxDry); n.connect(bj); bj.connect(gj); gj.connect(sfxDry); o.connect(go); go.connect(sfxDry);
+    o.start(tj); o.stop(Math.max(tc, tj + nj*.1) + .05);
+  }
+  const VOICE = {goblin: [vGoblin, 1.5], gargoyle: [vGargoyle, 1.5], hobgoblin: [vHob, 1.5], demon: [vDemon, 2], wyvern: [vWyvern, 1.8], succubus: [vSuccubus, 2],
+    orc: [vOrc, 1.5], elf: [vElf, 2], skeleton: [vSkel, 1.2]};   // [function, safety cooldown s]
   function voice(kind, v){ const V = VOICE[kind]; if (!V || !ready('v_' + kind, V[1])) return; V[0](ac.currentTime + .01, v); }
 
   // interface: a small click for buttons, two notes when a level-up card is chosen
@@ -2939,7 +2994,7 @@ function hit(e, dmg, nx, ny, kb = 70){
    waits until one of that type is within 150 px of Aren, plays SFX.voice(type) and restarts with a gap from a tiny generator
    of its own. Math.random is never used here: seeded runs stay identical with or without sound */
 // round 4 (batch 3): demon growl (its laugh keeps the old e.gig timer; SFX keeps the two apart), wyvern wings, succubus wings
-const VOX = {goblin:[2.5, 4], gargoyle:[3, 4], hobgoblin:[3, 4.5], demon:[5, 5, .9], wyvern:[3.5, 4, .9], succubus:[4, 5, .7]};   // [minimum gap s, extra random gap s, other types wait s (default .5)]
+const VOX = {goblin:[2.5, 4], gargoyle:[3, 4], hobgoblin:[3, 4.5], demon:[5, 5, .9], wyvern:[3.5, 4, .9], succubus:[4, 5, .7], orc:[3.5, 4.5, .6], elf:[6, 6], skeleton:[3, 3.5]};   // [minimum gap s, extra random gap s, other types wait s (default .5)]
 let voxT = {}, voxNear = {}, voxSeed = 1;
 function voxRnd(){ voxSeed = (Math.imul(voxSeed, 1664525) + 1013904223) >>> 0; return voxSeed/4294967296; }
 function voxReset(){ voxSeed = 1; voxNear = {}; voxT = {}; for (const k in VOX) voxT[k] = 1 + voxRnd()*2; }
