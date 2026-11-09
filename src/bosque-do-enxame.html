@@ -28,8 +28,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--display);overflow:h
 #hearts img{width:21px;height:18px;image-rendering:pixelated}
 #timer{font-size:22px;font-weight:700;letter-spacing:.06em;text-shadow:2px 2px 0 #0b1218;font-variant-numeric:tabular-nums;text-align:center}
 /* run clock held while a mid-boss lives: dimmed digits, a pause sign (shape) and a label (text), not colour alone */
-.tbox{display:flex;flex-direction:column;align-items:center;gap:3px}
-#timer.held{display:flex;align-items:center;gap:6px;color:var(--mute)}
+.tbox{display:flex;flex-direction:column;align-items:center;gap:3px;width:124px}   /* fixed: Pixelify digits are not tabular, a width that followed the digits made the side columns (hearts, buttons) reflow */
+#timer{white-space:nowrap}
+#timer.held{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mute)}
 #timer.held::before{content:"";width:3px;height:.62em;border-inline:4px solid currentColor;filter:drop-shadow(2px 2px 0 #0b1218)}
 #hold{font-size:12px;font-weight:700;color:#ffe7a3;background:rgba(58,36,10,.85);border:2px solid var(--gold);padding:1px 6px;white-space:nowrap;box-shadow:2px 2px 0 #0b1218}
 @media (prefers-reduced-motion:no-preference){#timer.held::before{animation:held 1.6s ease-in-out infinite}}
@@ -168,7 +169,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--display);overflow:h
 .res .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
 .best{font-size:13px;color:var(--leaf)}
 .best:empty{display:none}
-@media (max-width:420px){.panel h1{font-size:46px}.subtitle{font-size:17px}#timer{font-size:19px}}
+@media (max-width:420px){.panel h1{font-size:46px}.subtitle{font-size:17px}#timer{font-size:19px}.tbox{width:76px}#hold{white-space:normal;text-align:center}}
 html,body{overscroll-behavior:none}
 body{-webkit-touch-callout:none}
 </style>
