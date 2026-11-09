@@ -1,5 +1,17 @@
 # Changelog
 
+## Áudio — rodada 2 (08/11/2026, branch `dev`, não publicado)
+
+Pedidos do Narley no Laboratório de Som. Medido com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; volume = RMS da janela de 150 ms mais alta). Eu não ouço os sons: a aprovação é do Narley, no laboratório.
+
+- **Mix:** barramento de música −6 dB (constante `MUS` = 0,17; antes 0,34), também nas vinhetas. Cristal e relíquia −3 dB; escudo raspando +4,5 dB.
+- **Refeitos:** explosão de fogo (volume mantido, é a referência; varia ±5% de altura), Martelo Sísmico e tremor, Arco Élfico (de −11 para −6 dB), risada do demônio (voz mais aguda, de +17 para +6 dB), maldição da súcubo (com risinho felino no máximo a cada 1,4 s), aterrissagem, grito, pancada, giro (de −14 para −6 dB), lâminas, lâmina disparada, espírito e morte do Paladino, teletransporte, gelo (preparar e acertar), aviso dos relâmpagos (de −12 para −8 dB), raio do Lich, rugidos do dragão (de +14..+17 para +2..+7 dB; a morte do dragão mantém o rugido antigo) e impacto do mergulho (de +10,5 para +5,5 dB).
+- **Novos:** dano em Aren, vida baixa (batida de coração a cada 2,4 s com 1 coração ou menos), joia (sobe de tom em coletas seguidas), meio coração e coração, nível sem escolha, golpe da Espada (mais agudo por nível), Shuriken, disparo do fogo, Fogo-fátuo, Cajado da Tempestade, Espada Sagrada, flecha dos elfos, fogo da serpe, elite, morte de inimigo com timbre por tipo, botões, cartas, pausa; vitória e derrota tocam pelos Efeitos quando a Música está desligada.
+- **Pausa:** com a pausa visível o áudio é suspenso 0,3 s depois, para a dica de pausa tocar; com a aba oculta continua imediato.
+- **Desempenho:** sons frequentes com recarga e até 7 nós; 30 mortes + 30 joias em 1 s criam 105 nós.
+- **Determinismo:** `smoke.py --compare` IDENTICAL; o jogo não sorteia nada para o som.
+- **Ferramentas:** catálogo com `estado`; laboratório com Antes/Agora (módulo do commit 01c5ba5), notas em `avaliacoes_r2`; `sfx_levels.py --rev` mede versões antigas.
+
 ## Decisões do Narley (08/11/2026)
 
 - Limite de armas passa de 4 para **5** (`BAL.pick.maxWeapons`).

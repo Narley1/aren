@@ -109,12 +109,29 @@
 
 Só leitura: nenhum som do jogo mudou. Medição com `tools/sfx_levels.py` (cada som sozinho pelo mixer do jogo; "volume" = RMS da janela de 150 ms mais alta; referência = explosão da Magia de Fogo, −29,5 dBFS).
 
-- [ ] **Música cobre os efeitos:** músicas com RMS médio de −23 a −20 dBFS; arco −40,5, explosão −29,5. Proposta no laboratório: música −6 dB (ajustável)
-- [ ] **Sons antigos muito altos:** risada do demônio +17,9 dB sobre a explosão (pico −3,3 dBFS), rugidos do dragão +14 a +18, morte do dragão pico −2,4, súcubo +9,4, impacto do mergulho +11,2. Proposta: no máximo +6 (+8 para chegada, fúria e morte do dragão)
-- [ ] **Avisos de ataque baixos:** escudo raspando −12,4, salto −13,1, aviso da chuva de relâmpagos −11,6; arco −11. Proposta: subir para −8
-- [ ] **18 momentos sem som** (dano em Aren, morte de inimigo, joia, coração, Espada, Shuriken, disparo do fogo, Fogo-fátuo, Cajado, Espada Sagrada, flecha dos elfos, fogo da serpe, elite, vida baixa, botões, pausa, vitória/derrota sem música)
-- [ ] Sem variação de altura nos sons repetidos (arco, explosão)
+- [x] **Música cobre os efeitos:** músicas com RMS médio de −23 a −20 dBFS; arco −40,5, explosão −29,5. Proposta no laboratório: música −6 dB (ajustável)
+- [x] **Sons antigos muito altos:** risada do demônio +17,9 dB sobre a explosão (pico −3,3 dBFS), rugidos do dragão +14 a +18, morte do dragão pico −2,4, súcubo +9,4, impacto do mergulho +11,2. Proposta: no máximo +6 (+8 para chegada, fúria e morte do dragão)
+- [x] **Avisos de ataque baixos:** escudo raspando −12,4, salto −13,1, aviso da chuva de relâmpagos −11,6; arco −11. Proposta: subir para −8
+- [x] **18 momentos sem som** (dano em Aren, morte de inimigo, joia, coração, Espada, Shuriken, disparo do fogo, Fogo-fátuo, Cajado, Espada Sagrada, flecha dos elfos, fogo da serpe, elite, vida baixa, botões, pausa, vitória/derrota sem música)
+- [x] Sem variação de altura nos sons repetidos (arco, explosão)
 - [ ] Só liga/desliga Música e Efeitos; sem volume separado
 - [x] Acessibilidade: todo som que avisa um ataque tem marcação visual
-- [ ] Laboratório publicado para o Narley ouvir e dar nota; as notas ficam no armazenamento do artifact (coleção `avaliacoes`) e são lidas antes de mexer no som
+- [x] Laboratório publicado para o Narley ouvir e dar nota; as notas ficam no armazenamento do artifact (coleção `avaliacoes`) e são lidas antes de mexer no som
 
+
+
+### Áudio — rodada 2 (08/11/2026): pedidos do Narley no laboratório
+
+Feito (medido com `tools/sfx_levels.py`; referência = explosão nova, ~−29,5 dBFS; nenhum pico acima de −8 dBFS nas medições):
+- [x] Mix: música −6 dB (`MUS` = 0,17, uma constante), Cristal e relíquia −3 dB, escudo raspando +4,5 dB
+- [x] Refeitos: explosão de fogo (sopro, chama, estalos), martelo e tremor (terra e areia), arco (corda + flecha saindo, ±4,5%), risada do demônio (mais aguda, sem sub, +5,8 dB sobre a explosão, era +17), maldição (risinho felino "nya-ha-ha"), aterrissagem, grito possuído e "bonk" do escudo do Paladino, lâminas fantasmas, lâmina disparada mais afiada, giro mais alto e metálico, espírito e morte do Paladino ~1 s mais longos, teletransporte curto, gelo formando e quebrando, aviso de relâmpagos com estática, raio retrô, rugidos do dragão (+2 a +7 dB, eram +14 a +17), impacto do mergulho
+- [x] 18 sons novos: dano em Aren, vida baixa, joia, coração, nível sem escolha, Espada por nível, Shuriken (arremesso e volta), disparo do fogo, Fogo-fátuo, Cajado, Espada Sagrada, flecha dos elfos, fogo da serpe, elite, morte de inimigo por tipo, botões e cartas, pausa, vitória/derrota pelos Efeitos com a Música desligada
+- [x] Determinismo IDENTICAL (o som não muda o jogo); rajada de 30 mortes + 30 joias em 1 s = 105 nós de áudio
+- [x] Laboratório da rodada 2: Antes/Agora, selos de estado, notas em `avaliacoes_r2` com a nota da rodada 1 visível
+
+Esperando o ouvido do Narley (laboratório, coleção `avaliacoes_r2`):
+- [ ] Todos os sons refeitos e novos (eu não ouço: só medi nível, duração, nós e olhei espectrogramas)
+- [ ] Interpretações: risinho felino colocado no estouro da maldição (a risada da súcubo ficou igual); teletransporte e raio são originais, só inspirados no "jeito" pedido
+- [ ] Ainda acima do limite e sem pedido de mudança: morte do dragão (+18 dB, ele gostou), risada da súcubo (+9 a +11), subir de nível (+6,5); abaixo de −8 sem pedido: preparar o giro, salto, carregar relâmpago em cadeia. O laboratório mostra a Proposta para cada um
+- [ ] Lâmina disparada continua baixa (−14 dB) porque só foi pedido "mais afiado"
+- [ ] Volume separado para Música e Efeitos (hoje só liga/desliga)
