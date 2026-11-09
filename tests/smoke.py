@@ -58,6 +58,9 @@ window.__t = {
   get ZAPS(){ return typeof ZAPS !== 'undefined' ? ZAPS : null; },
   get CORPSES(){ return typeof CORPSES !== 'undefined' ? CORPSES : null; },
   get lichStart(){ return typeof lichStart === 'function' ? lichStart : null; },
+  // final review (09/11/2026): off-screen pointers
+  get PTR_POS(){ return typeof PTR_POS !== 'undefined' ? PTR_POS : null; },
+  get VW(){ return VW; }, get VH(){ return VH; }, get SCALE(){ return SCALE; },
   // ambient butterflies/leaves live across runs and are topped up with Math.random by the title screen between
   // evaluates (how many frames ran depends on machine load), so the seeded runs start from an empty set
   clearAmb(){ if (typeof AMB !== 'undefined'){ AMB.bf.length = 0; AMB.lv.length = 0; AMB.t = 0; AMB.step = 0; } }
@@ -357,6 +360,52 @@ async () => {
 }
 '''
 
+# Phone/desktop layout checks: off-screen pointer for the boss and the relic (shown off screen, hidden on screen, kept
+# inside the canvas between the HUD's top block and its bottom bar), fixed timer box, no "Succubus" in visible text.
+LAYOUT = r'''
+async (seed) => {
+  const T = window.__t, $ = q => document.querySelector(q), r = {};
+  if (!T.PTR_POS) return {skipped: true};
+  window.__seed(seed); T.clearAmb(); T.start();
+  const step = n => { for (let i = 0; i < n; i++){ T.P.inv = 1e9; T.update(1/60); } };
+  const draw = () => { T.state = 'pause'; T.hud(); T.render(1/60); T.state = 'play'; return Array.from(T.PTR_POS); };
+  T.G.t = 299.5; step(60*6);
+  const e = T.G.guard[0];
+  const ar = $('#app').getBoundingClientRect(), S = T.SCALE;
+  const top = ($('.hud-head').getBoundingClientRect().bottom - ar.top)/S, bot = ($('.hud-bottom').getBoundingClientRect().top - ar.top)/S;
+  const inside = p => { for (let i = 0; i < p.length; i += 4) if (p[i] < 0 || p[i + 1] < top || p[i] + p[i + 2] > T.VW || p[i + 1] + p[i + 3] > bot) return false; return p.length > 0; };
+  r.boss = {};
+  for (const [name, dx, dy] of [['right', 300, 0], ['left', -300, 40], ['up', 0, -400], ['down', 30, 500]]){
+    e.x = T.P.x + dx; e.y = T.P.y + dy; const p = draw(); r.boss[name] = {n: p.length/8, inside: inside(p)};
+  }
+  e.x = T.P.x + 20; e.y = T.P.y + 10; r.bossOn = draw().length/8;
+  // timer box: same size and same button positions for every clock value, held or not
+  const rect = q => { const b = $(q).getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width)].join(','); };
+  const lay = new Set(), widths = new Set(), alive = T.G.guard.splice(0);
+  for (const t of [0, 9, 59, 71, 111, 300, 599, 600, 1111, 2888, 3599]){
+    T.G.t = t; T.hud(); lay.add([rect('#musicBtn'), rect('#soundBtn'), rect('#pauseBtn'), rect('#hearts')].join('|')); widths.add(rect('.tbox'));
+  }
+  T.G.guard.push(...alive);
+  for (const t of [300, 600, 3599]){ T.G.t = t; T.hud(); lay.add([rect('#musicBtn'), rect('#soundBtn'), rect('#pauseBtn'), rect('#hearts')].join('|')); widths.add(rect('.tbox')); }
+  r.held = !$('#hold').hidden;
+  r.layouts = lay.size; r.tboxes = widths.size;
+  // relic on the ground
+  T.G.guard.length = 0; T.E.length = 0;
+  const it = {x: T.P.x - 250, y: T.P.y + 300, kind: 'relic', rk: 'holy', t: 0}; T.ITEMS.push(it);
+  const pr = draw(); r.relicOff = {n: pr.length/8, inside: inside(pr)};
+  it.x = T.P.x + 10; it.y = T.P.y + 10; r.relicOn = draw().length/8;
+  T.ITEMS.length = 0;
+  // visible text: no "Succubus" (enemy name, bestiary of "Como jogar", curse toast)
+  T.goTitle(); $('#titleScreen').hidden = true; $('#startScreen').hidden = false;
+  const how = [...document.querySelectorAll('button')].find(b => /como jogar/i.test(b.textContent)); if (how) how.click();
+  await new Promise(res => setTimeout(res, 100));
+  r.bestiarySucubo = /Súcubo/.test($('#startScreen').textContent);
+  r.succubusVisible = /succubus/i.test(document.body.innerText) || /succubus/i.test($('#startScreen').textContent);
+  $('#startScreen').hidden = true; T.goTitle();
+  return r;
+}
+'''
+
 async def run(src, seed):
     from playwright.async_api import async_playwright
     tmp = tempfile.mkdtemp(prefix='aren-smoke-')
@@ -401,6 +450,15 @@ async def run(src, seed):
             ux['enterNoToggle'] = m1 == await pg.evaluate('() => document.querySelector("#musicBtn").getAttribute("aria-pressed")')
             await pg.click('#musicBtn')
             res['ux'] = ux
+            res['layout'] = {}
+            for vw, vh in ((390, 844), (1366, 768)):
+                pl = await b.new_page(viewport={'width': vw, 'height': vh})
+                pl.on('pageerror', lambda e: errs.append('pageerror (layout): ' + str(e)))
+                await pl.goto('file://' + page_path)
+                await pl.wait_for_timeout(500)
+                await pl.evaluate('document.fonts.ready')
+                res['layout'][f'{vw}x{vh}'] = await pl.evaluate(LAYOUT, seed + 4)
+                await pl.close()
             # determinism pass: fresh page, audio off, same seeds
             pg2 = await b.new_page(viewport={'width': 900, 'height': 700})
             pg2.on('pageerror', lambda e: errs.append('pageerror (det): ' + str(e)))
@@ -452,6 +510,13 @@ def checks(r):
             ok(f'power {k}: works alone (more kills than the sword alone, effect seen)', kl[k] > kl['none'] and pw['seen'][k], json.dumps(pw['kills']))
         ok('weapon cap: no new weapon offered when full, offered again below the cap', not pw['capNewOffered'] and pw['belowCapNewOffered'] > 0, json.dumps(pw['capNewOffered']))
         ok('level-up cards show the style pill; power list complete', pw['cards'] > 0 and pw['cards'] == pw['cardsWithStyle'] and pw['powerList'] == pw['upgCount'], json.dumps({k: pw[k] for k in ('cards', 'cardsWithStyle', 'powerList', 'upgCount')}))
+    for vp, ly in (r.get('layout') or {}).items():
+        if ly.get('skipped'): continue
+        bo = ly['boss']
+        ok(f'{vp}: pointer to an off-screen boss (4 sides), inside the free area between the HUD blocks; none on screen', all(v['n'] == 1 and v['inside'] for v in bo.values()) and ly['bossOn'] == 0, json.dumps({'boss': bo, 'on': ly['bossOn']}))
+        ok(f'{vp}: pointer to an off-screen relic on the ground; none on screen', ly['relicOff']['n'] == 1 and ly['relicOff']['inside'] and ly['relicOn'] == 0, json.dumps({k: ly[k] for k in ('relicOff', 'relicOn')}))
+        ok(f'{vp}: timer box fixed, HUD buttons do not move for 0:00-59:59 nor with "Derrote o chefe!"', ly['held'] and ly['tboxes'] == 1 and ly['layouts'] == 1, json.dumps({k: ly[k] for k in ('held', 'tboxes', 'layouts')}))
+        ok(f'{vp}: no "Succubus" in visible text, bestiary shows "Súcubo"', ly['bestiarySucubo'] and not ly['succubusVisible'], json.dumps({k: ly[k] for k in ('bestiarySucubo', 'succubusVisible')}))
     ok('victory: game-over panel shown', a['overShown'] and a['overTitle'] == 'Vitória!')
     ok('victory: back to title', a['titleShown'])
     for i, cy in enumerate(a['cycles']):
