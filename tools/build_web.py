@@ -118,21 +118,21 @@ readme_gh=f"""# Aren, o Guardião do Bosque
 
 ### ▶ [Jogar agora no navegador]({SITE})
 
-Aren, aprendiz de guardião, só tem a velha espada da família quando o enxame invade o bosque. Sobreviva às hordas, recolha os poderes que as criaturas deixam cair e enfrente o Dragão Esqueleto aos 10 minutos.
+Aren, aprendiz de guardião, só tem a velha espada da família quando o enxame invade o bosque. Sobreviva às hordas por 15 minutos, recolha os poderes que as criaturas deixam cair e derrote os três chefes: o Paladino Possuído aos 5 minutos, o Lich Ancião aos 10 e o Dragão Esqueleto aos 15.
 
 ## Como jogar
 
 - **Computador:** WASD ou setas para andar · **P** pausa · **F** tela cheia
 - **Celular:** toque e arraste em qualquer lugar da tela
-- A espada ataca sozinha quando há inimigos por perto.
+- As armas atacam sozinhas; você só se movimenta.
 
 ## O que tem no jogo
 
-- 9 tipos de inimigo: goblins, gárgulas, hobgoblins, elfos negros, orcs, demônios, succubus, wyverns e o Dragão Esqueleto
-- Sistema de experiência: nos níveis 3, 5 e depois a cada 5 níveis, escolha entre dois poderes (espada, shuriken gigante, Will-o'-Wisp, magia de fogo, botas, amuleto ímã e recipiente de coração), cada um com 5 níveis
+- Inimigos: goblins, gárgulas, hobgoblins, elfos negros, orcs, demônios, súcubos e wyverns; o Lich ainda invoca esqueletos
+- Três chefes com ataques avisados no chão, duas fases e música própria; enquanto o Paladino ou o Lich vive, o relógio da partida para
+- Joias viram experiência; nos níveis de escolha você pega um entre três poderes, cada um com estilo Corpo a corpo, A distância ou Híbrido: Espada, Martelo Sísmico, Aura de Espinhos, Shuriken Gigante, Arco Élfico, Fogo-fátuo, Magia de Fogo e os passivos Botas Ligeiras, Amuleto Ímã, Recipiente de Coração, Manoplas do Guerreiro e Grimório Arcano
+- Relíquias que só os chefes soltam: Espada Sagrada (Paladino) e Cajado da Tempestade (Lich)
 - No chão caem meios corações para curar e, raramente, cristais que aprimoram um poder que você já tem
-- Relíquias lendárias com 3 níveis depois dos 5 minutos: Espada Sagrada, Cajado da Tempestade e Chuva de Meteoros
-- Chefe final com padrões de ataque próprios e a mecânica dos Selos de Luz
 - Pixel art no estilo 32 bits, música que muda com o momento do jogo (ocarina, flauta e alaúde) e efeitos sonoros sintetizados
 
 ## Instalar como app
