@@ -2270,7 +2270,7 @@ const SFX = (() => {
   }
   function rattle(){ if (!ready('rattle', .25)) return; clatter(ac.currentTime + .01, 16, .6, .4); }
   function dragonDeath(){
-    if (!ac || !on) return;
+    if (!ac || !on || ac.state !== 'running') return;   // same check as ready(), before wail/clatter draw Math.random
     boneRoar({len:3, pitch:.5, vol:1, force:true});
     const t = ac.currentTime + .4; wail(t, 3.2, 520, .14); clatter(t + 1.2, 40, 2.2, .45);
   }
