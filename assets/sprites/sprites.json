@@ -1,0 +1,288 @@
+{
+ "gem_b": {
+  "file": "gem_b.png",
+  "h": 6,
+  "n": 1,
+  "w": 5
+ },
+ "gem_g": {
+  "file": "gem_g.png",
+  "h": 6,
+  "n": 1,
+  "w": 5
+ },
+ "gem_r": {
+  "file": "gem_r.png",
+  "h": 6,
+  "n": 1,
+  "w": 5
+ },
+ "goblin_down": {
+  "file": "goblin_down.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_down_flash": {
+  "file": "goblin_down_flash.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_down_gold": {
+  "file": "goblin_down_gold.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_left": {
+  "file": "goblin_left.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_left_flash": {
+  "file": "goblin_left_flash.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_left_gold": {
+  "file": "goblin_left_gold.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_side": {
+  "file": "goblin_side.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_side_flash": {
+  "file": "goblin_side_flash.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_side_gold": {
+  "file": "goblin_side_gold.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_up": {
+  "file": "goblin_up.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_up_flash": {
+  "file": "goblin_up_flash.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "goblin_up_gold": {
+  "file": "goblin_up_gold.png",
+  "h": 20,
+  "n": 4,
+  "w": 20
+ },
+ "heart_empty": {
+  "file": "heart_empty.png",
+  "h": 6,
+  "n": 1,
+  "w": 7
+ },
+ "heart_full": {
+  "file": "heart_full.png",
+  "h": 6,
+  "n": 1,
+  "w": 7
+ },
+ "heart_half": {
+  "file": "heart_half.png",
+  "h": 6,
+  "n": 1,
+  "w": 7
+ },
+ "hero_down": {
+  "file": "hero_down.png",
+  "h": 24,
+  "n": 4,
+  "w": 18
+ },
+ "hero_left": {
+  "file": "hero_left.png",
+  "h": 24,
+  "n": 4,
+  "w": 18
+ },
+ "hero_side": {
+  "file": "hero_side.png",
+  "h": 24,
+  "n": 4,
+  "w": 18
+ },
+ "hero_up": {
+  "file": "hero_up.png",
+  "h": 24,
+  "n": 4,
+  "w": 18
+ },
+ "logo": {
+  "file": "logo.png",
+  "h": 82,
+  "n": 1,
+  "w": 168
+ },
+ "prop_bush": {
+  "file": "prop_bush.png",
+  "h": 15,
+  "n": 4,
+  "ox": 10,
+  "oy": 13,
+  "sh": 16,
+  "w": 20
+ },
+ "prop_bushB": {
+  "file": "prop_bushB.png",
+  "h": 15,
+  "n": 4,
+  "ox": 10,
+  "oy": 13,
+  "sh": 16,
+  "w": 20
+ },
+ "prop_rock": {
+  "file": "prop_rock.png",
+  "h": 12,
+  "n": 1,
+  "ox": 8,
+  "oy": 10,
+  "sh": 13,
+  "w": 16
+ },
+ "prop_stump": {
+  "file": "prop_stump.png",
+  "h": 11,
+  "n": 1,
+  "ox": 7,
+  "oy": 9,
+  "sh": 12,
+  "w": 14
+ },
+ "prop_tree": {
+  "file": "prop_tree.png",
+  "h": 44,
+  "n": 6,
+  "ox": 18,
+  "oy": 41,
+  "sh": 26,
+  "w": 36
+ },
+ "shadow_12": {
+  "file": "shadow_12.png",
+  "h": 4,
+  "n": 1,
+  "w": 12
+ },
+ "shadow_13": {
+  "file": "shadow_13.png",
+  "h": 4,
+  "n": 1,
+  "w": 13
+ },
+ "shadow_15": {
+  "file": "shadow_15.png",
+  "h": 5,
+  "n": 1,
+  "w": 15
+ },
+ "shadow_16": {
+  "file": "shadow_16.png",
+  "h": 5,
+  "n": 1,
+  "w": 16
+ },
+ "shadow_26": {
+  "file": "shadow_26.png",
+  "h": 9,
+  "n": 1,
+  "w": 26
+ },
+ "stamp_clover": {
+  "file": "stamp_clover.png",
+  "h": 3,
+  "n": 1,
+  "w": 4
+ },
+ "stamp_crack": {
+  "file": "stamp_crack.png",
+  "h": 3,
+  "n": 1,
+  "w": 5
+ },
+ "stamp_dpeb": {
+  "file": "stamp_dpeb.png",
+  "h": 2,
+  "n": 1,
+  "w": 3
+ },
+ "stamp_fB": {
+  "file": "stamp_fB.png",
+  "h": 4,
+  "n": 1,
+  "w": 3
+ },
+ "stamp_fP": {
+  "file": "stamp_fP.png",
+  "h": 4,
+  "n": 1,
+  "w": 3
+ },
+ "stamp_fW": {
+  "file": "stamp_fW.png",
+  "h": 4,
+  "n": 1,
+  "w": 3
+ },
+ "stamp_fY": {
+  "file": "stamp_fY.png",
+  "h": 3,
+  "n": 1,
+  "w": 3
+ },
+ "stamp_peb": {
+  "file": "stamp_peb.png",
+  "h": 3,
+  "n": 1,
+  "w": 4
+ },
+ "stamp_tall": {
+  "file": "stamp_tall.png",
+  "h": 7,
+  "n": 1,
+  "w": 7
+ },
+ "stamp_tuft": {
+  "file": "stamp_tuft.png",
+  "h": 4,
+  "n": 1,
+  "w": 5
+ },
+ "stamp_tuft2": {
+  "file": "stamp_tuft2.png",
+  "h": 3,
+  "n": 1,
+  "w": 4
+ },
+ "sword": {
+  "R": 22,
+  "file": "sword.png",
+  "h": 45,
+  "n": 48,
+  "w": 45
+ }
+}
