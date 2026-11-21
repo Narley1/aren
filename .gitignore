@@ -1,0 +1,10 @@
+# Godot
+.godot/
+export_presets.cfg
+/build/
+/exports/
+*.apk
+*.aab
+*.tmp
+# Python
+__pycache__/
