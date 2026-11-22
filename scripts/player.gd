@@ -12,7 +12,10 @@ var moving := false
 var anim := 0.0
 var face_a := PI / 2
 
-@onready var sprite: Sprite2D = $Sprite
+## Nome da direção no SpriteFrames (assets/sprites/aren.tres): "left" usa "lado" espelhado (flip_h).
+const DIR_ANIM := {"down": "baixo", "up": "cima", "side": "lado", "left": "lado"}
+
+@onready var sprite: AnimatedSprite2D = $Sprite
 
 
 func reset() -> void:
@@ -58,14 +61,22 @@ func face_toward(ang: float) -> void:
 		dir = "up" if sin(ang) < 0 else "down"
 
 
+## Animação: AnimatedSprite2D com o SpriteFrames aren.tres ("andar_*" a 9 quadros/s, como anim += dt*9 no
+## HTML; "parado_*" = primeiro quadro). Ao virar andando, o quadro continua de onde estava.
 func update_visual() -> void:
-	var fr: Array = Art.frames("hero_" + dir)
-	var f := (absi(floori(anim)) % 4) if moving else 0
-	sprite.texture = fr[f]
-	var sz := Art.size("hero_down")
-	# HTML: drawImage(set[f], round(P.x - w/2 - cx), round(P.y - h + 1 - cy)); w é par, então dá no mesmo
-	# pôr o nó no pé (round(P.x), round(P.y)) — que é a chave da ordenação por y — e deslocar o sprite
+	var want: String = ("andar_" if moving else "parado_") + DIR_ANIM[dir]
+	if sprite.animation != want:
+		var f := sprite.frame
+		var pr := sprite.frame_progress
+		var keep: bool = moving and String(sprite.animation).begins_with("andar_")
+		sprite.play(want)
+		if keep:
+			sprite.set_frame_and_progress(f, pr)
+	elif moving and not sprite.is_playing():
+		sprite.play(want)
+	sprite.flip_h = dir == "left"
+	# HTML: drawImage(set[f], round(P.x - w/2 - cx), round(P.y - h + 1 - cy)); o nó fica no pé (round(P.x),
+	# round(P.y)) — a chave da ordenação por y — e o sprite é deslocado (offset -9, -23 na cena)
 	position = Vector2(JsMath.jround(px), JsMath.jround(py))
-	sprite.offset = Vector2(-sz.x / 2, -sz.y + 1)
-	# piscando enquanto invulnerável
+	# piscando enquanto invulnerável (a sombra continua)
 	sprite.visible = not (inv > 0 and floori(inv * 14) % 2 == 1)
