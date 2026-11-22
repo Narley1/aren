@@ -41,6 +41,9 @@ xvfb-run -a $GODOT --path . --rendering-driver opengl3 --audio-driver Dummy res:
    `tools/export_sprites.py` e rodar o exportador. Conferir o PNG com uma ampliação antes de usar. Os tiles do
    chão saem de `tools/make_tileset.py` (paleta e carimbos do HTML); SpriteFrames e TileSet de
    `tools/build_resources.gd` (rodar de novo sobrescreve esses .tres).
+   **Exceção — arte nova:** a arte nova (pedido do Narley: "Minish Cap, mais detalhado") é desenhada por código em
+   `tools/arte/` (`python3 tools/arte/gerar_arte.py`) e sai em `assets/sprites/novo/`; também nunca se edita o PNG
+   à mão. Ela só entra nas cenas depois que o Narley aprovar no Laboratório de Arte (`tools/build_art_lab.py`).
 3. **Visual do jeito do Godot**, editável no editor: personagens em AnimatedSprite2D + SpriteFrames, cenário em
    TileMapLayer/TileSet (terrain set) e cenas de props, tintas e balanço em shaders (`assets/shaders`, parâmetros
    nos materiais de `assets/materiais`), efeitos como cenas em `scenes/efeitos` (CPUParticles2D, Tween,

@@ -145,6 +145,10 @@ python3 tools/export_sprites.py --src ../aren/src/bosque-do-enxame.html
 python3 tools/make_tileset.py
 $GODOT --headless --path . -s res://tools/build_resources.gd
 
+# arte nova (rodada 1, ainda não usada nas cenas): desenhada por código, sai em assets/sprites/novo/
+python3 tools/arte/gerar_arte.py [--preview /pasta/para/ampliacoes]
+python3 tools/build_art_lab.py --out /tmp/laboratorio-arte.html   # página para ver e dar nota (Antes / A / B)
+
 # desempenho numa cena cheia (150 goblins, 2 mortes por quadro), com janela (xvfb no Linux)
 xvfb-run -a $GODOT --path . --rendering-driver opengl3 --audio-driver Dummy --resolution 1366x768 res://tools/bench.tscn
 
@@ -184,5 +188,9 @@ assets/shaders/          inimigo, balanco, chao, arco, anel (.gdshader)
 assets/materiais/        materiais com os parâmetros dos shaders (.tres)
 assets/font/             Pixelify Sans + OFL.txt + digitos.png (fonte de imagem dos números de dano)
 tests/                   run_tests.gd/.tscn/.sh + ref/ (números do HTML)
-tools/                   export_sprites.py, make_tileset.py, build_resources.gd, bench.gd/.tscn, shots.sh, html_shots.py
+tools/                   export_sprites.py, make_tileset.py, build_resources.gd, bench.gd/.tscn, shots.sh, html_shots.py,
+                         build_art_lab.py (Laboratório de Arte)
+tools/arte/              gerador da arte nova: paleta.py (rampas com nome), pixel.py (tela, volume, contorno),
+                         aren.py, goblin.py, efeitos.py, gerar_arte.py
+assets/sprites/novo/     arte nova (rodada 1): Opção A e B de Aren e goblin, efeitos, novo.json, aren_a.tres, goblin_a.tres
 ```
