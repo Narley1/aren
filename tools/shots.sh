@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Capturas de tela da versão Godot (início, partida com goblins, pausa, fim de jogo) em 390x844 e 1366x768,
+# Capturas de tela da versão Godot (início, partida com goblins, efeitos, pausa, fim de jogo) em 390x844 e 1366x768,
 # com o renderizador Compatibility em OpenGL por software (xvfb). Uso:
 #   GODOT=/caminho/Godot_v4.7.2-stable_linux.x86_64 tools/shots.sh /pasta/de/saida
 set -eu
