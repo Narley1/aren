@@ -1,5 +1,5 @@
 extends Node
-## Testes da Etapa 1, sem janela:
+## Testes da Etapa 1 (com o visual feito em cenas, TileMapLayer, shaders e partículas), sem janela:
 ##   godot --headless --path . res://tests/run_tests.tscn      (ou tests/run_tests.sh, que também falha com
 ##                                                              qualquer ERROR/SCRIPT ERROR no log)
 ## Imprime PASS/FAIL por verificação e sai com código 1 se alguma falhar.
@@ -37,13 +37,15 @@ func _run() -> void:
 	await get_tree().process_frame
 	main.set_process(false)   # os testes avançam a simulação na mão, com passos fixos
 	_test_numbers()
-	_test_ground()
 	_test_movement()
 	_test_spawn()
 	_test_sword()
 	_test_xp()
 	_test_horde()
 	await _test_streaming()
+	_test_tiles()
+	await _test_visuals()
+	await _test_effects()
 	await _test_pause()
 	await _test_game_over()
 	_finish()
@@ -58,7 +60,12 @@ func _finish() -> void:
 
 func _test_load() -> void:
 	for p in ["res://scenes/main.tscn", "res://scenes/world.tscn", "res://scenes/player.tscn", "res://scenes/enemy.tscn",
-			"res://scenes/gem.tscn", "res://scenes/hud.tscn"]:
+			"res://scenes/gem.tscn", "res://scenes/hud.tscn", "res://scenes/props/arvore.tscn", "res://scenes/props/arbusto.tscn",
+			"res://scenes/props/arbusto_frutas.tscn", "res://scenes/props/pedra.tscn", "res://scenes/props/toco.tscn",
+			"res://scenes/efeitos/golpe_espada.tscn", "res://scenes/efeitos/poeira_morte.tscn", "res://scenes/efeitos/faisca.tscn",
+			"res://scenes/efeitos/brilho_joia.tscn", "res://scenes/efeitos/subiu_nivel.tscn", "res://scenes/efeitos/numero_dano.tscn",
+			"res://assets/tiles/chao.tres", "res://assets/sprites/aren.tres", "res://assets/sprites/goblin.tres",
+			"res://assets/sprites/espada.tres", "res://assets/font/digitos.png"]:
 		check("carrega " + p, load(p) != null)
 	for a in ["Bal", "Art", "Sfx"]:
 		check("autoload " + a, get_node_or_null("/root/" + a) != null)
@@ -67,6 +74,8 @@ func _test_load() -> void:
 	if main:
 		add_child(main)
 		game = main.game
+	var dig: FontFile = load("res://assets/font/digitos.png")
+	check("fonte de imagem dos números de dano tem os dígitos 0-9", dig != null and dig.has_char(48) and dig.has_char(57) and not dig.has_char(65))
 	check("cena principal instanciada", main != null and game != null and game.player != null)
 	check("estado inicial = menu", main != null and main.state == "menu")
 	check("todos os sprites do manifesto existem", _all_sprites_ok())
@@ -106,22 +115,9 @@ func _test_numbers() -> void:
 		if Bal.is_pick_level(L): pl.append(L)
 	check("níveis de escolha iguais ao HTML", pl == H.pickLevels.map(func(x): return int(x)), str(pl))
 	var gob: Dictionary = H.goblin
-	check("tamanho do sprite do goblin igual ao HTML", Art.size("goblin_down") == Vector2i(int(gob.w), int(gob.h)))
-
-
-func _test_ground() -> void:
-	var st := Art.stamp_images()
-	for p in [[0, 0], [-1, 0], [0, -1], [3, -2], [-5, 7]]:
-		var img := GroundGen.make_chunk(p[0], p[1], st)
-		var ref := Image.load_from_file(ProjectSettings.globalize_path("res://tests/ref/ground_%d_%d.png" % p))
-		ref.convert(Image.FORMAT_RGBA8)
-		var a := img.get_data()
-		var b := ref.get_data()
-		var diff := 0
-		for k in range(0, a.size(), 4):
-			if a[k] != b[k] or a[k + 1] != b[k + 1] or a[k + 2] != b[k + 2]:
-				diff += 1
-		check("bloco de chão %s idêntico ao HTML" % str(p), diff == 0, "%d px diferentes" % diff)
+	var pad := int(Art.meta.goblin_down.get("pad", 0))
+	check("tamanho do sprite do goblin igual ao HTML (sem a borda do contorno)",
+		Art.size("goblin_down") - Vector2i(2 * pad, 2 * pad) == Vector2i(int(gob.w), int(gob.h)))
 
 
 func _start() -> void:
@@ -304,23 +300,176 @@ func _test_streaming() -> void:
 	game.wave_t = 1e9
 	game.force_input = Vector2(1, 0)
 	var t0 := Time.get_ticks_msec()
-	for i in 60 * 8:   # 8 s andando para a direita (~570 px, mais de 4 blocos novos)
+	for i in 60 * 8:   # 8 s andando para a direita (~570 px, mais de 2 blocos novos de 256 px)
 		game.step(1.0 / 60)
 		if i % 6 == 0:
 			game.sync_visuals()
 			await get_tree().process_frame
 	game.force_input = Vector2.ZERO
-	var ok := false
-	var t1 := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t1 < 5000:      # até 5 s para as threads terminarem
+	for i in 4:
 		game.sync_visuals()
 		await get_tree().process_frame
-		var k: int = game.ground.key_of(floori((game.cam.x + game.vw / 2.0) / 128.0), floori((game.cam.y + game.vh / 2.0) / 128.0))
-		if game.ground._tex.has(k):
-			ok = true
+	var campo: Node2D = game.ground
+	check("campo novo é gerado enquanto Aren anda", campo.tem_bloco_em(Vector2(game.cam) + Vector2(game.vw, game.vh) / 2.0),
+		"x = %.0f, %d blocos carregados, %d ms" % [game.player.px, campo.blocos_prontos(), Time.get_ticks_msec() - t0])
+	var n_props: int = campo.visible_props.size()
+	var in_ys := n_props > 0
+	for o in campo.visible_props:
+		if o.get_parent() != game.actors:
+			in_ys = false
+	check("props (cenas .tscn) aparecem na área nova, dentro do nó com Y-sort", in_ys and game.actors.y_sort_enabled,
+		"%d props, %d árvores" % [n_props, campo.arvores.size()])
+	var far_ok := true
+	for b in campo._blocos:
+		var c := Vector2((b.x + 0.5) * 256, (b.y + 0.5) * 256)
+		if c.distance_to(Vector2(game.cam)) > 2000:
+			far_ok = false
+	check("blocos longe da câmera são apagados", far_ok and campo.blocos_prontos() < 40, "%d blocos" % campo.blocos_prontos())
+
+
+## O chão é um TileMapLayer com terrain set: toda célula visível tem tile e os cantos vizinhos combinam.
+func _test_tiles() -> void:
+	var campo: Node2D = game.ground
+	var chao: TileMapLayer = campo.chao
+	var ts := chao.tile_set
+	check("TileSet com terrain set Match Corners (Grama, Capim alto, Terra)",
+		ts.get_terrain_sets_count() == 1 and ts.get_terrain_set_mode(0) == TileSet.TERRAIN_MODE_MATCH_CORNERS
+		and ts.get_terrains_count(0) == 3 and ts.get_terrain_name(0, 2) == "Terra")
+	var r := Rect2i(Vector2i(floori(game.cam.x / 16.0), floori(game.cam.y / 16.0)), Vector2i(ceili(game.vw / 16.0) + 1, ceili(game.vh / 16.0) + 1))
+	var vazias := 0
+	var ruins := 0
+	var kinds := {}
+	var src := ts.get_source(0) as TileSetAtlasSource
+	var C := [TileSet.CELL_NEIGHBOR_TOP_LEFT_CORNER, TileSet.CELL_NEIGHBOR_TOP_RIGHT_CORNER,
+		TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_CORNER, TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_CORNER]
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			var c := Vector2i(x, y)
+			if chao.get_cell_source_id(c) != 0:
+				vazias += 1
+				continue
+			var td := src.get_tile_data(chao.get_cell_atlas_coords(c), 0)
+			for k in 4:
+				kinds[td.get_terrain_peering_bit(C[k])] = true
+			# canto direito de cima desta = canto esquerdo de cima da vizinha da direita, etc.
+			var rt := c + Vector2i(1, 0)
+			if chao.get_cell_source_id(rt) == 0:
+				var tr := src.get_tile_data(chao.get_cell_atlas_coords(rt), 0)
+				if td.get_terrain_peering_bit(C[1]) != tr.get_terrain_peering_bit(C[0]) or td.get_terrain_peering_bit(C[3]) != tr.get_terrain_peering_bit(C[2]):
+					ruins += 1
+			var dn := c + Vector2i(0, 1)
+			if chao.get_cell_source_id(dn) == 0:
+				var tb := src.get_tile_data(chao.get_cell_atlas_coords(dn), 0)
+				if td.get_terrain_peering_bit(C[2]) != tb.get_terrain_peering_bit(C[0]) or td.get_terrain_peering_bit(C[3]) != tb.get_terrain_peering_bit(C[1]):
+					ruins += 1
+	check("TileMapLayer preenche todas as células em volta da câmera", vazias == 0, "%d células, %d vazias" % [r.get_area(), vazias])
+	check("cantos de terreno combinam entre tiles vizinhos (bordas sem emenda)", ruins == 0, "%d encontros errados" % ruins)
+	# uma área grande tem os três terrenos
+	campo.pregen(Rect2(-1024, -1024, 2048, 2048))
+	var seen := {}
+	for y in range(-64, 64, 2):
+		for x in range(-64, 64, 2):
+			var td := src.get_tile_data(chao.get_cell_atlas_coords(Vector2i(x, y)), 0)
+			seen[td.get_terrain_peering_bit(C[0])] = true
+	check("o campo tem grama, capim alto e terra", seen.size() == 3, str(seen.keys()))
+	var dec := 0
+	for y in range(-64, 64):
+		for x in range(-64, 64):
+			if campo.detalhes.get_cell_source_id(Vector2i(x, y)) == 1:
+				dec += 1
+	check("camada de detalhes tem tufos/flores", dec > 1000, "%d de 16384 células" % dec)
+	var mat := chao.material as ShaderMaterial
+	check("shader do chão com parâmetros (manchas, cores)", mat != null and mat.get_shader_parameter("grama_manchas") is NoiseTexture2D
+		and mat.get_shader_parameter("grama_escura") is Color)
+
+
+func _test_visuals() -> void:
+	_start()
+	game.spawn_t = 1e9
+	game.wave_t = 1e9
+	var p: Node2D = game.player
+	check("Aren é um AnimatedSprite2D com SpriteFrames", p.sprite is AnimatedSprite2D and p.sprite.sprite_frames.has_animation("andar_baixo"))
+	Input.action_press("move_left")
+	for i in 10:
+		game.step(1.0 / 60)
+	game.sync_visuals()
+	Input.action_release("move_left")
+	check("andando para a esquerda: animação de lado espelhada (flip_h)", p.sprite.animation == &"andar_lado" and p.sprite.flip_h and p.sprite.is_playing())
+	game.step(1.0 / 60)
+	game.sync_visuals()
+	check("parado: animação parado_*", String(p.sprite.animation).begins_with("parado_"))
+	check("sombra de Aren é um Sprite2D filho, abaixo das criaturas", p.get_node("Sombra") is Sprite2D and p.get_node("Sombra").z_index < 0)
+	# clarão e contorno pelo shader (parâmetros por instância)
+	var e: Node2D = game.spawn("goblin", 0.0, 60.0, true)
+	e.hp = 100.0
+	game.sync_visuals()
+	var spr: AnimatedSprite2D = e.sprite
+	check("elite: contorno dourado pelo shader (contorno = 1)", spr.material is ShaderMaterial and float(spr.get_instance_shader_parameter("contorno")) == 1.0
+		and float(spr.get_instance_shader_parameter("clarao")) == 0.0)
+	game.hit(e, 1.0)
+	game.sync_visuals()
+	check("ao levar dano: clarão pelo shader (clarao = 1)", float(spr.get_instance_shader_parameter("clarao")) == 1.0)
+	for i in 10:
+		game.step(1.0 / 60)
+	game.sync_visuals()
+	check("clarão some depois de BAL.hitFlash", float(spr.get_instance_shader_parameter("clarao")) == 0.0)
+	var tree: Node2D = load("res://scenes/props/arvore.tscn").instantiate()
+	var tm := (tree.get_node("Sprite") as Sprite2D).material as ShaderMaterial
+	check("árvore balança por shader (parâmetros linhas/passos/amplitude)", tm != null and int(tm.get_shader_parameter("linhas")) == 11
+		and int(tm.get_shader_parameter("passos")) == 6 and tree.get_node("Sombra") is Sprite2D)
+	tree.free()
+	# golpe da espada: cena com AnimationPlayer posicionada no ponto do golpe da simulação
+	game.enemies.clear()
+	e.queue_free()
+	var t: Node2D = game.spawn("goblin", 0.0, 14.0)
+	t.hp = 100.0
+	t.d.spd = 0
+	var g: Node2D = game.fx_layer.golpe
+	var seen_mid := false
+	var frame_ok := true
+	for i in 40:
+		game.step(1.0 / 60)
+		game.sync_visuals()
+		if game.swing != null and game.swing.t / game.swing.dur > 0.4 and game.swing.t / game.swing.dur < 0.6:
+			seen_mid = g.visible and g.anim.assigned_animation == "golpe" and g.faiscas.emitting
+			var q: Dictionary = g.swing_pose(game.swing, game.swing.dirs[0])
+			frame_ok = g.lamina.frame == posmod(JsMath.jround(q.cur / TAU * 48), 48)
+	check("golpe da espada: cena visível, animação 'golpe' no ponto certo, faíscas ligadas", seen_mid and frame_ok)
+	for i in 60:
+		game.step(1.0 / 60)
+		if game.swing == null:
 			break
-	check("chão novo é gerado (em threads) enquanto Aren anda", ok, "x = %.0f, %d blocos prontos, %d ms" % [game.player.px, game.ground.ready_count(), Time.get_ticks_msec() - t0])
-	check("props aparecem na área nova", game.ground.visible_props.size() > 0, "%d props visíveis" % game.ground.visible_props.size())
+	game.sync_visuals()
+	check("golpe some quando termina", game.swing != null or not g.visible)
+
+
+## Cada efeito é uma cena que se instancia e se apaga sozinha.
+func _test_effects() -> void:
+	_start()
+	game.spawn_t = 1e9
+	game.wave_t = 1e9
+	var fl: Node2D = game.fx_layer
+	var before: int = fl.vivos()
+	var e: Node2D = game.spawn("goblin", 0.0, 40.0)
+	game.hit(e, 999.0)                 # número + faísca + poeira
+	game.add_gem(game.player.px + 3, game.player.py - 8, 1)
+	game.step(1.0 / 60)                # recolhe a joia (brilho)
+	game.gain_xp(game.need)            # sobe de nível (anéis)
+	game.sync_visuals()
+	var kinds := {}
+	for c in fl.get_children():
+		kinds[c.name.rstrip("0123456789@")] = true
+	check("eventos viram cenas de efeito (número, faísca, poeira, brilho, nível)", fl.vivos() - before >= 5, "%s" % [kinds.keys()])
+	var parts := 0
+	for c in fl.get_children():
+		if c is CPUParticles2D and c.emitting:
+			parts += 1
+	check("efeitos de partícula usam CPUParticles2D emitindo", parts >= 3, "%d emitindo" % parts)
+	var t0 := Time.get_ticks_msec()
+	while fl.vivos() > before and Time.get_ticks_msec() - t0 < 3000:
+		await get_tree().process_frame
+	check("efeitos se apagam sozinhos ao terminar", fl.vivos() == before, "%d restantes em %d ms" % [fl.vivos() - before, Time.get_ticks_msec() - t0])
+	check("fila de efeitos esvaziada pelo sync_visuals", game.fx_events.is_empty())
 
 
 func _test_pause() -> void:
@@ -337,7 +486,8 @@ func _test_pause() -> void:
 	var t0: float = game.t
 	for i in 5:
 		await get_tree().process_frame
-	check("P pausa o jogo (relógio parado, painel visível)", main.state == "pause" and near(game.t, t0) and main.hud.pause_overlay.visible)
+	check("P pausa o jogo (relógio parado, painel visível, mundo congelado)", main.state == "pause" and near(game.t, t0) and main.hud.pause_overlay.visible
+		and get_tree().paused and not game.can_process() and main.can_process())
 	var ev2 := InputEventKey.new()
 	ev2.keycode = KEY_ESCAPE
 	ev2.pressed = true
@@ -345,7 +495,7 @@ func _test_pause() -> void:
 	Input.flush_buffered_events()
 	for i in 3:
 		await get_tree().process_frame
-	check("Esc volta ao jogo", main.state == "play" and game.t > t0 and not main.hud.pause_overlay.visible)
+	check("Esc volta ao jogo", main.state == "play" and game.t > t0 and not main.hud.pause_overlay.visible and not get_tree().paused)
 	main.set_process(false)
 
 
