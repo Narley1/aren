@@ -1,0 +1,43 @@
+[gd_resource type="ShaderMaterial" load_steps=6 format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/chao.gdshader" id="1"]
+
+[sub_resource type="FastNoiseLite" id="ruido_grama"]
+noise_type = 5
+seed = 50
+frequency = 0.03
+fractal_type = 0
+
+[sub_resource type="NoiseTexture2D" id="manchas_grama"]
+width = 512
+height = 512
+seamless = true
+noise = SubResource("ruido_grama")
+
+[sub_resource type="FastNoiseLite" id="ruido_terra"]
+noise_type = 5
+seed = 7
+frequency = 0.055
+fractal_octaves = 2
+fractal_lacunarity = 2.6
+fractal_gain = 0.54
+
+[sub_resource type="NoiseTexture2D" id="manchas_terra"]
+width = 512
+height = 512
+seamless = true
+noise = SubResource("ruido_terra")
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/grama_clara = Color(0.447, 0.8, 0.322, 1)
+shader_parameter/grama_escura = Color(0.392, 0.737, 0.282, 1)
+shader_parameter/grama_limite = 0.52
+shader_parameter/grama_manchas = SubResource("manchas_grama")
+shader_parameter/terra_clara = Color(0.902, 0.784, 0.565, 1)
+shader_parameter/terra_escura = Color(0.847, 0.706, 0.478, 1)
+shader_parameter/terra_limite = 0.6
+shader_parameter/terra_manchas = SubResource("manchas_terra")
+shader_parameter/capim_1 = Color(0.31, 0.659, 0.251, 1)
+shader_parameter/capim_2 = Color(0.361, 0.714, 0.275, 1)
+shader_parameter/capim_escuro = Color(0.227, 0.541, 0.212, 1)
