@@ -1,0 +1,523 @@
+{
+ "efeitos": {
+  "A": {
+   "brilho": {
+    "arquivo": "fx_a_brilho.png",
+    "fps": 16,
+    "origem": [
+     6,
+     6
+    ],
+    "quadro": [
+     13,
+     13
+    ],
+    "quadros": 5,
+    "uso": "pegar joia"
+   },
+   "corte": {
+    "arquivo": "fx_a_corte.png",
+    "direcoes": [
+     0,
+     45,
+     90,
+     135,
+     180,
+     225,
+     270,
+     315
+    ],
+    "fps": 14,
+    "linhas": 8,
+    "origem": [
+     22,
+     22
+    ],
+    "quadro": [
+     44,
+     44
+    ],
+    "quadros": 5,
+    "uso": "arco do golpe da espada; linha = direção do golpe (0° direita, 90° baixo)"
+   },
+   "faisca": {
+    "arquivo": "fx_a_faisca.png",
+    "fps": 20,
+    "origem": [
+     6,
+     6
+    ],
+    "quadro": [
+     13,
+     13
+    ],
+    "quadros": 4,
+    "uso": "acerto no inimigo"
+   },
+   "fumaca": {
+    "arquivo": "fx_a_fumaca.png",
+    "fps": 14,
+    "origem": [
+     13,
+     11
+    ],
+    "quadro": [
+     26,
+     22
+    ],
+    "quadros": 5,
+    "uso": "nuvem da morte"
+   },
+   "poeira": {
+    "arquivo": "fx_a_poeira.png",
+    "fps": 12,
+    "origem": [
+     6,
+     5
+    ],
+    "quadro": [
+     12,
+     7
+    ],
+    "quadros": 3,
+    "uso": "poeira do passo"
+   }
+  },
+  "B": {
+   "brilho": {
+    "arquivo": "fx_b_brilho.png",
+    "fps": 16,
+    "origem": [
+     13,
+     13
+    ],
+    "quadro": [
+     26,
+     26
+    ],
+    "quadros": 5,
+    "uso": "pegar joia"
+   },
+   "corte": {
+    "arquivo": "fx_b_corte.png",
+    "direcoes": [
+     0,
+     45,
+     90,
+     135,
+     180,
+     225,
+     270,
+     315
+    ],
+    "fps": 14,
+    "linhas": 8,
+    "origem": [
+     44,
+     44
+    ],
+    "quadro": [
+     88,
+     88
+    ],
+    "quadros": 5,
+    "uso": "arco do golpe da espada; linha = direção do golpe (0° direita, 90° baixo)"
+   },
+   "faisca": {
+    "arquivo": "fx_b_faisca.png",
+    "fps": 20,
+    "origem": [
+     13,
+     13
+    ],
+    "quadro": [
+     26,
+     26
+    ],
+    "quadros": 4,
+    "uso": "acerto no inimigo"
+   },
+   "fumaca": {
+    "arquivo": "fx_b_fumaca.png",
+    "fps": 14,
+    "origem": [
+     26,
+     22
+    ],
+    "quadro": [
+     52,
+     44
+    ],
+    "quadros": 5,
+    "uso": "nuvem da morte"
+   },
+   "poeira": {
+    "arquivo": "fx_b_poeira.png",
+    "fps": 12,
+    "origem": [
+     12,
+     12
+    ],
+    "quadro": [
+     24,
+     14
+    ],
+    "quadros": 3,
+    "uso": "poeira do passo"
+   }
+  }
+ },
+ "personagens": {
+  "aren": {
+   "A": {
+    "animacoes": {
+     "andar_baixo": {
+      "arquivo": "aren_a_andar_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 12,
+      "loop": true,
+      "quadros": 8
+     },
+     "andar_cima": {
+      "arquivo": "aren_a_andar_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 12,
+      "loop": true,
+      "quadros": 8
+     },
+     "andar_lado": {
+      "arquivo": "aren_a_andar_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 12,
+      "loop": true,
+      "quadros": 8
+     },
+     "atacar_baixo": {
+      "arquivo": "aren_a_atacar_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 14,
+      "loop": false,
+      "quadros": 6
+     },
+     "atacar_cima": {
+      "arquivo": "aren_a_atacar_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 14,
+      "loop": false,
+      "quadros": 6
+     },
+     "atacar_lado": {
+      "arquivo": "aren_a_atacar_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 14,
+      "loop": false,
+      "quadros": 6
+     },
+     "cair": {
+      "arquivo": "aren_a_cair.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 6
+     },
+     "dano_baixo": {
+      "arquivo": "aren_a_dano_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "dano_cima": {
+      "arquivo": "aren_a_dano_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "dano_lado": {
+      "arquivo": "aren_a_dano_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "parado_baixo": {
+      "arquivo": "aren_a_parado_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 4,
+      "loop": true,
+      "quadros": 4
+     },
+     "parado_cima": {
+      "arquivo": "aren_a_parado_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 4,
+      "loop": true,
+      "quadros": 4
+     },
+     "parado_lado": {
+      "arquivo": "aren_a_parado_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 4,
+      "loop": true,
+      "quadros": 4
+     }
+    },
+    "escala": 1,
+    "origem": [
+     20,
+     31
+    ],
+    "quadro": [
+     40,
+     36
+    ]
+   },
+   "B": {
+    "animacoes": {
+     "andar_baixo": {
+      "arquivo": "aren_b_andar_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 12,
+      "loop": true,
+      "quadros": 8
+     },
+     "andar_cima": {
+      "arquivo": "aren_b_andar_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 12,
+      "loop": true,
+      "quadros": 8
+     },
+     "andar_lado": {
+      "arquivo": "aren_b_andar_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 12,
+      "loop": true,
+      "quadros": 8
+     },
+     "atacar_baixo": {
+      "arquivo": "aren_b_atacar_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 14,
+      "loop": false,
+      "quadros": 6
+     },
+     "atacar_cima": {
+      "arquivo": "aren_b_atacar_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 14,
+      "loop": false,
+      "quadros": 6
+     },
+     "atacar_lado": {
+      "arquivo": "aren_b_atacar_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 14,
+      "loop": false,
+      "quadros": 6
+     },
+     "cair": {
+      "arquivo": "aren_b_cair.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 6
+     },
+     "dano_baixo": {
+      "arquivo": "aren_b_dano_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "dano_cima": {
+      "arquivo": "aren_b_dano_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "dano_lado": {
+      "arquivo": "aren_b_dano_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "parado_baixo": {
+      "arquivo": "aren_b_parado_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 4,
+      "loop": true,
+      "quadros": 4
+     },
+     "parado_cima": {
+      "arquivo": "aren_b_parado_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 4,
+      "loop": true,
+      "quadros": 4
+     },
+     "parado_lado": {
+      "arquivo": "aren_b_parado_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 4,
+      "loop": true,
+      "quadros": 4
+     }
+    },
+    "escala": 2,
+    "origem": [
+     40,
+     62
+    ],
+    "quadro": [
+     80,
+     72
+    ]
+   }
+  },
+  "goblin": {
+   "A": {
+    "animacoes": {
+     "andar_baixo": {
+      "arquivo": "goblin_a_andar_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 10,
+      "loop": true,
+      "quadros": 6
+     },
+     "andar_cima": {
+      "arquivo": "goblin_a_andar_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 10,
+      "loop": true,
+      "quadros": 6
+     },
+     "andar_lado": {
+      "arquivo": "goblin_a_andar_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 10,
+      "loop": true,
+      "quadros": 6
+     },
+     "clarao": {
+      "arquivo": "goblin_a_clarao.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "dano_baixo": {
+      "arquivo": "goblin_a_dano_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 1
+     },
+     "dano_lado": {
+      "arquivo": "goblin_a_dano_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 8,
+      "loop": false,
+      "quadros": 1
+     },
+     "morrer": {
+      "arquivo": "goblin_a_morrer.png",
+      "espelhar_para_esquerda": false,
+      "fps": 12,
+      "loop": false,
+      "quadros": 6
+     },
+     "provocar": {
+      "arquivo": "goblin_a_provocar.png",
+      "espelhar_para_esquerda": false,
+      "fps": 6,
+      "loop": true,
+      "quadros": 4
+     }
+    },
+    "escala": 1,
+    "origem": [
+     16,
+     25
+    ],
+    "quadro": [
+     32,
+     28
+    ]
+   },
+   "B": {
+    "animacoes": {
+     "andar_baixo": {
+      "arquivo": "goblin_b_andar_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 10,
+      "loop": true,
+      "quadros": 6
+     },
+     "andar_cima": {
+      "arquivo": "goblin_b_andar_cima.png",
+      "espelhar_para_esquerda": false,
+      "fps": 10,
+      "loop": true,
+      "quadros": 6
+     },
+     "andar_lado": {
+      "arquivo": "goblin_b_andar_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 10,
+      "loop": true,
+      "quadros": 6
+     },
+     "clarao": {
+      "arquivo": "goblin_b_clarao.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 2
+     },
+     "dano_baixo": {
+      "arquivo": "goblin_b_dano_baixo.png",
+      "espelhar_para_esquerda": false,
+      "fps": 8,
+      "loop": false,
+      "quadros": 1
+     },
+     "dano_lado": {
+      "arquivo": "goblin_b_dano_lado.png",
+      "espelhar_para_esquerda": true,
+      "fps": 8,
+      "loop": false,
+      "quadros": 1
+     },
+     "morrer": {
+      "arquivo": "goblin_b_morrer.png",
+      "espelhar_para_esquerda": false,
+      "fps": 12,
+      "loop": false,
+      "quadros": 6
+     },
+     "provocar": {
+      "arquivo": "goblin_b_provocar.png",
+      "espelhar_para_esquerda": false,
+      "fps": 6,
+      "loop": true,
+      "quadros": 4
+     }
+    },
+    "escala": 2,
+    "origem": [
+     32,
+     50
+    ],
+    "quadro": [
+     64,
+     56
+    ]
+   }
+  }
+ },
+ "versao": 1
+}

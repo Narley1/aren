@@ -1,0 +1,277 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_andar_baixo.png" id="1_andar_baixo"]
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_andar_cima.png" id="2_andar_cima"]
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_andar_lado.png" id="3_andar_lado"]
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_clarao.png" id="4_clarao"]
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_dano_baixo.png" id="5_dano_baixo"]
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_dano_lado.png" id="6_dano_lado"]
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_morrer.png" id="7_morrer"]
+[ext_resource type="Texture2D" path="res://assets/sprites/novo/goblin_a_provocar.png" id="8_provocar"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_baixo_0"]
+atlas = ExtResource("1_andar_baixo")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_baixo_1"]
+atlas = ExtResource("1_andar_baixo")
+region = Rect2(32, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_baixo_2"]
+atlas = ExtResource("1_andar_baixo")
+region = Rect2(64, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_baixo_3"]
+atlas = ExtResource("1_andar_baixo")
+region = Rect2(96, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_baixo_4"]
+atlas = ExtResource("1_andar_baixo")
+region = Rect2(128, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_baixo_5"]
+atlas = ExtResource("1_andar_baixo")
+region = Rect2(160, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_cima_0"]
+atlas = ExtResource("2_andar_cima")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_cima_1"]
+atlas = ExtResource("2_andar_cima")
+region = Rect2(32, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_cima_2"]
+atlas = ExtResource("2_andar_cima")
+region = Rect2(64, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_cima_3"]
+atlas = ExtResource("2_andar_cima")
+region = Rect2(96, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_cima_4"]
+atlas = ExtResource("2_andar_cima")
+region = Rect2(128, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_cima_5"]
+atlas = ExtResource("2_andar_cima")
+region = Rect2(160, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_lado_0"]
+atlas = ExtResource("3_andar_lado")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_lado_1"]
+atlas = ExtResource("3_andar_lado")
+region = Rect2(32, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_lado_2"]
+atlas = ExtResource("3_andar_lado")
+region = Rect2(64, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_lado_3"]
+atlas = ExtResource("3_andar_lado")
+region = Rect2(96, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_lado_4"]
+atlas = ExtResource("3_andar_lado")
+region = Rect2(128, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_andar_lado_5"]
+atlas = ExtResource("3_andar_lado")
+region = Rect2(160, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_clarao_0"]
+atlas = ExtResource("4_clarao")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_clarao_1"]
+atlas = ExtResource("4_clarao")
+region = Rect2(32, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dano_baixo_0"]
+atlas = ExtResource("5_dano_baixo")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dano_lado_0"]
+atlas = ExtResource("6_dano_lado")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_morrer_0"]
+atlas = ExtResource("7_morrer")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_morrer_1"]
+atlas = ExtResource("7_morrer")
+region = Rect2(32, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_morrer_2"]
+atlas = ExtResource("7_morrer")
+region = Rect2(64, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_morrer_3"]
+atlas = ExtResource("7_morrer")
+region = Rect2(96, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_morrer_4"]
+atlas = ExtResource("7_morrer")
+region = Rect2(128, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_morrer_5"]
+atlas = ExtResource("7_morrer")
+region = Rect2(160, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_provocar_0"]
+atlas = ExtResource("8_provocar")
+region = Rect2(0, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_provocar_1"]
+atlas = ExtResource("8_provocar")
+region = Rect2(32, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_provocar_2"]
+atlas = ExtResource("8_provocar")
+region = Rect2(64, 0, 32, 28)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_provocar_3"]
+atlas = ExtResource("8_provocar")
+region = Rect2(96, 0, 32, 28)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_baixo_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_baixo_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_baixo_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_baixo_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_baixo_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_baixo_5")
+}],
+"loop": true,
+"name": &"andar_baixo",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_cima_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_cima_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_cima_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_cima_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_cima_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_cima_5")
+}],
+"loop": true,
+"name": &"andar_cima",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_lado_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_lado_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_lado_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_lado_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_lado_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_andar_lado_5")
+}],
+"loop": true,
+"name": &"andar_lado",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_clarao_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_clarao_1")
+}],
+"loop": false,
+"name": &"clarao",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dano_baixo_0")
+}],
+"loop": false,
+"name": &"dano_baixo",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dano_lado_0")
+}],
+"loop": false,
+"name": &"dano_lado",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_morrer_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_morrer_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_morrer_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_morrer_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_morrer_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_morrer_5")
+}],
+"loop": false,
+"name": &"morrer",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_provocar_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_provocar_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_provocar_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_provocar_3")
+}],
+"loop": true,
+"name": &"provocar",
+"speed": 6.0
+}]
