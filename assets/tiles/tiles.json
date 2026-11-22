@@ -1,0 +1,1038 @@
+{
+ "tile": 16,
+ "terrains": [
+  "Grama",
+  "Capim alto",
+  "Terra"
+ ],
+ "chao": [
+  {
+   "x": 0,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 1,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 0.6
+  },
+  {
+   "x": 2,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 0.6
+  },
+  {
+   "x": 3,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 0.6
+  },
+  {
+   "x": 4,
+   "y": 0,
+   "corners": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 5,
+   "y": 0,
+   "corners": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 0.6
+  },
+  {
+   "x": 6,
+   "y": 0,
+   "corners": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 0.6
+  },
+  {
+   "x": 7,
+   "y": 0,
+   "corners": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 0.6
+  },
+  {
+   "x": 8,
+   "y": 0,
+   "corners": [
+    2,
+    2,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 9,
+   "y": 0,
+   "corners": [
+    2,
+    2,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 0.6
+  },
+  {
+   "x": 10,
+   "y": 0,
+   "corners": [
+    2,
+    2,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 0.6
+  },
+  {
+   "x": 11,
+   "y": 0,
+   "corners": [
+    2,
+    2,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 0.6
+  },
+  {
+   "x": 12,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    0,
+    2
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 13,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    0,
+    2
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 14,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    2,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 15,
+   "y": 0,
+   "corners": [
+    0,
+    0,
+    2,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 0,
+   "y": 1,
+   "corners": [
+    0,
+    0,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 1,
+   "y": 1,
+   "corners": [
+    0,
+    0,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 2,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 3,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 4,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    0,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 5,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    0,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 6,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    2,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 7,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    2,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 8,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 9,
+   "y": 1,
+   "corners": [
+    0,
+    2,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 10,
+   "y": 1,
+   "corners": [
+    2,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 11,
+   "y": 1,
+   "corners": [
+    2,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 12,
+   "y": 1,
+   "corners": [
+    2,
+    0,
+    0,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 13,
+   "y": 1,
+   "corners": [
+    2,
+    0,
+    0,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 14,
+   "y": 1,
+   "corners": [
+    2,
+    0,
+    2,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 15,
+   "y": 1,
+   "corners": [
+    2,
+    0,
+    2,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 0,
+   "y": 2,
+   "corners": [
+    2,
+    0,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 1,
+   "y": 2,
+   "corners": [
+    2,
+    0,
+    2,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 2,
+   "y": 2,
+   "corners": [
+    2,
+    2,
+    0,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 3,
+   "y": 2,
+   "corners": [
+    2,
+    2,
+    0,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 4,
+   "y": 2,
+   "corners": [
+    2,
+    2,
+    0,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 5,
+   "y": 2,
+   "corners": [
+    2,
+    2,
+    0,
+    2
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 6,
+   "y": 2,
+   "corners": [
+    2,
+    2,
+    2,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 7,
+   "y": 2,
+   "corners": [
+    2,
+    2,
+    2,
+    0
+   ],
+   "terrain": 2,
+   "probability": 1.0
+  },
+  {
+   "x": 8,
+   "y": 2,
+   "corners": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 9,
+   "y": 2,
+   "corners": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 10,
+   "y": 2,
+   "corners": [
+    0,
+    0,
+    1,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 11,
+   "y": 2,
+   "corners": [
+    0,
+    0,
+    1,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 12,
+   "y": 2,
+   "corners": [
+    0,
+    0,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 13,
+   "y": 2,
+   "corners": [
+    0,
+    0,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 14,
+   "y": 2,
+   "corners": [
+    0,
+    1,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 15,
+   "y": 2,
+   "corners": [
+    0,
+    1,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 0,
+   "y": 3,
+   "corners": [
+    0,
+    1,
+    0,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 1,
+   "y": 3,
+   "corners": [
+    0,
+    1,
+    0,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 2,
+   "y": 3,
+   "corners": [
+    0,
+    1,
+    1,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 3,
+   "y": 3,
+   "corners": [
+    0,
+    1,
+    1,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 4,
+   "y": 3,
+   "corners": [
+    0,
+    1,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 5,
+   "y": 3,
+   "corners": [
+    0,
+    1,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 6,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 7,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    0,
+    0
+   ],
+   "terrain": 0,
+   "probability": 1.0
+  },
+  {
+   "x": 8,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    0,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 9,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    0,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 10,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    1,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 11,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    1,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 12,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 13,
+   "y": 3,
+   "corners": [
+    1,
+    0,
+    1,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 14,
+   "y": 3,
+   "corners": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 15,
+   "y": 3,
+   "corners": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 0,
+   "y": 4,
+   "corners": [
+    1,
+    1,
+    0,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 1,
+   "y": 4,
+   "corners": [
+    1,
+    1,
+    0,
+    1
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 2,
+   "y": 4,
+   "corners": [
+    1,
+    1,
+    1,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  },
+  {
+   "x": 3,
+   "y": 4,
+   "corners": [
+    1,
+    1,
+    1,
+    0
+   ],
+   "terrain": 1,
+   "probability": 1.0
+  }
+ ],
+ "detalhes": [
+  {
+   "x": 0,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 1,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 2,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 3,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 4,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 5,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 6,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 7,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 8,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 9,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 10,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 11,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 12,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 13,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 14,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 15,
+   "y": 0,
+   "tipo": "grama"
+  },
+  {
+   "x": 0,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 1,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 2,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 3,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 4,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 5,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 6,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 7,
+   "y": 1,
+   "tipo": "grama"
+  },
+  {
+   "x": 8,
+   "y": 1,
+   "tipo": "flores_fW"
+  },
+  {
+   "x": 9,
+   "y": 1,
+   "tipo": "flores_fW"
+  },
+  {
+   "x": 10,
+   "y": 1,
+   "tipo": "flores_fW"
+  },
+  {
+   "x": 11,
+   "y": 1,
+   "tipo": "flores_fY"
+  },
+  {
+   "x": 12,
+   "y": 1,
+   "tipo": "flores_fY"
+  },
+  {
+   "x": 13,
+   "y": 1,
+   "tipo": "flores_fY"
+  },
+  {
+   "x": 14,
+   "y": 1,
+   "tipo": "flores_fP"
+  },
+  {
+   "x": 15,
+   "y": 1,
+   "tipo": "flores_fP"
+  },
+  {
+   "x": 0,
+   "y": 2,
+   "tipo": "flores_fP"
+  },
+  {
+   "x": 1,
+   "y": 2,
+   "tipo": "flores_fB"
+  },
+  {
+   "x": 2,
+   "y": 2,
+   "tipo": "flores_fB"
+  },
+  {
+   "x": 3,
+   "y": 2,
+   "tipo": "flores_fB"
+  },
+  {
+   "x": 4,
+   "y": 2,
+   "tipo": "terra"
+  },
+  {
+   "x": 5,
+   "y": 2,
+   "tipo": "terra"
+  },
+  {
+   "x": 6,
+   "y": 2,
+   "tipo": "terra"
+  },
+  {
+   "x": 7,
+   "y": 2,
+   "tipo": "terra"
+  },
+  {
+   "x": 8,
+   "y": 2,
+   "tipo": "terra"
+  },
+  {
+   "x": 9,
+   "y": 2,
+   "tipo": "terra"
+  }
+ ]
+}
