@@ -1,0 +1,123 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/golpe_espada.gd" id="1"]
+[ext_resource type="Shader" path="res://assets/shaders/arco.gdshader" id="2"]
+[ext_resource type="SpriteFrames" path="res://assets/sprites/espada.tres" id="3"]
+
+[sub_resource type="ShaderMaterial" id="arco"]
+shader = ExtResource("2")
+shader_parameter/cor_borda = Color(0.372549, 0.658824, 0.941176, 1)
+shader_parameter/cor_meio = Color(0.74902, 0.901961, 1, 1)
+shader_parameter/cor_centro = Color(1, 1, 1, 1)
+shader_parameter/raio = 19.3
+shader_parameter/inicio = -0.9
+shader_parameter/abertura = 2.513
+shader_parameter/progresso = 1.0
+shader_parameter/desbotar = 1.0
+shader_parameter/tamanho = Vector2(46, 46)
+shader_parameter/origem = Vector2(-23, -23)
+
+[sub_resource type="Gradient" id="sumir"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="cores"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.5)
+colors = PackedColorArray(1, 1, 1, 1, 0.74902, 0.901961, 1, 1)
+
+[sub_resource type="Animation" id="RESET"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:progresso")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Faiscas:emitting")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+
+[sub_resource type="Animation" id="golpe"]
+resource_name = "golpe"
+length = 1.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:progresso")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Faiscas:emitting")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.16, 0.72),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+
+[sub_resource type="AnimationLibrary" id="lib"]
+_data = {
+&"RESET": SubResource("RESET"),
+&"golpe": SubResource("golpe")
+}
+
+[node name="GolpeEspada" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Arco" type="ColorRect" parent="."]
+material = SubResource("arco")
+offset_left = -23.0
+offset_top = -23.0
+offset_right = 23.0
+offset_bottom = 23.0
+mouse_filter = 2
+
+[node name="Lamina" type="AnimatedSprite2D" parent="."]
+position = Vector2(-22, -22)
+sprite_frames = ExtResource("3")
+animation = &"girar"
+centered = false
+
+[node name="Faiscas" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 10
+lifetime = 0.25
+local_coords = false
+direction = Vector2(0, 1)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 30.0
+initial_velocity_max = 30.0
+color_ramp = SubResource("sumir")
+color_initial_ramp = SubResource("cores")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("lib")
+}

@@ -5,6 +5,8 @@ extends Node2D
 ##
 ## A simulação roda em step(dt) e não depende de desenho: os testes chamam step() direto. Sorteios da
 ## simulação usam `rng` (semeável); efeitos só visuais usam `vis_rng`, então desenhar não muda a partida.
+## Efeitos (número de dano, poeira, brilho, nível) viram eventos em `fx_events`; sync_visuals() os entrega
+## à camada Efeitos, que instancia as cenas de scenes/efeitos/.
 
 signal toast(title: String, sub: String)
 signal died
@@ -35,8 +37,9 @@ var sword_lvl := 1           # W.sword
 
 var enemies: Array = []
 var gems: Array = []
-var fx: Array = []           # partículas {x, y, vx, vy, t, life, col, s}
-var nums: Array = []         # números de dano {x, y, v, t, col}
+var fx_events: Array = []    # efeitos pendentes {k: hit|kill|gem|level, ...} (só visuais)
+const FX_EVENTS_MAX := 256
+const FX_MAX_AGE := 0.7     # s; o efeito mais longo dura ~0,66 s
 
 var rng := RandomNumberGenerator.new()
 var vis_rng := RandomNumberGenerator.new()
@@ -49,11 +52,11 @@ var force_input := Vector2.ZERO   # usado pelos testes/capturas (soma ao teclado
 
 var _grid: Dictionary = {}
 
-@onready var ground: Node2D = $Ground
-@onready var gem_layer: Node2D = $Gems
-@onready var shadows: Node2D = $Shadows
-@onready var actors: Node2D = $Actors
-@onready var fx_layer: Node2D = $Fx
+@onready var ground: Node2D = $Campo
+@onready var gem_layer: Node2D = $Joias
+@onready var actors: Node2D = $Atores
+@onready var fx_layer: Node2D = $Efeitos
+@onready var leaves: CPUParticles2D = $Folhas
 @onready var camera: Camera2D = $Camera
 var player: Node2D
 
@@ -61,9 +64,6 @@ var player: Node2D
 func _ready() -> void:
 	player = PlayerScene.instantiate()
 	actors.add_child(player)
-	ground.actors = actors
-	shadows.game = self
-	fx_layer.game = self
 	vis_rng.randomize()
 	rng.randomize()
 	reset()
@@ -78,7 +78,7 @@ func reset() -> void:
 		e.queue_free()
 	for g in gems:
 		g.queue_free()
-	enemies.clear(); gems.clear(); fx.clear(); nums.clear()
+	enemies.clear(); gems.clear(); fx_events.clear()
 	joy = null
 	player.reset()
 	sync_visuals()
@@ -164,8 +164,8 @@ func hit(e: Node2D, dmg: float, nx = null, ny = null, kb := 70.0) -> void:
 	var k: float = kb / (e.d.sc * e.d.sc) / (Bal.ELITE.kbDiv if e.elite else 1.0)
 	e.kx += nx * k
 	e.ky += ny * k
-	nums.append({"x": e.ex + (vis_rng.randf() * 6 - 3), "y": e.ey - e.d.h, "v": maxi(1, JsMath.jround(dmg)), "t": 0.0,
-		"col": Color("#ffd94a") if dmg >= 15 else Color.WHITE})
+	_fx({"k": "hit", "x": e.ex + (vis_rng.randf() * 6 - 3), "y": e.ey - e.d.h, "v": maxi(1, JsMath.jround(dmg)),
+		"forte": dmg >= 15, "fx": e.ex, "fy": e.ey - e.d.h / 2.0})
 	if e.hp <= 0:
 		kill(e)
 
@@ -174,12 +174,7 @@ func kill(e: Node2D) -> void:
 	e.dead = true
 	kills += 1
 	Sfx.play("kill", e.type)
-	var n := 10 if e.d.sc > 1 else 6
-	for i in n:
-		var a := vis_rng.randf() * TAU
-		var s := 20 + vis_rng.randf() * 40
-		fx.append({"x": e.ex, "y": e.ey - e.d.h / 2.0, "vx": cos(a) * s, "vy": sin(a) * s, "t": 0.0,
-			"life": 0.35 + vis_rng.randf() * 0.25, "col": Color.WHITE if i % 2 else Color("#d6d0e6"), "s": 1 if vis_rng.randf() < 0.5 else 2})
+	_fx({"k": "kill", "x": e.ex, "y": e.ey - e.d.h / 2.0, "grande": e.d.sc > 1})   # poeira (6 ou 10 partículas)
 	# experiência em joias de 10/5/1 (elites x BAL.elite.gems); só conta quando Aren recolhe
 	var v: int = e.d.gem * (Bal.ELITE.gems if e.elite else 1)
 	var spread := 10.0
@@ -222,11 +217,13 @@ func gain_xp(n: int) -> void:
 		if Bal.is_pick_level(lvl):
 			pending += 1
 			Sfx.play("levelUp")
+			_fx({"k": "level", "x": player.px, "y": player.py})
 			toast.emit("Nível %d!" % lvl, "A escolha de poderes chega na próxima etapa")
 			leveled.emit(lvl, true)
 		else:
 			player.hp = mini(player.max_hp, player.hp + 1)
 			Sfx.play("lvlSmall")
+			_fx({"k": "level", "x": player.px, "y": player.py})
 			toast.emit("Nível %d" % lvl, "+½ coração · próximo poder no nível %d" % Bal.next_pick_level(lvl))
 			leveled.emit(lvl, false)
 
@@ -306,20 +303,14 @@ func step(dt: float) -> void:
 	_sword(dt)
 	_enemies(dt)
 	_gems(dt)
-	# partículas e números
-	for f in fx:
-		f.t += dt
-		f.x += f.vx * dt
-		f.y += f.vy * dt
-		f.vx *= 0.92
-		f.vy *= 0.92
-	fx = fx.filter(func(f): return f.t < f.life)
-	for n in nums:
-		n.t += dt
-		n.y -= 18 * dt
-	nums = nums.filter(func(n): return n.t < 0.6)
-	if nums.size() > 80:
-		nums = nums.slice(nums.size() - 80)
+
+
+## Guarda um efeito para o próximo sync_visuals() (os mais antigos caem se ninguém desenhar, ex. nos testes)
+func _fx(ev: Dictionary) -> void:
+	ev.t = t
+	fx_events.append(ev)
+	if fx_events.size() > FX_EVENTS_MAX:
+		fx_events.pop_front()
 
 
 ## Espada: golpe automático no inimigo mais próximo (HTML: "// sword" no update)
@@ -329,8 +320,6 @@ func _sword(dt: float) -> void:
 		swing.t += dt
 		if swing.t >= swing.dur:
 			swing = null
-		elif swing.t / swing.dur >= 0.16 and swing.t / swing.dur < 0.72 and vis_rng.randf() < 0.7:
-			_swing_spark()
 	if sw_cd > 0:
 		return
 	var sw := Bal.sword_stats(sword_lvl)
@@ -360,31 +349,6 @@ func _sword(dt: float) -> void:
 			hit(e, sw.dmg, dx / dd, dy / dd, Bal.SWORD_KB)
 	sw_cd = sw.cd
 	player.face_toward(ang)
-
-
-## Ângulo atual da lâmina no golpe (render() do HTML, "// sword swing")
-static func swing_pose(s: Dictionary, dir: float) -> Dictionary:
-	var T: float = s.t / s.dur
-	var wind := 0.16
-	var q := (T - wind) / (0.7 - wind)
-	var pr := 0.0 if T < wind else minf(1.0, 1.0 - pow(1.0 - q, 3))
-	var fade := 1.0 if T < 0.7 else maxf(0.0, 1.0 - (T - 0.7) / 0.3)
-	var sg := -1.0 if s.rev else 1.0
-	var a0: float = dir - sg * s.arc / 2.0
-	var span: float = s.arc * sg
-	var cur := (a0 - sg * 0.35 * (T / wind)) if T < wind else (a0 + span * pr)
-	return {"T": T, "pr": pr, "fade": fade, "sg": sg, "a0": a0, "span": span, "cur": cur}
-
-
-func _swing_spark() -> void:
-	for dir in swing.dirs:
-		var p := swing_pose(swing, dir)
-		var tr := minf(swing.range, 22.0)
-		var cur: float = p.cur
-		var sg: float = p.sg
-		fx.append({"x": player.px + cos(cur) * tr, "y": player.py - 9 + sin(cur) * tr,
-			"vx": cos(cur + sg * PI / 2) * 30, "vy": sin(cur + sg * PI / 2) * 30, "t": 0.0, "life": 0.25,
-			"col": Color.WHITE if vis_rng.randf() < 0.5 else Color("#bfe6ff"), "s": 1})
 
 
 ## Inimigos (HTML: "// enemies" — só a IA 'walk' do goblin)
@@ -451,6 +415,7 @@ func _gems(dt: float) -> void:
 			g.gy += dy / dd * s * dt
 		if d < Bal.GEM_PICK_R:
 			gems_total += g.v
+			_fx({"k": "gem", "x": g.gx, "y": g.gy, "cor": g.COR[g.tier()]})
 			gain_xp(g.v)
 			Sfx.play("gem")
 			g.queue_free()
@@ -461,7 +426,7 @@ func _gems(dt: float) -> void:
 
 # ---------------------------------------------------------------- visual
 
-## Atualiza nós, câmera (canto em pixel inteiro) e camadas de desenho. Não muda a simulação.
+## Atualiza nós, câmera (canto em pixel inteiro), campo e efeitos. Não muda a simulação.
 func sync_visuals() -> void:
 	var sx := 0.0
 	var sy := 0.0
@@ -477,5 +442,11 @@ func sync_visuals() -> void:
 		g.update_visual()
 	ground.update_view(Rect2(cam.x, cam.y, vw, vh))
 	ground.update_tree_alpha(player.px, player.py)
-	shadows.queue_redraw()
-	fx_layer.queue_redraw()
+	for ev in fx_events:
+		if t - ev.t < FX_MAX_AGE:   # efeito que já teria acabado (simulação adiantada sem desenho) é pulado
+			fx_layer.play(ev)
+	fx_events.clear()
+	fx_layer.golpe.mostrar(swing, Vector2(player.px, player.py - 9))
+	# folhas caindo na metade de cima da vista (HTML: AMB.lv)
+	leaves.position = Vector2(cam.x + vw / 2.0, cam.y + vh / 4.0)
+	leaves.emission_rect_extents = Vector2(vw / 2.0, vh / 4.0)

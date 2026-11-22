@@ -1,26 +1,152 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/ground.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/shadows.gd" id="3"]
-[ext_resource type="Script" path="res://scripts/fx_layer.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/campo.gd" id="2"]
+[ext_resource type="TileSet" path="res://assets/tiles/chao.tres" id="3"]
+[ext_resource type="Material" path="res://assets/materiais/chao.tres" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/arvore.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/props/arbusto.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/props/arbusto_frutas.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/pedra.tscn" id="8"]
+[ext_resource type="Texture2D" path="res://assets/sprites/cloud.png" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/props/toco.tscn" id="10"]
+[ext_resource type="Script" path="res://scripts/efeitos.gd" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/efeitos/golpe_espada.tscn" id="12"]
+
+[sub_resource type="FastNoiseLite" id="ruido_terra"]
+noise_type = 1
+seed = 11
+frequency = 0.0035
+fractal_octaves = 2
+fractal_lacunarity = 4.2
+fractal_gain = 0.28
+
+[sub_resource type="FastNoiseLite" id="ruido_capim"]
+noise_type = 1
+seed = 23
+frequency = 0.006
+fractal_octaves = 2
+fractal_lacunarity = 4.5
+fractal_gain = 0.18
+
+[sub_resource type="FastNoiseLite" id="ruido_flores"]
+noise_type = 1
+seed = 31
+frequency = 0.02
+fractal_type = 0
+
+[sub_resource type="Gradient" id="folhas_sumir"]
+offsets = PackedFloat32Array(0, 0.8, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="folhas_cores"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.5)
+colors = PackedColorArray(0.847059, 0.603922, 0.227451, 1, 0.486275, 0.784314, 0.305882, 1)
 
 [node name="World" type="Node2D"]
 script = ExtResource("1")
 
-[node name="Ground" type="Node2D" parent="."]
+[node name="Campo" type="Node2D" parent="."]
 script = ExtResource("2")
+ruido_terra = SubResource("ruido_terra")
+ruido_capim = SubResource("ruido_capim")
+ruido_flores = SubResource("ruido_flores")
+cena_arvore = ExtResource("5")
+cena_arbusto = ExtResource("6")
+cena_arbusto_frutas = ExtResource("7")
+cena_pedra = ExtResource("8")
+cena_toco = ExtResource("10")
 
-[node name="Gems" type="Node2D" parent="."]
+[node name="Chao" type="TileMapLayer" parent="Campo"]
+z_index = -10
+material = ExtResource("4")
+tile_set = ExtResource("3")
 
-[node name="Shadows" type="Node2D" parent="."]
-script = ExtResource("3")
+[node name="Detalhes" type="TileMapLayer" parent="Campo"]
+z_index = -9
+tile_set = ExtResource("3")
 
-[node name="Actors" type="Node2D" parent="."]
+[node name="Joias" type="Node2D" parent="."]
+z_index = -6
+
+[node name="Atores" type="Node2D" parent="."]
 y_sort_enabled = true
 
-[node name="Fx" type="Node2D" parent="."]
-script = ExtResource("4")
+[node name="Efeitos" type="Node2D" parent="."]
+z_index = 2
+script = ExtResource("11")
+
+[node name="GolpeEspada" parent="Efeitos" instance=ExtResource("12")]
+
+[node name="Folhas" type="CPUParticles2D" parent="."]
+z_index = 3
+amount = 4
+lifetime = 5.0
+preprocess = 5.0
+local_coords = false
+emission_shape = 3
+emission_rect_extents = Vector2(100, 40)
+direction = Vector2(0.55, 0.83)
+spread = 20.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 12.0
+initial_velocity_max = 18.0
+lifetime_randomness = 0.3
+color_ramp = SubResource("folhas_sumir")
+color_initial_ramp = SubResource("folhas_cores")
+
+[node name="SombrasNuvens" type="Parallax2D" parent="."]
+z_index = 5
+modulate = Color(1, 1, 1, 0.12)
+repeat_size = Vector2(1320, 1140)
+autoscroll = Vector2(5, 0)
+repeat_times = 2
+
+[node name="Nuvem1" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(98, 50)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem2" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(566, 4)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem3" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(944, 40)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem4" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(121, 508)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem5" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(582, 513)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem6" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(1006, 446)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem7" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(80, 822)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem8" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(561, 798)
+texture = ExtResource("9")
+centered = false
+
+[node name="Nuvem9" type="Sprite2D" parent="SombrasNuvens"]
+position = Vector2(892, 777)
+texture = ExtResource("9")
+centered = false
 
 [node name="Camera" type="Camera2D" parent="."]
 anchor_mode = 0

@@ -5,6 +5,9 @@ extends Control
 ## Escala (igual ao resize() do HTML): SCALE = max(2, round(sqrt(largura*altura/60000))); a vista lógica tem
 ## VW = ceil(largura/SCALE) x VH = ceil(altura/SCALE) pixels e é desenhada numa SubViewport desse tamanho,
 ## ampliada SCALE vezes com filtro "nearest" — pixel perfeito. O HUD fica por cima em px de tela, como o DOM.
+##
+## Pausa e fim de jogo pausam a árvore (get_tree().paused): o mundo (SubViewport "View", modo Pausável) congela
+## junto — animações, partículas, tweens, nuvens —, enquanto esta cena e o HUD (modo Sempre) continuam.
 
 @onready var screen: TextureRect = $Screen
 @onready var view: SubViewport = $View
@@ -101,6 +104,7 @@ func _process(delta: float) -> void:
 
 func start() -> void:
 	_over_timer = -1.0
+	get_tree().paused = false
 	game.reset()
 	state = "play"
 	hud.show_state(state)
@@ -111,6 +115,7 @@ func start() -> void:
 func toggle_pause() -> void:
 	if state == "play":
 		state = "pause"
+		get_tree().paused = true
 		game.joy = null
 		_joy_id = -1
 		hud.pause_info.text = "%s sobrevividos · %d abates" % [hud.fmt(game.t), game.kills]
@@ -118,12 +123,14 @@ func toggle_pause() -> void:
 		Sfx.play("pauseCue", true)
 	elif state == "pause":
 		state = "play"
+		get_tree().paused = false
 		hud.show_state(state)
 		Sfx.play("pauseCue", false)
 
 
 func game_over() -> void:
 	state = "over"
+	get_tree().paused = true
 	game.joy = null
 	_joy_id = -1
 	Sfx.play("lose")
@@ -144,6 +151,7 @@ func _show_over() -> void:
 func go_title() -> void:
 	state = "menu"
 	_over_timer = -1.0
+	get_tree().paused = false
 	game.reset()
 	hud.title_best.text = ("Recorde: %s" % hud.fmt(best)) if best > 0 else ""
 	hud.show_state(state)
@@ -257,6 +265,19 @@ func _run_shots() -> void:
 	set_process(false)
 	await _frames(3)
 	await _snap("play")
+	set_process(true)
+	# efeitos: um elite perto, golpes em todos os goblins (números, faíscas, poeira), joias e subida de nível
+	var el: Node2D = game.spawn("goblin", -0.6, 30.0, true)
+	el.hp = 1e6
+	for e in game.enemies.duplicate():
+		game.hit(e, 999.0 if e != el else 1.0)
+	game.gain_xp(game.need)
+	game.step(1.0 / 60)   # tira os mortos
+	game.sync_visuals()
+	set_process(false)
+	for i in 6:
+		await get_tree().process_frame
+	await _snap("fx")
 	set_process(true)
 	toggle_pause()
 	await _frames(3)
