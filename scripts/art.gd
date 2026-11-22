@@ -1,12 +1,12 @@
 extends Node
-## Autoload "Art": carrega os sprites exportados do jogo HTML (assets/sprites, gerados por
-## tools/export_sprites.py) e entrega os quadros como texturas. Os PNGs não são editados à mão.
+## Autoload "Art": manifesto dos sprites exportados do jogo HTML (assets/sprites/sprites.json, gerado por
+## tools/export_sprites.py), quadros soltos para o HUD (corações, joia, logo) e a fonte. Os personagens usam
+## SpriteFrames (.tres) e o cenário usa TileSet e cenas; os PNGs não são editados à mão.
 
 const DIR := "res://assets/sprites/"
 
 var meta: Dictionary = {}          # nome -> {file, w, h, n, ...} (sprites.json)
 var _frames: Dictionary = {}       # nome -> Array[Texture2D]
-var _images: Dictionary = {}       # nome -> Image (para compor o chão)
 var font: FontFile
 var font_bold: FontVariation
 var font_semi: FontVariation
@@ -48,20 +48,3 @@ func tex(name: String) -> Texture2D:
 
 func size(name: String) -> Vector2i:
 	return Vector2i(int(meta[name].w), int(meta[name].h))
-
-
-func image(name: String) -> Image:
-	if not _images.has(name):
-		var t: Texture2D = load(DIR + meta[name].file)
-		var img := t.get_image()
-		img.convert(Image.FORMAT_RGBA8)
-		_images[name] = img
-	return _images[name]
-
-
-## Carimbos do chão como {nome: Image}, para GroundGen.make_chunk (thread-safe depois de carregados).
-func stamp_images() -> Dictionary:
-	var out := {}
-	for k in ["tuft", "tuft2", "clover", "fW", "fP", "fY", "fB", "peb", "dpeb", "crack", "tall"]:
-		out[k] = image("stamp_" + k)
-	return out
