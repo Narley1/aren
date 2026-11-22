@@ -1,4 +1,10 @@
 {
+ "cloud": {
+  "file": "cloud.png",
+  "h": 120,
+  "n": 1,
+  "w": 220
+ },
  "gem_b": {
   "file": "gem_b.png",
   "h": 6,
@@ -19,75 +25,24 @@
  },
  "goblin_down": {
   "file": "goblin_down.png",
-  "h": 20,
+  "h": 22,
   "n": 4,
-  "w": 20
- },
- "goblin_down_flash": {
-  "file": "goblin_down_flash.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
- },
- "goblin_down_gold": {
-  "file": "goblin_down_gold.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
- },
- "goblin_left": {
-  "file": "goblin_left.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
- },
- "goblin_left_flash": {
-  "file": "goblin_left_flash.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
- },
- "goblin_left_gold": {
-  "file": "goblin_left_gold.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
+  "pad": 1,
+  "w": 22
  },
  "goblin_side": {
   "file": "goblin_side.png",
-  "h": 20,
+  "h": 22,
   "n": 4,
-  "w": 20
- },
- "goblin_side_flash": {
-  "file": "goblin_side_flash.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
- },
- "goblin_side_gold": {
-  "file": "goblin_side_gold.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
+  "pad": 1,
+  "w": 22
  },
  "goblin_up": {
   "file": "goblin_up.png",
-  "h": 20,
+  "h": 22,
   "n": 4,
-  "w": 20
- },
- "goblin_up_flash": {
-  "file": "goblin_up_flash.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
- },
- "goblin_up_gold": {
-  "file": "goblin_up_gold.png",
-  "h": 20,
-  "n": 4,
-  "w": 20
+  "pad": 1,
+  "w": 22
  },
  "heart_empty": {
   "file": "heart_empty.png",
@@ -109,12 +64,6 @@
  },
  "hero_down": {
   "file": "hero_down.png",
-  "h": 24,
-  "n": 4,
-  "w": 18
- },
- "hero_left": {
-  "file": "hero_left.png",
   "h": 24,
   "n": 4,
   "w": 18

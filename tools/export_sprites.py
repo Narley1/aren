@@ -6,10 +6,15 @@ headless (Playwright), injeta um gancho no fim do IIFE (só numa cópia temporá
 os canvases que o próprio jogo gera e grava cada conjunto como uma tira horizontal de quadros do mesmo tamanho.
 
 Saídas (relativas à raiz deste repositório):
-  assets/sprites/*.png        tiras de quadros (herói, goblin, espada, joias, corações, chão, árvores...)
+  assets/sprites/*.png        tiras de quadros (herói, goblin, espada, joias, corações, carimbos do chão, árvores,
+                              nuvem, dígitos de dano...)
   assets/sprites/sprites.json manifesto: nome -> {file, w, h, n, ...}
-  tests/ref/ground_<i>_<j>.png  blocos de chão de referência (o teste compara com o chão gerado no Godot)
+  assets/font/digitos.png     dígitos 3x5 dos números de dano (fonte de imagem)
+  assets/sprites/ground_palette.json  paleta do chão do HTML (GP), usada por tools/make_tileset.py
   tests/ref/html_numbers.json   números do BAL/ET/xpNeed lidos do HTML (o teste compara com Bal.gd)
+
+Os quadros "virado para a esquerda", o clarão branco e o contorno dourado não são exportados: no Godot a esquerda é
+o lado espelhado (flip_h) e o clarão/contorno vêm de um shader (assets/shaders/inimigo.gdshader).
 
     python3 tools/export_sprites.py                         # lê ../aren/src/bosque-do-enxame.html
     python3 tools/export_sprites.py --src /caminho/jogo.html
@@ -21,7 +26,7 @@ DEFAULT_SRC = os.path.normpath(os.path.join(ROOT, '..', 'aren', 'src', 'bosque-d
 
 HOOK = r'''
 window.__EXP = {
-  HERO, ET, SWORDS, SWORD_N, GEM_G, GEM_B, GEM_R, HEART_ROWS, mk, STAMPS, PROP_TYPES, shadow, groundChunk, GCH,
+  HERO, ET, SWORDS, SWORD_N, GEM_G, GEM_B, GEM_R, HEART_ROWS, mk, STAMPS, PROP_TYPES, shadow, GCH, GP, buildCloud,
   BAL, xpNeed, isPickLevel, TT: typeof TT !== 'undefined' ? TT : null, buildLogo, DIG
 };
 '''
@@ -30,27 +35,32 @@ COLLECT = r"""async () => {
   const X = window.__EXP, out = {}, nums = {};
   const url = c => c.toDataURL('image/png');
   // a strip: frames side by side, all frames must share one size (the game anchors by width/height)
-  function strip(name, frames, extra){
-    const w = frames[0].width, h = frames[0].height;
-    for (const f of frames) if (f.width !== w || f.height !== h) throw new Error(name + ': quadros de tamanhos diferentes');
+  // pad = transparent border around each frame (room for the shader outline of elite enemies)
+  function strip(name, frames, extra, pad = 0){
+    const w0 = frames[0].width, h0 = frames[0].height, w = w0 + 2*pad, h = h0 + 2*pad;
+    for (const f of frames) if (f.width !== w0 || f.height !== h0) throw new Error(name + ': quadros de tamanhos diferentes');
     const c = document.createElement('canvas'); c.width = w*frames.length; c.height = h;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    frames.forEach((f, i) => g.drawImage(f, i*w, 0));
-    out[name] = Object.assign({w, h, n: frames.length, png: url(c)}, extra || {});
+    frames.forEach((f, i) => g.drawImage(f, i*w + pad, pad));
+    out[name] = Object.assign({w, h, n: frames.length, png: url(c)}, pad ? {pad} : {}, extra || {});
   }
-  // Aren: 4 directions x 4 walk frames (left = side mirrored, as the game builds it)
-  for (const d of ['down', 'up', 'side', 'left']) strip('hero_' + d, X.HERO[d]);
-  // goblin: normal frames, the white hit-flash copy (EFrame.w) and the gold elite copy (EFrame.g), per direction
+  // Aren: 3 directions x 4 walk frames (left = side mirrored: flip_h in Godot)
+  for (const d of ['down', 'up', 'side']) strip('hero_' + d, X.HERO[d]);
+  // goblin: normal frames per direction (hit flash and elite outline come from a shader in Godot)
   const gob = X.ET.goblin;
-  for (const d of ['down', 'up', 'side', 'left']){
-    strip('goblin_' + d, gob.dirs[d].map(f => f.n));
-    strip('goblin_' + d + '_flash', gob.dirs[d].map(f => f.w));
-    strip('goblin_' + d + '_gold', gob.dirs[d].map(f => f.g));   // elite outline (drawn at 4 offsets behind)
-  }
-  // sword: the 48 pre-rotated sprites (index k = angle k/48 turn), R = half size (drawn at x - R, y - R)
+  for (const d of ['down', 'up', 'side']) strip('goblin_' + d, gob.dirs[d].map(f => f.n), null, 1);
+  // sword: the 48 pre-rotated sprites (index k = angle k/48 turn), R = half size (drawn at x - R, y - R);
+  // in Godot they are the 48 frames of the "girar" animation in assets/sprites/espada.tres
   const set = X.SWORDS.n, rot = [];
   for (let k = 0; k < X.SWORD_N; k++) rot.push(set.get(k));
   strip('sword', rot, {R: set.R});
+  // cloud shadow (drawn at alpha .12, drifting)
+  strip('cloud', [X.buildCloud()]);
+  let digits = null;
+  // damage digits: white 3x5 glyphs in 4x5 cells (image font; the shadow is the Label's shadow)
+  { const c = document.createElement('canvas'); c.width = 40; c.height = 5; const g = c.getContext('2d'); g.fillStyle = '#ffffff';
+    X.DIG.forEach((p, d) => { for (let j = 0; j < 15; j++) if (p[j] === '1') g.fillRect(d*4 + (j % 3), (j/3) | 0, 1, 1); });
+    digits = url(c); }
   strip('gem_g', [X.GEM_G]); strip('gem_b', [X.GEM_B]); strip('gem_r', [X.GEM_R]);
   // HUD hearts, same recipe as heartImg() (it only keeps data URLs)
   const heart = cols => X.mk(X.HEART_ROWS.map(r => r.split('').map((ch, x) => (ch === 'r' || ch === 'w') && x >= cols ? 'k' : ch).join('')),
@@ -67,9 +77,8 @@ COLLECT = r"""async () => {
   // title logo (needs the Pixelify font: wait for it, then build it the game's way)
   try { await document.fonts.load('700 46px "Pixelify Sans"'); await document.fonts.load('600 11px "Pixelify Sans"'); } catch (e) {}
   try { strip('logo', [X.buildLogo()]); } catch (e) { out.__logoError = String(e); }
-  // reference ground chunks (128 px) for the Godot ground test
-  const refs = {};
-  for (const [i, j] of [[0, 0], [-1, 0], [0, -1], [3, -2], [-5, 7]]) refs[i + '_' + j] = url(X.groundChunk(i, j));
+  // ground palette (GP) for the tileset tool
+  const pal = {}; for (const k in X.GP){ const c = X.GP[k]; pal[k] = '#' + [c[0], c[1], c[2]].map(v => v.toString(16).padStart(2, '0')).join(''); }
   // numbers the Godot Bal autoload must match
   const B = X.BAL;
   nums.hero = B.hero; nums.sword = B.sword; nums.xp = B.xp; nums.spawn = B.spawn; nums.horde = B.horde; nums.elite = B.elite;
@@ -78,7 +87,7 @@ COLLECT = r"""async () => {
   nums.xpNeed = []; for (let L = 1; L <= 30; L++) nums.xpNeed.push(X.xpNeed(L));
   nums.pickLevels = []; for (let L = 2; L <= 30; L++) if (X.isPickLevel(L)) nums.pickLevels.push(L);
   nums.swordN = X.SWORD_N; nums.GCH = X.GCH; nums.DIG = X.DIG;
-  return {out, refs, nums};
+  return {out, pal, nums, digits};
 }"""
 
 
@@ -115,10 +124,11 @@ async def main():
         open(os.path.join(a.out, fn), 'wb').write(base64.b64decode(d.pop('png').split(',', 1)[1]))
         manifest[name] = dict(file=fn, **d)
     json.dump(manifest, open(os.path.join(a.out, 'sprites.json'), 'w'), indent=1, sort_keys=True)
-    for k, u in r['refs'].items():
-        open(os.path.join(a.ref, f'ground_{k}.png'), 'wb').write(base64.b64decode(u.split(',', 1)[1]))
+    json.dump(r['pal'], open(os.path.join(a.out, 'ground_palette.json'), 'w'), indent=1, sort_keys=True)
+    # fonte de imagem dos números de dano (importada pelo Godot como FontFile: digitos.png.import)
+    open(os.path.join(ROOT, 'assets', 'font', 'digitos.png'), 'wb').write(base64.b64decode(r['digits'].split(',', 1)[1]))
     json.dump(r['nums'], open(os.path.join(a.ref, 'html_numbers.json'), 'w'), indent=1, sort_keys=True)
-    print(f'{len(manifest)} sprites em {a.out}; {len(r["refs"])} blocos de chão e html_numbers.json em {a.ref}')
+    print(f'{len(manifest)} sprites e ground_palette.json em {a.out}; html_numbers.json em {a.ref}')
 
 
 if __name__ == '__main__':
